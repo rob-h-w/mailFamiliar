@@ -15,8 +15,12 @@ export default class Synchronizer {
     this.users = await this.persistence.listUsers();
 
     this.imaps = [];
-    this.users.forEach((user) => {
-      this.imaps.push(new Imap(user));
-    });
+
+    for (let i = 0; i < this.users.length; i++) {
+      const user: User = this.users[i];
+      const imap = new Imap(user);
+      await imap.init();
+      this.imaps.push(imap);
+    }
   }
 };

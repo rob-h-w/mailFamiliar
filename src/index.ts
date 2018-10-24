@@ -23,6 +23,12 @@ export async function startServer() {
     handleError(reason);
   });
 
+  logger.info('initializing workers');
+
+  await glue.init();
+
+  logger.info('creating HTTP server');
+
   const server:any = Hapi.server({
     port: 8080
   });
@@ -30,10 +36,6 @@ export async function startServer() {
   server.events.on('log', (event, tags) => {
     logger.info({ event, tags, });
   });
-
-  logger.info('initializing workers');
-
-  await glue.init();
 
   logger.info('starting HTTP server');
 

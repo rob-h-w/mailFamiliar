@@ -36,7 +36,9 @@ describe('Synchronizer', () => {
       listUsers: sinon.stub().resolves([user])
     };
 
-    imap = {};
+    imap = {
+      init: sinon.stub().resolves()
+    };
     Imap = sinon.stub().returns(imap);
 
     mockery.registerMock('./imap', { default: Imap });

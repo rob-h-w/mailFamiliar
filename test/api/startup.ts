@@ -13,7 +13,7 @@ const SERVER = path.join(ROOT, 'src', 'index');
 
 let fsStubs: any;
 let imap: Function;
-let imapObj: Object;
+let imapObj: any;
 let startServer: Function;
 
 process.env.M_FAMILIAR_STORAGE = '/storage';
@@ -61,15 +61,17 @@ describe('startup logging', () => {
     mockery.registerMock('fs', fsStubs);
 
     imapObj = {
+      connect: sinon.stub(),
       once: sinon.stub()
     };
     imap = sinon.stub().returns(imapObj);
     mockery.registerMock('imap', imap);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (server) {
-      server.stop();
+      await server.stop();
+      server = null;
     }
 
     _.functions(fsStubs).forEach((f) => {
@@ -116,6 +118,9 @@ describe('startup logging', () => {
   });
 
   describe('startServer', () => {
+    let eventHandlers;
+    let serverPromise: Promise<any>;
+
     beforeEach(async () => {
       ({ startServer } = require(SERVER));
 
@@ -129,12 +134,41 @@ describe('startup logging', () => {
 
       fsStubs.readFileSync.withArgs(USER_PATH).returns(JSON.stringify(USER_SETTINGS));
 
-      server = await startServer();
+      eventHandlers = {};
+
+      serverPromise = startServer();
+
+      await new Promise((resolve) => {
+        setTimeout(
+          () => {
+            imapObj.once.args.forEach((args) => {
+              expect(args.length).to.equal(2);
+              eventHandlers[args[0]] = args[1];
+            });
+            resolve();
+          },
+          10);
+      });
     });
 
-    it('returns an object', () => {
-      expect(server).to.exist();
-      expect(server).to.be.an.object();
+    it('registers an error handler', () => {
+      expect(eventHandlers.error).to.be.a.function();
+    });
+
+    it('registers a ready handler', () => {
+      expect(eventHandlers.ready).to.be.a.function();
+    });
+
+    describe('success', () => {
+      beforeEach(async () => {
+        eventHandlers.ready();
+        server = await serverPromise;
+      });
+
+      it('returns an object', () => {
+        expect(server).to.exist();
+        expect(server).to.be.an.object();
+      });
     });
   });
 });
