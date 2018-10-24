@@ -20,7 +20,7 @@ if (!file.existsSync(LOG_FOLDER)) {
   file.mkdirSync(LOG_DIR);
 }
 
-export const logger = bunyan.createLogger({
+const logger = bunyan.createLogger({
   name,
   src: true,
   streams: [{
@@ -35,3 +35,5 @@ export const logger = bunyan.createLogger({
     stream: process.stdout
   }]
 });
+
+export default logger;

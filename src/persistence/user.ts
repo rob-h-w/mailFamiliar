@@ -1,4 +1,4 @@
-export interface User {
+export default interface User {
   readonly host: string;
   readonly password: string;
   readonly port: number;

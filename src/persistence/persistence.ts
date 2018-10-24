@@ -1,7 +1,7 @@
-import { Box } from './box';
-import { User } from './user';
+import Box from './box';
+import User from './user';
 
-export interface Persistence {
+export default interface Persistence {
   init(parameters): Promise<void>;
 
   createUser(user: User): Promise<void>;

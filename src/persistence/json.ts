@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { Persistence } from ".";
-import { User } from './user';
-import { Box } from './box';
+import Persistence from "./persistence";
+import User from './user';
+import Box from './box';
 
-export class Json implements Persistence {
+export default class Json implements Persistence {
   private contentsFolder: string;
 
   async init(contentsFolder: string) {

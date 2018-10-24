@@ -1,8 +1,8 @@
 const ImapImpl:any = require('imap');
 
-import { logger } from '../logger';
+import logger from '../logger';
 
-export class Imap {
+export default class Imap {
   private connectionPromise: Promise<void>;
   private impl: any;
   private parameters: Object;

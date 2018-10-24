@@ -1,8 +1,9 @@
 import * as env from 'env-var';
 
-import { Imap } from './imap';
-import { Json, Persistence } from './persistence';
-import { Synchronizer } from './imap/synchronizer';
+import Imap from './imap/imap';
+import Synchronizer from './imap/synchronizer';
+import Persistence from './persistence/persistence';
+import Json from './persistence/json';
 
 class Glue {
   readonly persistence: Persistence;

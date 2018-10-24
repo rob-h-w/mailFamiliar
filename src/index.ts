@@ -1,7 +1,7 @@
 import Hapi = require('hapi');
 
 import glue from './glue';
-import { logger } from './logger';
+import logger from './logger';
 
 declare const process:any;
 declare const __filename:string;

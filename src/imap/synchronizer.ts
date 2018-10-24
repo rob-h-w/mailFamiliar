@@ -1,7 +1,8 @@
-import { Persistence, User } from '../persistence';
-import { Imap } from '.';
+import Imap from './imap';
+import Persistence from '../persistence/persistence';
+import User from '../persistence/user';
 
-export class Synchronizer {
+export default class Synchronizer {
   private imaps: Array<Imap>;
   private persistence: Persistence;
   private users: Array<User>;

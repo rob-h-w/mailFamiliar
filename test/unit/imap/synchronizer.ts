@@ -3,7 +3,8 @@ const { afterEach, beforeEach, describe, it } = exports.lab = require('lab').scr
 const mockery = require('mockery');
 const sinon = require('sinon');
 
-import { Persistence, User } from "../../../src/persistence";
+import Persistence from "../../../src/persistence/persistence";
+import User from '../../../src/persistence/user';
 
 let Imap;
 let imap;
@@ -38,11 +39,11 @@ describe('Synchronizer', () => {
     imap = {};
     Imap = sinon.stub().returns(imap);
 
-    mockery.registerMock('.', { Imap });
+    mockery.registerMock('./imap', { default: Imap });
 
     mockery.registerAllowable('../../../src/imap/synchronizer');
 
-    ({ Synchronizer } = require('../../../src/imap/synchronizer'));
+    Synchronizer = require('../../../src/imap/synchronizer').default;
   });
 
   afterEach(() => {

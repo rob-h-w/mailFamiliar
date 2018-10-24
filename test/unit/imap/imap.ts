@@ -36,11 +36,11 @@ describe('imap', () => {
     };
 
     mockery.registerMock('imap', ImapImpl);
-    mockery.registerMock('../logger', { logger });
+    mockery.registerMock('../logger', { default: logger });
 
-    mockery.registerAllowable('../../../src/imap');
+    mockery.registerAllowable('../../../src/imap/imap');
 
-    ({ Imap } = require('../../../src/imap'));
+    Imap = require('../../../src/imap/imap').default;
   });
 
   afterEach(() => {
