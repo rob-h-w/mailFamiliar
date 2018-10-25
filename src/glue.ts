@@ -1,7 +1,7 @@
 import * as env from 'env-var';
 
 import Imap from './imap/imap';
-import Synchronizer from './imap/synchronizer';
+import Synchronizer from './engine/synchronizer';
 import Persistence from './persistence/persistence';
 import Json from './persistence/json';
 

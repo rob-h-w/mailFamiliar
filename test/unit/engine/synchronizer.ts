@@ -10,6 +10,8 @@ let Imap;
 let imap;
 let persistence: Persistence;
 let user: User;
+let UserConnection;
+let userConnection;
 
 let Synchronizer;
 let synchronizer;
@@ -32,20 +34,24 @@ describe('Synchronizer', () => {
       createBox: sinon.stub(),
       createUser: sinon.stub(),
       init: sinon.stub(),
-      listBoxes: sinon.stub(),
+      listBoxes: sinon.stub().resolves([]),
       listUsers: sinon.stub().resolves([user])
     };
+
+    userConnection = {};
+    UserConnection = sinon.stub().returns(userConnection);
 
     imap = {
       init: sinon.stub().resolves()
     };
     Imap = sinon.stub().returns(imap);
 
-    mockery.registerMock('./imap', { default: Imap });
+    mockery.registerMock('../imap/imap', { default: Imap });
+    mockery.registerMock('./userConnection', { default: UserConnection });
 
-    mockery.registerAllowable('../../../src/imap/synchronizer');
+    mockery.registerAllowable('../../../src/engine/synchronizer');
 
-    Synchronizer = require('../../../src/imap/synchronizer').default;
+    Synchronizer = require('../../../src/engine/synchronizer').default;
   });
 
   afterEach(() => {
@@ -81,6 +87,11 @@ describe('Synchronizer', () => {
     it('creates an Imap connection object for the user', () => {
       expect(Imap.called).to.be.true();
       expect(Imap.firstCall.args).to.equal([user]);
+    });
+
+    it('creates a UserConnection object for the Imap connection', () => {
+      expect(UserConnection.called).to.be.true();
+      expect(UserConnection.firstCall.args).to.equal([imap, []]);
     });
   });
 });

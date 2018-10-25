@@ -3,6 +3,7 @@ const ImapImpl:any = require('imap');
 import logger from '../logger';
 
 export default class Imap {
+  private boxes: Object;
   private connectionPromise: Promise<void>;
   private impl: any;
   private parameters: Object;
@@ -52,7 +53,26 @@ export default class Imap {
   }
 
   public async init() {
-    this.impl.connect();
-    await this.connectionPromise;
+    const self = this;
+    self.impl.connect();
+    await self.connectionPromise;
+    await new Promise((resolve, reject) => {
+      self.impl.getBoxes((err: Object, boxes: Object) => {
+        if (err) {
+          return reject(err);
+        }
+
+        self.boxes = boxes;
+        resolve();
+      })
+    });
+  }
+
+  public get mailBoxes(): Object {
+    if (!this.boxes) {
+      throw new Error('Imap must be initialized!');
+    }
+
+    return this.boxes;
   }
 };

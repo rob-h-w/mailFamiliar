@@ -1,4 +1,4 @@
-import Box from './box';
+import Box from '../engine/box';
 import User from './user';
 
 export default interface Persistence {

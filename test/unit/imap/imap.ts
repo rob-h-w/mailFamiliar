@@ -25,6 +25,7 @@ describe('imap', () => {
 
     imapImpl = {
       connect: sinon.stub(),
+      getBoxes: sinon.stub(),
       once: sinon.stub()
     };
     ImapImpl = sinon.stub().returns(imapImpl);
@@ -82,13 +83,21 @@ describe('imap', () => {
       expect(logger.warn.called).to.be.false();
     });
 
+    describe('uninitialized throws on', () => {
+      it('get mailboxes', () => {
+        expect(() => {
+          imap.mailBoxes;
+        }).to.throw();
+      });
+    });
+
     describe('init', () => {
-      let connectionPromise:Promise<void>;
+      let imapInitPromise:Promise<void>;
       let error: Error;
 
       beforeEach(() => {
         error = new Error();
-        connectionPromise = imap.init();
+        imapInitPromise = imap.init();
       });
 
       it('tries to connect', () => {
@@ -100,28 +109,49 @@ describe('imap', () => {
         expect(logger.warn.called).to.be.false();
       });
 
-      describe('failure', () => {
+      describe('failing', () => {
         let rejection;
 
-        beforeEach(() => {
-          connectionPromise.catch((e) => {
-            rejection = e;
+        describe('connection', () => {
+          beforeEach(() => {
+            imapInitPromise.catch((e) => {
+              rejection = e;
+            });
+            imapEvents.error(error);
           });
-          imapEvents.error(error);
-        });
 
-        it('rejects the init promise', () => {
-          expect(rejection).to.equal(error);
+          it('rejects the init promise', () => {
+            expect(rejection).to.equal(error);
+          });
         });
       });
 
       describe('success', () => {
-        beforeEach(() => {
+        const boxes = {
+          INBOX: {
+            attribs: [ '\\HasNoChildren' ],
+            children: null,
+            delimiter: '/',
+            parent: null
+          }
+        };
+
+        beforeEach(async () => {
+          imapImpl.getBoxes.callsFake((callback) => {
+            callback(null, boxes);
+          });
+
           imapEvents.ready();
+          await imapInitPromise;
+          imapImpl.getBoxes.firstCall.args[0](null, boxes);
         });
 
-        it('resolves the init promise', async () => {
-          await connectionPromise;
+        it('lists the mailboxes for the user', () => {
+          expect(imapImpl.getBoxes.called).to.be.true();
+        });
+
+        it('exposes the user\'s mailboxes', () => {
+          expect(imap.mailBoxes).to.equal(boxes);
         });
       });
 

@@ -3,7 +3,7 @@ import * as path from 'path';
 
 import Persistence from "./persistence";
 import User from './user';
-import Box from './box';
+import Box from '../engine/box';
 
 export default class Json implements Persistence {
   private contentsFolder: string;
