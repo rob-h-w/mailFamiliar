@@ -133,6 +133,10 @@ describe('startup logging', () => {
         }
       });
 
+      fsStubs.statSync.withArgs('/storage/user.json').returns({
+        isFile: sinon.stub().returns(true)
+      });
+
       fsStubs.readFileSync.withArgs(USER_PATH).returns(JSON.stringify(USER_SETTINGS));
 
       eventHandlers = {};

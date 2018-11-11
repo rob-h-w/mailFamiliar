@@ -1,13 +1,14 @@
+import Box from '../imap/box';
 import Imap from '../imap/imap';
-import Persistence from '../persistence/persistence';
+import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
-import UserConnection from './userConnection';
+import UserConnection from '../imap/userConnection';
 
 export default class Synchronizer {
-  private readonly persistence: Persistence;
+  private readonly persistence: IPersistence;
   private readonly userConnections: Array<UserConnection>;
 
-  constructor (persistence: Persistence) {
+  constructor (persistence: IPersistence) {
     this.persistence = persistence;
     this.userConnections = [];
   }
@@ -17,10 +18,9 @@ export default class Synchronizer {
 
     for (let i = 0; i < users.length; i++) {
       const user: User = users[i];
-      const imap = new Imap(user);
+      const imap: Imap = new Imap(user);
       await imap.init();
-      const persistedBoxes = await this.persistence.listBoxes(user);
-      this.userConnections.push(new UserConnection(imap, persistedBoxes));
+      this.userConnections.push(await UserConnection.create(imap, this.persistence));
     }
   }
 };

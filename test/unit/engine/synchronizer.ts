@@ -3,12 +3,12 @@ const { afterEach, beforeEach, describe, it } = exports.lab = require('lab').scr
 const mockery = require('mockery');
 const sinon = require('sinon');
 
-import Persistence from "../../../src/persistence/persistence";
+import IPersistence from "../../../src/persistence/persistence";
 import User from '../../../src/persistence/user';
 
 let Imap;
 let imap;
-let persistence: Persistence;
+let persistence: IPersistence;
 let user: User;
 let UserConnection;
 let userConnection;
@@ -31,7 +31,8 @@ describe('Synchronizer', () => {
       tls: true
     };
     persistence = {
-      createBox: sinon.stub(),
+      deleteBox: sinon.stub().resolves(),
+      createBox: sinon.stub().resolves(),
       createUser: sinon.stub(),
       init: sinon.stub(),
       listBoxes: sinon.stub().resolves([]),
@@ -39,7 +40,8 @@ describe('Synchronizer', () => {
     };
 
     userConnection = {};
-    UserConnection = sinon.stub().returns(userConnection);
+    UserConnection = sinon.stub();
+    UserConnection.create = sinon.stub().returns(userConnection);
 
     imap = {
       init: sinon.stub().resolves()
@@ -47,7 +49,7 @@ describe('Synchronizer', () => {
     Imap = sinon.stub().returns(imap);
 
     mockery.registerMock('../imap/imap', { default: Imap });
-    mockery.registerMock('./userConnection', { default: UserConnection });
+    mockery.registerMock('../imap/userConnection', { default: UserConnection });
 
     mockery.registerAllowable('../../../src/engine/synchronizer');
 
@@ -90,8 +92,8 @@ describe('Synchronizer', () => {
     });
 
     it('creates a UserConnection object for the Imap connection', () => {
-      expect(UserConnection.called).to.be.true();
-      expect(UserConnection.firstCall.args).to.equal([imap, []]);
+      expect(UserConnection.create.called).to.be.true();
+      expect(UserConnection.create.firstCall.args).to.equal([imap, persistence]);
     });
   });
 });

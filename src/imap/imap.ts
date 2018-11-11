@@ -1,15 +1,19 @@
 const ImapImpl:any = require('imap');
 
+import Box from './box';
+import { ImapBoxList } from './imapBox';
 import logger from '../logger';
+import User from '../persistence/user';
 
 export default class Imap {
-  private boxes: Object;
+  private boxes: ImapBoxList;
   private connectionPromise: Promise<void>;
   private impl: any;
-  private parameters: Object;
+
+  public readonly user: User;
 
   private createImpl() {
-    this.impl = new ImapImpl(this.parameters);
+    this.impl = new ImapImpl(this.user);
     let resolve: Function;
     let reject: Function;
 
@@ -19,6 +23,23 @@ export default class Imap {
     });
 
     const self:Imap = this;
+    [
+      'alert',
+      'close',
+      'end',
+      'expunge',
+      'mail',
+      'uidvalidity',
+      'update'
+    ].forEach((event) => {
+      self.impl.once(event, (...args) => {
+        logger.error({
+          args,
+          event
+        });
+      });
+    });
+
     this.impl.once('error', (error: Error) => {
       logger.error(error);
 
@@ -47,9 +68,13 @@ export default class Imap {
     });
   }
 
-  public constructor (parameters) {
-    this.parameters = parameters;
+  public constructor (user: User) {
+    this.user = user;
     this.createImpl();
+  }
+
+  public get delimiter(): string {
+    return this.impl.delimiter;
   }
 
   public async init() {
@@ -57,7 +82,7 @@ export default class Imap {
     self.impl.connect();
     await self.connectionPromise;
     await new Promise((resolve, reject) => {
-      self.impl.getBoxes((err: Object, boxes: Object) => {
+      self.impl.getBoxes((err: Object, boxes: ImapBoxList) => {
         if (err) {
           return reject(err);
         }
@@ -68,11 +93,23 @@ export default class Imap {
     });
   }
 
-  public get mailBoxes(): Object {
+  public get mailBoxes(): ImapBoxList {
     if (!this.boxes) {
       throw new Error('Imap must be initialized!');
     }
 
     return this.boxes;
+  }
+
+  public async openBox(name: string, readonly: boolean): Promise<Box> {
+    return new Promise<Box>((resolve, reject) => {
+      imap.openBox(name, readonly, (err, box) => {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve(box);
+      });
+    });
   }
 };
