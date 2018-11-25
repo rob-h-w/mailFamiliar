@@ -1,26 +1,24 @@
-import Box from '../imap/box';
 import Imap from '../imap/imap';
+import UserConnection from '../imap/userConnection';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
-import UserConnection from '../imap/userConnection';
 
 export default class Synchronizer {
   private readonly persistence: IPersistence;
-  private readonly userConnections: Array<UserConnection>;
+  private readonly userConnections: UserConnection[];
 
-  constructor (persistence: IPersistence) {
+  constructor(persistence: IPersistence) {
     this.persistence = persistence;
     this.userConnections = [];
   }
 
   public async init() {
-    const users: Array<User> = await this.persistence.listUsers();
+    const users: User[] = await this.persistence.listUsers();
 
-    for (let i = 0; i < users.length; i++) {
-      const user: User = users[i];
+    for (const user of users) {
       const imap: Imap = new Imap(user);
       await imap.init();
       this.userConnections.push(await UserConnection.create(imap, this.persistence));
     }
   }
-};
+}

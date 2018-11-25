@@ -1,26 +1,27 @@
-const { expect } = require('code');
-const { afterEach, beforeEach, describe, it } = exports.lab = require('lab').script();
-const mockery = require('mockery');
-const sinon = require('sinon');
+import {expect} from 'code';
+const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
+import * as mockery from 'mockery';
+import * as sinon from 'sinon';
 
 const parameters = {
-  user: 'rob@example.com',
-  password: '123',
   host: 'imap.example.com',
+  password: '123',
   port: 143,
-  tls: true
+  tls: true,
+  user: 'rob@example.com'
 };
 
-let Imap;
-let ImapImpl;
-let imapImpl;
-let logger;
+let Imap: any;
+let ImapImpl: any;
+let imapImpl: any;
+let logger: any;
 
 describe('imap', () => {
   beforeEach(() => {
     mockery.enable({
       useCleanCache: true,
-      warnOnReplace: false
+      warnOnReplace: false,
+      warnOnUnregistered: false
     });
 
     imapImpl = {
@@ -37,9 +38,7 @@ describe('imap', () => {
     };
 
     mockery.registerMock('imap', ImapImpl);
-    mockery.registerMock('../logger', { default: logger });
-
-    mockery.registerAllowable('../../../src/imap/imap');
+    mockery.registerMock('../logger', {default: logger});
 
     Imap = require('../../../src/imap/imap').default;
   });
@@ -54,13 +53,13 @@ describe('imap', () => {
   });
 
   describe('new instance', () => {
-    let imap;
-    let imapEvents;
+    let imap: any;
+    let imapEvents: any;
 
     beforeEach(() => {
       imap = new Imap(parameters);
       imapEvents = {};
-      imapImpl.once.args.map(array => {
+      imapImpl.once.args.map((array: any) => {
         imapEvents[array[0]] = array[1];
       });
     });
@@ -86,13 +85,14 @@ describe('imap', () => {
     describe('uninitialized throws on', () => {
       it('get mailboxes', () => {
         expect(() => {
+          // tslint:disable-next-line:no-unused-expression
           imap.mailBoxes;
         }).to.throw();
       });
     });
 
     describe('init', () => {
-      let imapInitPromise:Promise<void>;
+      let imapInitPromise: Promise<void>;
       let error: Error;
 
       beforeEach(() => {
@@ -102,19 +102,19 @@ describe('imap', () => {
 
       it('tries to connect', () => {
         expect(imapImpl.connect.calledOnce).to.be.true();
-      })
+      });
 
-      it('warns that there\'s no handler on subsequent ready event', () => {
+      it("warns that there's no handler on subsequent ready event", () => {
         imapEvents.ready();
         expect(logger.warn.called).to.be.false();
       });
 
       describe('failing', () => {
-        let rejection;
+        let rejection: any;
 
         describe('connection', () => {
           beforeEach(() => {
-            imapInitPromise.catch((e) => {
+            imapInitPromise.catch(e => {
               rejection = e;
             });
             imapEvents.error(error);
@@ -129,7 +129,7 @@ describe('imap', () => {
       describe('success', () => {
         const boxes = {
           INBOX: {
-            attribs: [ '\\HasNoChildren' ],
+            attribs: ['\\HasNoChildren'],
             children: null,
             delimiter: '/',
             parent: null
@@ -137,7 +137,7 @@ describe('imap', () => {
         };
 
         beforeEach(async () => {
-          imapImpl.getBoxes.callsFake((callback) => {
+          imapImpl.getBoxes.callsFake((callback: (err: Error | null, boxes: any) => void) => {
             callback(null, boxes);
           });
 
@@ -150,7 +150,7 @@ describe('imap', () => {
           expect(imapImpl.getBoxes.called).to.be.true();
         });
 
-        it('exposes the user\'s mailboxes', () => {
+        it("exposes the user's mailboxes", () => {
           expect(imap.mailBoxes).to.equal(boxes);
         });
       });
@@ -160,12 +160,12 @@ describe('imap', () => {
           imapEvents.ready();
         });
 
-        it('warns that there\'s no handler on subsequent ready event', () => {
+        it("warns that there's no handler on subsequent ready event", () => {
           imapEvents.ready();
           expect(logger.warn.called).to.be.true();
         });
 
-        it('warns that there\'s no error handler on subsequent error', () => {
+        it("warns that there's no error handler on subsequent error", () => {
           imapEvents.error(error);
           expect(logger.warn.called).to.be.true();
         });

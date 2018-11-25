@@ -2,15 +2,19 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import IPersistence from "./persistence";
+import {IInitializablePersistence} from './persistence';
 import User from './user';
 import Box from '../imap/box';
 
 function hashOf(value: string): string {
-  return crypto.createHash('sha256').update(value).digest().toString('hex');
+  return crypto
+    .createHash('sha256')
+    .update(value)
+    .digest()
+    .toString('hex');
 }
 
-export default class Json implements IPersistence {
+export default class Json implements IInitializablePersistence<string> {
   private contentsFolder: string;
 
   public userDataRoot(user: User): string {
@@ -26,14 +30,12 @@ export default class Json implements IPersistence {
   }
 
   private boxPath(user: User, box: Box): string {
-    return path.join(
-      this.userDataRoot(user),
-      `${this.boxName(box)}.json`);
+    return path.join(this.userDataRoot(user), `${this.boxName(box)}.json`);
   }
 
-  async createUser(user: User) {}
-  async listUsers(): Promise<Array<User> > {
-    return new Promise<Array<User> >((resolve, reject) => {
+  async createUser() {}
+  async listUsers(): Promise<Array<User>> {
+    return new Promise<Array<User>>((resolve, reject) => {
       fs.readdir(this.contentsFolder, (err, files) => {
         if (err) {
           return reject(err);
@@ -41,7 +43,7 @@ export default class Json implements IPersistence {
 
         const users: Array<User> = [];
 
-        files.forEach((file) => {
+        files.forEach(file => {
           const userPath = path.join(this.contentsFolder, file);
           if (fs.statSync(userPath).isFile()) {
             users.push(JSON.parse(fs.readFileSync(userPath).toString()));
@@ -60,7 +62,7 @@ export default class Json implements IPersistence {
         fs.mkdirSync(folder);
       }
 
-      fs.writeFile(this.boxPath(user, box), JSON.stringify(box, null, 2), { flag: 'w' }, (err) => {
+      fs.writeFile(this.boxPath(user, box), JSON.stringify(box, null, 2), {flag: 'w'}, err => {
         if (err) {
           return reject(err);
         }
@@ -72,7 +74,7 @@ export default class Json implements IPersistence {
 
   async deleteBox(user: User, box: Box) {
     return new Promise<void>((resolve, reject) => {
-      fs.unlink(this.boxPath(user, box), (err) => {
+      fs.unlink(this.boxPath(user, box), err => {
         if (err) {
           if (err.code && err.code === 'ENOENT') {
             return resolve();
@@ -82,11 +84,11 @@ export default class Json implements IPersistence {
         }
 
         resolve();
-      })
+      });
     });
   }
 
-  async listBoxes(user: User): Promise<Array<Box> > {
+  async listBoxes(user: User): Promise<Array<Box>> {
     return new Promise<Array<Box>>((resolve, reject) => {
       const userDataRoot: string = this.userDataRoot(user);
       fs.readdir(userDataRoot, (err, files) => {
@@ -100,12 +102,12 @@ export default class Json implements IPersistence {
 
         const boxes: Array<Box> = [];
 
-        files.forEach((file) => {
+        files.forEach(file => {
           boxes.push(JSON.parse(fs.readFileSync(path.join(userDataRoot, file)).toString()));
-        })
+        });
 
         resolve(boxes);
       });
     });
   }
-};
+}

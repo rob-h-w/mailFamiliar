@@ -1,18 +1,19 @@
-const { expect } = require('code');
-const { afterEach, beforeEach, describe, it } = exports.lab = require('lab').script();
-const mockery = require('mockery');
-const sinon = require('sinon');
+import {expect} from 'code';
+const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
+import * as mockery from 'mockery';
+import * as sinon from 'sinon';
 
-let imap;
-let persistence;
-let UserConnection;
-let userConnection;
+let imap: any;
+let persistence: any;
+let UserConnection: any;
+let userConnection: any;
 
 describe('userConnection', () => {
   beforeEach(() => {
     mockery.enable({
       useCleanCache: true,
-      warnOnReplace: false
+      warnOnReplace: false,
+      warnOnUnregistered: false
     });
 
     imap = {
@@ -21,7 +22,6 @@ describe('userConnection', () => {
     };
 
     mockery.registerAllowable('../../../src/imap/userConnection');
-    mockery.registerAllowable('./box');
 
     UserConnection = require('../../../src/imap/userConnection').default;
   });
@@ -91,9 +91,7 @@ describe('userConnection', () => {
         imap.mailBoxes = {
           INBOX: {}
         };
-        persistence.listBoxes.returns([
-          deletedBox
-        ]);
+        persistence.listBoxes.returns([deletedBox]);
         userConnection = await UserConnection.create(imap, persistence);
       });
 

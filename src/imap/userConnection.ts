@@ -1,9 +1,14 @@
 import Box from './box';
 import Imap from './imap';
-import { ImapBox, ImapBoxList } from './imapBox';
+import {ImapBox, ImapBoxList} from './imapBox';
 import IPersistence from '../persistence/persistence';
 
-function collectMailboxes(delimiter: string, parent: Box, boxRoot: ImapBoxList, boxList: Array<Box>) {
+function collectMailboxes(
+  delimiter: string,
+  boxRoot: ImapBoxList,
+  boxList: Array<Box>,
+  parent?: Box
+) {
   Object.keys(boxRoot).forEach((name: string) => {
     const boxObject: ImapBox = boxRoot[name];
     const nextDelimiter: string = boxObject.delimiter || '/';
@@ -21,7 +26,7 @@ function collectMailboxes(delimiter: string, parent: Box, boxRoot: ImapBoxList, 
     boxList.push(box);
 
     if (boxObject.children) {
-      collectMailboxes(box.delimiter, box, boxObject.children, boxList);
+      collectMailboxes(box.delimiter, boxObject.children, boxList, box);
     }
   });
 }
@@ -50,10 +55,9 @@ export default class UserConnection {
   }
 
   private async init(persistedBoxes: Array<Box>) {
-
     const discoveredBoxes: Array<Box> = [];
 
-    collectMailboxes(this.imap.delimiter, null, this.imap.mailBoxes, discoveredBoxes);
+    collectMailboxes(this.imap.delimiter, this.imap.mailBoxes, discoveredBoxes);
 
     for (let i: number = persistedBoxes.length - 1; i > -1; i--) {
       const persistedBox = persistedBoxes[i];
@@ -71,16 +75,14 @@ export default class UserConnection {
     }
 
     // discoveredBoxes were not persisted already.
-    for (let i: number = 0; i < discoveredBoxes.length; i++) {
-      const discoveredBox = discoveredBoxes[i];
+    for (const discoveredBox of discoveredBoxes) {
       await this.persistence.createBox(this.imap.user, discoveredBox);
       this.mailBoxes.push(discoveredBox);
-    };
+    }
 
     // persistedBoxes were persisted before but have now been deleted online.
-    for (let i: number = 0; i < persistedBoxes.length; i++) {
-      const persistedBox = persistedBoxes[i];
+    for (const persistedBox of persistedBoxes) {
       await this.persistence.deleteBox(this.imap.user, persistedBox);
-    };
+    }
   }
-};
+}

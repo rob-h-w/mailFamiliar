@@ -1,40 +1,40 @@
-const { expect } = require('code');
-const { afterEach, beforeEach, describe, it } = exports.lab = require('lab').script();
-const mockery = require('mockery');
-const sinon = require('sinon');
+import {expect} from 'code';
+const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
+import * as mockery from 'mockery';
+import * as sinon from 'sinon';
 
-import IPersistence from "../../../src/persistence/persistence";
+import IPersistence from '../../../src/persistence/persistence';
 import User from '../../../src/persistence/user';
 
-let Imap;
-let imap;
+let Imap: any;
+let imap: any;
 let persistence: IPersistence;
 let user: User;
-let UserConnection;
-let userConnection;
+let UserConnection: any;
+let userConnection: any;
 
-let Synchronizer;
-let synchronizer;
+let Synchronizer: any;
+let synchronizer: any;
 
 describe('Synchronizer', () => {
   beforeEach(() => {
     mockery.enable({
       useCleanCache: true,
-      warnOnReplace: false
+      warnOnReplace: false,
+      warnOnUnregistered: false
     });
 
     user = {
-      user: 'rob@example.com',
-      password: '000',
       host: 'imap.example.com',
+      password: '000',
       port: 143,
-      tls: true
+      tls: true,
+      user: 'rob@example.com'
     };
     persistence = {
-      deleteBox: sinon.stub().resolves(),
       createBox: sinon.stub().resolves(),
       createUser: sinon.stub(),
-      init: sinon.stub(),
+      deleteBox: sinon.stub().resolves(),
       listBoxes: sinon.stub().resolves([]),
       listUsers: sinon.stub().resolves([user])
     };
@@ -48,10 +48,8 @@ describe('Synchronizer', () => {
     };
     Imap = sinon.stub().returns(imap);
 
-    mockery.registerMock('../imap/imap', { default: Imap });
-    mockery.registerMock('../imap/userConnection', { default: UserConnection });
-
-    mockery.registerAllowable('../../../src/engine/synchronizer');
+    mockery.registerMock('../imap/imap', {default: Imap});
+    mockery.registerMock('../imap/userConnection', {default: UserConnection});
 
     Synchronizer = require('../../../src/engine/synchronizer').default;
   });
@@ -83,7 +81,7 @@ describe('Synchronizer', () => {
     });
 
     it('lists the users', () => {
-      expect((<any> persistence.listUsers).called).to.be.true();
+      expect((persistence.listUsers as sinon.SinonStub).called).to.be.true();
     });
 
     it('creates an Imap connection object for the user', () => {

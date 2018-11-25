@@ -1,25 +1,25 @@
-import Hapi = require('hapi');
+import * as Hapi from 'hapi';
 
 import glue from './glue';
 import logger from './logger';
 
-declare const process:any;
-declare const __filename:string;
+declare const process: any;
+declare const __filename: string;
 
-function handleError(reason) {
+function handleError(reason: Error) {
   logger.error(reason);
   setTimeout(() => {
     process.exit(1);
   }, 10);
 }
 
-export async function startServer():Promise<object>;
+export async function startServer(): Promise<object>;
 export async function startServer() {
-  process.on('uncaughtException', (reason) => {
+  process.on('uncaughtException', (reason: Error) => {
     handleError(reason);
   });
 
-  process.on('unhandledRejection', (reason) => {
+  process.on('unhandledRejection', (reason: Error) => {
     handleError(reason);
   });
 
@@ -29,12 +29,12 @@ export async function startServer() {
 
   logger.info('creating HTTP server');
 
-  const server:any = Hapi.server({
+  const server: Hapi.Server = new Hapi.Server({
     port: 8080
   });
 
-  server.events.on('log', (event, tags) => {
-    logger.info({ event, tags, });
+  server.events.on('log', (event: Hapi.LogEvent, tags: {[key: string]: true}) => {
+    logger.info({event, tags});
   });
 
   logger.info('starting HTTP server');

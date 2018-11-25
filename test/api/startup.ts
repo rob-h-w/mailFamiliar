@@ -1,6 +1,6 @@
-import { expect } from 'code';
+import {expect} from 'code';
 import * as fs from 'fs';
-const { afterEach, beforeEach, describe, it } = exports.lab = require('lab').script();
+const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as path from 'path';
@@ -12,24 +12,24 @@ const LOGPATH = path.join(LOGSFOLDER, 'mailFamiliar.log');
 const SERVER = path.join(ROOT, 'src', 'index');
 
 let fsStubs: any;
-let imap: Function;
+let imap: sinon.SinonStub;
 let imapObj: any;
-let startServer: Function;
+let startServer: sinon.SinonStub;
 
 process.env.M_FAMILIAR_STORAGE = '/storage';
 
 const USER_PATH = path.join(process.env.M_FAMILIAR_STORAGE, 'user.json');
 const USER_SETTINGS = {
-  user: 'rob@example.com',
-  password: '123',
   host: 'imap.example.com',
+  password: '123',
   port: 143,
-  tls: true
+  tls: true,
+  user: 'rob@example.com'
 };
 
 describe('startup logging', () => {
-  let server;
-  let writeStream;
+  let server: any;
+  let writeStream: any;
 
   beforeEach(() => {
     mockery.enable({
@@ -39,7 +39,7 @@ describe('startup logging', () => {
     });
 
     fsStubs = sinon.stub(fs);
-    _.functions(fsStubs).forEach((f) => {
+    _.functions(fsStubs).forEach(f => {
       fsStubs[f].callThrough();
     });
 
@@ -48,15 +48,17 @@ describe('startup logging', () => {
     writeStream = {
       end: sinon.stub().returns(false),
       write: sinon.stub().callsFake((...args) => {
+        // tslint:disable-next-line:no-console
         console.log(...args);
       })
     };
 
-    fsStubs.createWriteStream.withArgs(
-      LOGPATH,
-      {
-        flags: 'a', encoding: 'utf8'
-      }).returns(writeStream);
+    fsStubs.createWriteStream
+      .withArgs(LOGPATH, {
+        encoding: 'utf8',
+        flags: 'a'
+      })
+      .returns(writeStream);
 
     mockery.registerMock('fs', fsStubs);
 
@@ -75,7 +77,7 @@ describe('startup logging', () => {
       server = null;
     }
 
-    _.functions(fsStubs).forEach((f) => {
+    _.functions(fsStubs).forEach(f => {
       fsStubs[f].restore();
     });
 
@@ -89,7 +91,7 @@ describe('startup logging', () => {
 
     describe('when logs exists', () => {
       beforeEach(async () => {
-        ({ startServer } = require(SERVER));
+        ({startServer} = require(SERVER));
       });
 
       it('exposes a function', () => {
@@ -105,7 +107,7 @@ describe('startup logging', () => {
       beforeEach(async () => {
         fsStubs.existsSync.withArgs(LOGSFOLDER).returns(false);
 
-        ({ startServer } = require(SERVER));
+        ({startServer} = require(SERVER));
       });
 
       it('exposes a function', () => {
@@ -119,19 +121,21 @@ describe('startup logging', () => {
   });
 
   describe('startServer', () => {
-    let eventHandlers;
+    let eventHandlers: any;
     let serverPromise: Promise<any>;
 
     beforeEach(async () => {
-      ({ startServer } = require(SERVER));
+      ({startServer} = require(SERVER));
 
-      fsStubs.readdir.callsFake((path, callback) => {
-        if (path === process.env.M_FAMILIAR_STORAGE) {
-          callback(null, ['user.json']);
-        } else {
-          return fs.readdir(path, callback);
+      fsStubs.readdir.callsFake(
+        (path: string, callback: ((err: Error | null, files: string[]) => void)) => {
+          if (path === process.env.M_FAMILIAR_STORAGE) {
+            callback(null, ['user.json']);
+          } else {
+            return fs.readdir(path, callback);
+          }
         }
-      });
+      );
 
       fsStubs.statSync.withArgs('/storage/user.json').returns({
         isFile: sinon.stub().returns(true)
@@ -143,16 +147,14 @@ describe('startup logging', () => {
 
       serverPromise = startServer();
 
-      await new Promise((resolve) => {
-        setTimeout(
-          () => {
-            imapObj.once.args.forEach((args) => {
-              expect(args.length).to.equal(2);
-              eventHandlers[args[0]] = args[1];
-            });
-            resolve();
-          },
-          10);
+      await new Promise(resolve => {
+        setTimeout(() => {
+          imapObj.once.args.forEach((args: Array<any>) => {
+            expect(args.length).to.equal(2);
+            eventHandlers[args[0]] = args[1];
+          });
+          resolve();
+        }, 10);
       });
     });
 
@@ -178,4 +180,4 @@ describe('startup logging', () => {
   });
 });
 
-export{};
+export {};
