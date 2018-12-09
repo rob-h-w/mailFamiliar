@@ -2,9 +2,9 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import Box, {IBoxPersisted} from '../engine/box';
 import {IInitializablePersistence} from './persistence';
 import User from './user';
-import Box from '../imap/box';
 
 function hashOf(value: string): string {
   return crypto
@@ -12,6 +12,10 @@ function hashOf(value: string): string {
     .update(value)
     .digest()
     .toString('hex');
+}
+
+function stringify<T extends {}>(object: T): string {
+  return JSON.stringify(object, null, 2);
 }
 
 export default class Json implements IInitializablePersistence<string> {
@@ -56,20 +60,11 @@ export default class Json implements IInitializablePersistence<string> {
   }
 
   async createBox(user: User, box: Box) {
-    return new Promise<void>((resolve, reject) => {
-      const folder = this.userDataRoot(user);
-      if (!fs.existsSync(folder)) {
-        fs.mkdirSync(folder);
-      }
-
-      fs.writeFile(this.boxPath(user, box), JSON.stringify(box, null, 2), {flag: 'w'}, err => {
-        if (err) {
-          return reject(err);
-        }
-
-        resolve();
-      });
-    });
+    const folder = this.userDataRoot(user);
+    if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder);
+    }
+    await this.updateBox(user, box);
   }
 
   async deleteBox(user: User, box: Box) {
@@ -103,11 +98,34 @@ export default class Json implements IInitializablePersistence<string> {
         const boxes: Array<Box> = [];
 
         files.forEach(file => {
-          boxes.push(JSON.parse(fs.readFileSync(path.join(userDataRoot, file)).toString()));
+          boxes.push(
+            new Box(JSON.parse(
+              fs.readFileSync(path.join(userDataRoot, file)).toString()
+            ) as IBoxPersisted)
+          );
         });
 
         resolve(boxes);
       });
     });
   }
+
+  updateBox = async (user: User, box: Box): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      const boxPersisted: IBoxPersisted = {
+        lastMessage: box.lastMessage,
+        name: box.name,
+        qualifiedName: box.qualifiedName,
+        syncedTo: box.syncedTo
+      };
+
+      fs.writeFile(this.boxPath(user, box), stringify(boxPersisted), {flag: 'w'}, err => {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve();
+      });
+    });
+  };
 }

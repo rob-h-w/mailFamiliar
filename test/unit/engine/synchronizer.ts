@@ -6,8 +6,6 @@ import * as sinon from 'sinon';
 import IPersistence from '../../../src/persistence/persistence';
 import User from '../../../src/persistence/user';
 
-let Imap: any;
-let imap: any;
 let persistence: IPersistence;
 let user: User;
 let UserConnection: any;
@@ -36,20 +34,17 @@ describe('Synchronizer', () => {
       createUser: sinon.stub(),
       deleteBox: sinon.stub().resolves(),
       listBoxes: sinon.stub().resolves([]),
-      listUsers: sinon.stub().resolves([user])
+      listUsers: sinon.stub().resolves([user]),
+      updateBox: sinon.stub().resolves()
     };
 
-    userConnection = {};
+    userConnection = {
+      shallowSync: sinon.stub()
+    };
     UserConnection = sinon.stub();
     UserConnection.create = sinon.stub().returns(userConnection);
 
-    imap = {
-      init: sinon.stub().resolves()
-    };
-    Imap = sinon.stub().returns(imap);
-
-    mockery.registerMock('../imap/imap', {default: Imap});
-    mockery.registerMock('../imap/userConnection', {default: UserConnection});
+    mockery.registerMock('./userConnection', {default: UserConnection});
 
     Synchronizer = require('../../../src/engine/synchronizer').default;
   });
@@ -84,14 +79,12 @@ describe('Synchronizer', () => {
       expect((persistence.listUsers as sinon.SinonStub).called).to.be.true();
     });
 
-    it('creates an Imap connection object for the user', () => {
-      expect(Imap.called).to.be.true();
-      expect(Imap.firstCall.args).to.equal([user]);
+    it('creates a user connection', () => {
+      expect(UserConnection.create.calledOnce).to.be.true();
     });
 
-    it('creates a UserConnection object for the Imap connection', () => {
-      expect(UserConnection.create.called).to.be.true();
-      expect(UserConnection.create.firstCall.args).to.equal([imap, persistence]);
+    it('shallow syncs the user connection', () => {
+      expect(userConnection.shallowSync.calledOnce).to.be.true();
     });
   });
 });

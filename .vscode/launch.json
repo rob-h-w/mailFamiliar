@@ -13,11 +13,8 @@
       "port": 9229,
       "request": "launch",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run-script",
-        "debug"
-      ],
-      "type": "node",
+      "runtimeArgs": ["run-script", "debug"],
+      "type": "node"
     },
     {
       "type": "node",
@@ -25,10 +22,7 @@
       "name": "test:api",
       "preLaunchTask": "npm: build",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run-script",
-        "test:api:debug"
-      ],
+      "runtimeArgs": ["run-script", "test:api:debug"],
       "port": 9229
     },
     {
@@ -37,10 +31,7 @@
       "name": "test:unit",
       "preLaunchTask": "npm: build",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run-script",
-        "test:unit:debug"
-      ],
+      "runtimeArgs": ["run-script", "test:unit:debug"],
       "port": 9229
     }
   ]

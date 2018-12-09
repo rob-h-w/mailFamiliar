@@ -63,9 +63,13 @@ describe('startup logging', () => {
     mockery.registerMock('fs', fsStubs);
 
     imapObj = {
+      closeBox: sinon.stub(),
       connect: sinon.stub(),
       getBoxes: sinon.stub(),
-      once: sinon.stub()
+      on: sinon.stub(),
+      once: sinon.stub(),
+      openBox: sinon.stub(),
+      subscribeBox: sinon.stub()
     };
     imap = sinon.stub().returns(imapObj);
     mockery.registerMock('imap', imap);
@@ -131,6 +135,11 @@ describe('startup logging', () => {
         (path: string, callback: ((err: Error | null, files: string[]) => void)) => {
           if (path === process.env.M_FAMILIAR_STORAGE) {
             callback(null, ['user.json']);
+          } else if (
+            process.env.M_FAMILIAR_STORAGE &&
+            path.startsWith(process.env.M_FAMILIAR_STORAGE)
+          ) {
+            callback(null, []);
           } else {
             return fs.readdir(path, callback);
           }

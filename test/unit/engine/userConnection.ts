@@ -3,10 +3,14 @@ const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').scri
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
+let Imap: any;
 let imap: any;
 let persistence: any;
+let Promisified: any;
+let promisified: any;
 let UserConnection: any;
 let userConnection: any;
+let user: any;
 
 describe('userConnection', () => {
   beforeEach(() => {
@@ -16,14 +20,35 @@ describe('userConnection', () => {
       warnOnUnregistered: false
     });
 
-    imap = {
-      mailBoxes: {},
-      user: {}
+    imap = {};
+    Imap = sinon.stub().returns(imap);
+
+    promisified = {
+      closeBox: sinon.stub(),
+      connect: sinon.stub(),
+      getBoxes: sinon.stub().resolves([]),
+      imap: {
+        delimiter: '/'
+      },
+      on: sinon.stub(),
+      once: sinon.stub(),
+      openBox: sinon.stub(),
+      subscribeBox: sinon.stub(),
+      waitForConnection: sinon.stub().resolves()
     };
+    Promisified = sinon
+      .stub()
+      .withArgs(imap)
+      .returns(promisified);
 
-    mockery.registerAllowable('../../../src/imap/userConnection');
+    mockery.registerMock('imap', Imap);
+    mockery.registerMock('../imap/promisified', {default: Promisified});
 
-    UserConnection = require('../../../src/imap/userConnection').default;
+    mockery.registerAllowable('../../../src/engine/userConnection');
+
+    UserConnection = require('../../../src/engine/userConnection').default;
+
+    user = {};
   });
 
   afterEach(() => {
@@ -46,7 +71,7 @@ describe('userConnection', () => {
     describe('created with no prior boxes & no online boxes', () => {
       beforeEach(async () => {
         persistence.listBoxes.returns([]);
-        userConnection = await UserConnection.create(imap, persistence);
+        userConnection = await UserConnection.create(user, persistence);
       });
 
       it('exposes boxes', () => {
@@ -62,11 +87,16 @@ describe('userConnection', () => {
 
     describe('created with no prior boxes & an online box', () => {
       beforeEach(async () => {
-        imap.mailBoxes = {
-          INBOX: {}
-        };
+        promisified.getBoxes.resolves({
+          INBOX: {
+            attribs: [],
+            children: {},
+            delimiter: '/',
+            parent: null
+          }
+        });
         persistence.listBoxes.returns([]);
-        userConnection = await UserConnection.create(imap, persistence);
+        userConnection = await UserConnection.create(user, persistence);
       });
 
       it('does not delete boxes', () => {
@@ -75,7 +105,7 @@ describe('userConnection', () => {
 
       it('creates a persisted box', () => {
         expect(persistence.createBox.calledOnce).to.be.true();
-        expect(persistence.createBox.firstCall.args[0]).to.equal(imap.user);
+        expect(persistence.createBox.firstCall.args[0]).to.equal(user);
       });
 
       it('exposes the box', () => {
@@ -88,21 +118,26 @@ describe('userConnection', () => {
       const deletedBox = {};
 
       beforeEach(async () => {
-        imap.mailBoxes = {
-          INBOX: {}
-        };
+        promisified.getBoxes.resolves({
+          INBOX: {
+            attribs: [],
+            children: {},
+            delimiter: '/',
+            parent: null
+          }
+        });
         persistence.listBoxes.returns([deletedBox]);
-        userConnection = await UserConnection.create(imap, persistence);
+        userConnection = await UserConnection.create(user, persistence);
       });
 
       it('deletes the old box', () => {
         expect(persistence.deleteBox.calledOnce).to.be.true();
-        expect(persistence.deleteBox.firstCall.args).to.equal([imap.user, deletedBox]);
+        expect(persistence.deleteBox.firstCall.args).to.equal([user, deletedBox]);
       });
 
       it('creates a persisted box', () => {
         expect(persistence.createBox.calledOnce).to.be.true();
-        expect(persistence.createBox.firstCall.args[0]).to.equal(imap.user);
+        expect(persistence.createBox.firstCall.args[0]).to.equal(user);
       });
 
       it('exposes the box', () => {
