@@ -100,7 +100,7 @@ export default class Json implements IInitializablePersistence<string> {
         files.forEach(file => {
           const box = JSON.parse(fs.readFileSync(path.join(userDataRoot, file)).toString());
           box.messages.forEach((message: any) => {
-            message.envelope.date = Date.parse(message.envelope.date);
+            message.envelope.date = new Date(Date.parse(message.envelope.date));
           });
           boxen.push(new Box(box as IBoxPersisted));
         });
