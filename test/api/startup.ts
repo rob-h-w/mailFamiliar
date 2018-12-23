@@ -69,6 +69,7 @@ describe('startup logging', () => {
       on: sinon.stub(),
       once: sinon.stub(),
       openBox: sinon.stub(),
+      search: sinon.stub(),
       subscribeBox: sinon.stub()
     };
     imap = sinon.stub().returns(imapObj);

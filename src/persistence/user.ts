@@ -1,5 +1,7 @@
 import {Config} from 'imap';
 
-type User = Config;
+interface User extends Config {
+  syncWindowDays: number;
+}
 
 export default User;

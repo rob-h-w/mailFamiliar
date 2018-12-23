@@ -110,7 +110,9 @@ describe('userConnection', () => {
 
       it('exposes the box', () => {
         expect(userConnection.boxes.length).to.equal(1);
-        expect(userConnection.boxes[0].name).to.equal('INBOX');
+        const box = userConnection.boxes[0];
+        expect(box.name).to.equal('INBOX');
+        expect(box.qualifiedName).to.equal('INBOX');
       });
     });
 

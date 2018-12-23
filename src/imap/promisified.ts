@@ -23,6 +23,7 @@ export default class Promisified {
   readonly closeBox: () => Promise<void>;
   readonly getBoxes: () => Promise<Imap.MailBoxes>;
   readonly openBox: (mailboxName: string) => Promise<Imap.Box>;
+  readonly search: (criteria: any[]) => Promise<number[]>;
   readonly subscribeBox: (mailboxName: string) => Promise<void>;
 
   constructor(imap: Imap, listener: IBoxListener) {
@@ -32,6 +33,7 @@ export default class Promisified {
     this.closeBox = promisify<void>(imap.closeBox.bind(imap));
     this.getBoxes = promisify<Imap.MailBoxes>(imap.getBoxes.bind(imap));
     this.openBox = promisify<string, Imap.Box>(imap.openBox.bind(imap));
+    this.search = promisify<any[], number[]>(imap.search.bind(imap));
     this.subscribeBox = promisify<string, void>(imap.subscribeBox.bind(imap));
   }
 
@@ -39,13 +41,23 @@ export default class Promisified {
     return new Promise<ReadonlyArray<IMessageBody>>((resolve, reject) => {
       const messages: IMessageBody[] = [];
       fetch.on('message', (message, seqno) => {
-        let msg: IMessageBody;
+        const msg: IMessageBody = {
+          attrs: {
+            date: new Date(),
+            flags: [],
+            uid: 0
+          },
+          seqno
+        };
         message.on('attributes', attrs => {
-          msg = {attrs, seqno};
+          msg.attrs = attrs;
         });
         message.on('body', (stream, info) => {
           msg.bodyInfo = info;
-          msg.body = stream.read().toString();
+          stream.on('data', chunk => {
+            msg.body = msg.body || '';
+            msg.body += chunk.toString();
+          });
         });
         message.on('end', () => {
           messages.push(msg);

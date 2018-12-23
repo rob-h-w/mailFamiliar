@@ -8,6 +8,7 @@ import logger from '../logger';
 
 export default class UserConnection implements IBoxListener {
   private currentlyOpen?: Box;
+  private inbox?: Box;
   private mailBoxes: ReadonlyArray<Box>;
   private readonly persistence: IPersistence;
   private pImap: Promisified;
@@ -31,6 +32,15 @@ export default class UserConnection implements IBoxListener {
     return this.mailBoxes;
   }
 
+  private closeBox = async () => {
+    if (this.currentlyOpen) {
+      this.currentlyOpen = undefined;
+      await this.pImap.closeBox();
+    }
+
+    this.currentlyOpen = undefined;
+  };
+
   private collectMailboxes = (
     boxRoot: Imap.MailBoxes = {},
     delimiter?: string,
@@ -41,8 +51,10 @@ export default class UserConnection implements IBoxListener {
 
     for (const name of Object.keys(boxRoot)) {
       const folder: Imap.Folder = boxRoot[name];
-      const root: string = parent ? parent.qualifiedName : '';
-      const qualifiedName: string = `${root}${folder.delimiter || rootDelimiter}${name}`;
+      const root: string = parent
+        ? `${parent.qualifiedName}${folder.delimiter || rootDelimiter}`
+        : '';
+      const qualifiedName: string = `${root}${name}`;
       const box: Box = new Box({
         imapFolder: folder,
         name,
@@ -104,7 +116,7 @@ export default class UserConnection implements IBoxListener {
         await box.subscribe();
 
         if (box.isInbox) {
-          await this.openBox(box);
+          this.inbox = box;
         }
       } catch (e) {
         logger.error(e);
@@ -113,6 +125,7 @@ export default class UserConnection implements IBoxListener {
     }
 
     this.mailBoxes = resultingBoxes;
+    await this.openInbox();
   }
 
   onClose = (/*hadError: boolean*/) => {
@@ -138,14 +151,39 @@ export default class UserConnection implements IBoxListener {
   };
 
   private openBox = async (box: Box) => {
-    if (this.currentlyOpen) {
-      this.currentlyOpen = undefined;
-      await this.pImap.closeBox();
-    }
-
+    await this.closeBox();
     await this.pImap.openBox(box.qualifiedName);
     this.currentlyOpen = box;
   };
 
-  shallowSync = () => {};
+  private openInbox = async () => {
+    await this.closeBox();
+
+    if (!this.inbox) {
+      return;
+    }
+
+    await this.openBox(this.inbox);
+  };
+
+  shallowSync = async () => {
+    const syncWindowMs = 24 * 60 * 60 * 1000 * this.user.syncWindowDays;
+    const startDate = new Date(Date.now() - syncWindowMs);
+
+    for (const box of this.boxes) {
+      await this.openBox(box);
+      const search = await this.pImap.search([['SINCE', startDate]]);
+      if (search.length) {
+        const messages = await this.pImap.fetch(
+          this.pImap.imap.fetch(search, {
+            bodies: 'HEADER',
+            envelope: true,
+            size: true
+          })
+        );
+      }
+    }
+
+    await this.openInbox();
+  };
 }
