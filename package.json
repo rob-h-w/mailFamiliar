@@ -21,7 +21,8 @@
     "env-var": "^3.3.0",
     "hapi": "^17.6.0",
     "imap": "^0.8.19",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "runtypes": "^3.1.2"
   },
   "scripts": {
     "build": "tsc --sourceMap",

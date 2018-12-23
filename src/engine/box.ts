@@ -3,6 +3,7 @@ import * as Imap from 'imap';
 import Promisified from '../imap/promisified';
 import ILastMessage from './lastMessage';
 import logger from '../logger';
+import {IMessage} from './message';
 
 interface IBoxRequired {
   name: string;
@@ -11,7 +12,7 @@ interface IBoxRequired {
 }
 
 export interface IBoxPersisted extends IBoxRequired {
-  lastMessage?: ILastMessage;
+  messages?: ReadonlyArray<IMessage>;
 }
 
 interface IBox extends IBoxPersisted {
@@ -22,6 +23,7 @@ interface IBox extends IBoxPersisted {
 export default class Box {
   private imapFolder?: Imap.Folder;
   private lMessage?: ILastMessage;
+  private msgs: IMessage[];
   private pImap?: Promisified;
   private syncedToEpoch: number;
 
@@ -38,13 +40,23 @@ export default class Box {
     }
   }
 
-  constructor({imapFolder, name, pImap, qualifiedName, syncedTo}: IBox) {
+  constructor({imapFolder, messages, name, pImap, qualifiedName, syncedTo}: IBox) {
     this.imapFolder = imapFolder;
     this.name = name;
+    this.msgs = [];
     this.pImap = pImap;
     this.qualifiedName = qualifiedName;
     this.syncedToEpoch = syncedTo;
+
+    if (messages) {
+      this.msgs = this.msgs.concat(...messages);
+    }
   }
+
+  addMessage = (message: IMessage) => {
+    this.msgs.push(message);
+    this.syncedToEpoch = Math.max(this.syncedToEpoch, message.envelope.date.getTime());
+  };
 
   get isInbox(): boolean {
     return this.qualifiedName.toUpperCase() === 'INBOX';
@@ -55,6 +67,10 @@ export default class Box {
   }
 
   mailboxChange = () => {};
+
+  get messages(): ReadonlyArray<IMessage> {
+    return this.msgs;
+  }
 
   open = async () => {
     Box.check(this);
@@ -82,7 +98,7 @@ export default class Box {
 
     this.imapFolder = this.imapFolder || box.imapFolder;
     this.pImap = this.pImap || box.pImap;
-    this.syncedToEpoch = this.syncedToEpoch;
+    this.syncedToEpoch = Math.max(box.syncedToEpoch, this.syncedToEpoch);
 
     Box.check(this);
   }

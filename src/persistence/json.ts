@@ -95,17 +95,17 @@ export default class Json implements IInitializablePersistence<string> {
           return reject(err);
         }
 
-        const boxes: Array<Box> = [];
+        const boxen: Array<Box> = [];
 
         files.forEach(file => {
-          boxes.push(
-            new Box(JSON.parse(
-              fs.readFileSync(path.join(userDataRoot, file)).toString()
-            ) as IBoxPersisted)
-          );
+          const box = JSON.parse(fs.readFileSync(path.join(userDataRoot, file)).toString());
+          box.messages.forEach((message: any) => {
+            message.envelope.date = Date.parse(message.envelope.date);
+          });
+          boxen.push(new Box(box as IBoxPersisted));
         });
 
-        resolve(boxes);
+        resolve(boxen);
       });
     });
   }
@@ -113,7 +113,7 @@ export default class Json implements IInitializablePersistence<string> {
   updateBox = async (user: User, box: Box): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
       const boxPersisted: IBoxPersisted = {
-        lastMessage: box.lastMessage,
+        messages: box.messages,
         name: box.name,
         qualifiedName: box.qualifiedName,
         syncedTo: box.syncedTo

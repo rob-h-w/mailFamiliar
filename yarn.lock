@@ -1318,6 +1318,11 @@ readable-stream@1.1.x:
     isarray "0.0.1"
     string_decoder "~0.10.x"
 
+reflect-metadata@^0.1.12:
+  version "0.1.12"
+  resolved "https://registry.yarnpkg.com/reflect-metadata/-/reflect-metadata-0.1.12.tgz#311bf0c6b63cd782f228a81abe146a2bfa9c56f2"
+  integrity sha512-n+IyV+nGz3+0q3/Yf1ra12KpCyi001bi4XFxSjbiWWjfqb52iTTtpGXmCCAOWWIAn9KEuFZKGqBERHmrtScZ3A==
+
 regexpp@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/regexpp/-/regexpp-2.0.1.tgz#8d19d31cf632482b589049f8281f93dbcba4d07f"
@@ -1371,6 +1376,13 @@ run-async@^2.2.0:
   integrity sha1-A3GrSuC91yDUFm19/aZP96RFpsA=
   dependencies:
     is-promise "^2.1.0"
+
+runtypes@^3.1.2:
+  version "3.1.2"
+  resolved "https://registry.yarnpkg.com/runtypes/-/runtypes-3.1.2.tgz#81e186500b6882e0d5badeb5c6deef72e3fcc068"
+  integrity sha512-oxAaykMNPeuxBTHFPHb4N/WiOMln/Sg73CRfEywpdO5FQyi+lVvGvehGny/QtP2hHvfm7/4E8KLcchfZBnMK6Q==
+  dependencies:
+    reflect-metadata "^0.1.12"
 
 rxjs@^5.5.2:
   version "5.5.12"

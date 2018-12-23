@@ -1,6 +1,7 @@
 import * as Imap from 'imap';
 
 import Box from './box';
+import {DoNotLearnFromValues} from '../imap/boxFeatures';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
@@ -170,7 +171,7 @@ export default class UserConnection implements IBoxListener {
     const syncWindowMs = 24 * 60 * 60 * 1000 * this.user.syncWindowDays;
     const startDate = new Date(Date.now() - syncWindowMs);
 
-    for (const box of this.boxes) {
+    for (const box of this.boxes.filter(box => !DoNotLearnFromValues.guard(box.name))) {
       await this.openBox(box);
       const search = await this.pImap.search([['SINCE', startDate]]);
       if (search.length) {
@@ -181,6 +182,17 @@ export default class UserConnection implements IBoxListener {
             size: true
           })
         );
+
+        for (const message of messages) {
+          const envelope = (message.attrs as any).envelope;
+          box.addMessage({
+            envelope,
+            size: message.attrs.size,
+            uid: message.attrs.uid
+          });
+        }
+
+        await this.persistence.updateBox(this.user, box);
       }
     }
 
