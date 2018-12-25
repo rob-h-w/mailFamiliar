@@ -1,11 +1,12 @@
 import * as Imap from 'imap';
 
+import AdjacencyTable, {IAdjacencyTable} from './adjacencyTable';
 import Promisified from '../imap/promisified';
-import ILastMessage from './lastMessage';
 import logger from '../logger';
 import {IMessage} from './message';
 
 interface IBoxRequired {
+  adjacencyTable: IAdjacencyTable;
   name: string;
   qualifiedName: string;
   syncedTo: number;
@@ -21,8 +22,8 @@ interface IBox extends IBoxPersisted {
 }
 
 export default class Box {
+  private aTable: AdjacencyTable;
   private imapFolder?: Imap.Folder;
-  private lMessage?: ILastMessage;
   private msgs: IMessage[];
   private pImap?: Promisified;
   private syncedToEpoch: number;
@@ -40,7 +41,8 @@ export default class Box {
     }
   }
 
-  constructor({imapFolder, messages, name, pImap, qualifiedName, syncedTo}: IBox) {
+  constructor({adjacencyTable, imapFolder, messages, name, pImap, qualifiedName, syncedTo}: IBox) {
+    this.aTable = new AdjacencyTable(adjacencyTable);
     this.imapFolder = imapFolder;
     this.name = name;
     this.msgs = [];
@@ -56,14 +58,15 @@ export default class Box {
   addMessage = (message: IMessage) => {
     this.msgs.push(message);
     this.syncedToEpoch = Math.max(this.syncedToEpoch, message.envelope.date.getTime());
+    this.aTable.addString(message.headers);
   };
+
+  get adjacencyTable() {
+    return this.aTable.raw;
+  }
 
   get isInbox(): boolean {
     return this.qualifiedName.toUpperCase() === 'INBOX';
-  }
-
-  get lastMessage(): ILastMessage | undefined {
-    return this.lMessage;
   }
 
   mailboxChange = () => {};
@@ -96,6 +99,7 @@ export default class Box {
       throw new Error(`Attempt to merge ${box.qualifiedName} into ${this.qualifiedName}`);
     }
 
+    this.aTable.addAdjacencyTable(box.adjacencyTable);
     this.imapFolder = this.imapFolder || box.imapFolder;
     this.pImap = this.pImap || box.pImap;
     this.syncedToEpoch = Math.max(box.syncedToEpoch, this.syncedToEpoch);

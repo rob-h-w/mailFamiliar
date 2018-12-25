@@ -13,6 +13,7 @@ interface IEnvelope {
 
 export interface IMessage {
   envelope: IEnvelope;
+  headers: string;
   size?: number;
   uid: number;
 }

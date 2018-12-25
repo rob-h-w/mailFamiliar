@@ -57,6 +57,11 @@ export default class UserConnection implements IBoxListener {
         : '';
       const qualifiedName: string = `${root}${name}`;
       const box: Box = new Box({
+        adjacencyTable: {
+          table: {},
+          totalSampleLength: 0,
+          totalSamples: 0
+        },
         imapFolder: folder,
         name,
         pImap: this.pImap,
@@ -80,7 +85,7 @@ export default class UserConnection implements IBoxListener {
 
   private async init(persistedBoxes: ReadonlyArray<Box>, pImap: Promisified) {
     this.pImap = pImap;
-    const writablePersistedBoxes: Box[] = JSON.parse(JSON.stringify(persistedBoxes));
+    const writablePersistedBoxes: Box[] = persistedBoxes.map(box => box);
     const mailBoxes = await this.pImap.getBoxes();
     const discoveredBoxes = this.collectMailboxes(mailBoxes);
     const resultingBoxes: Box[] = [];
@@ -96,6 +101,7 @@ export default class UserConnection implements IBoxListener {
           writablePersistedBoxes.splice(i, 1);
           discoveredBoxes.splice(j, 1);
           resultingBoxes.push(discoveredBox);
+          break;
         }
       }
     }
@@ -107,7 +113,7 @@ export default class UserConnection implements IBoxListener {
     }
 
     // persistedBoxes were persisted before but have now been deleted online.
-    for (const persistedBox of persistedBoxes) {
+    for (const persistedBox of writablePersistedBoxes) {
       await this.persistence.deleteBox(this.user, persistedBox);
     }
 
@@ -187,6 +193,7 @@ export default class UserConnection implements IBoxListener {
           const envelope = (message.attrs as any).envelope;
           box.addMessage({
             envelope,
+            headers: String(message.body),
             size: message.attrs.size,
             uid: message.attrs.uid
           });

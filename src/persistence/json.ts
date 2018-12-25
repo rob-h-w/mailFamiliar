@@ -113,6 +113,7 @@ export default class Json implements IInitializablePersistence<string> {
   updateBox = async (user: User, box: Box): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
       const boxPersisted: IBoxPersisted = {
+        adjacencyTable: box.adjacencyTable,
         messages: box.messages,
         name: box.name,
         qualifiedName: box.qualifiedName,
