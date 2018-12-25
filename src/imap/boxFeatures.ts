@@ -23,5 +23,5 @@ export const DoNotMoveToValues = DraftsBoxValues.Or(InboxValues).Or(TrashBoxValu
 export type DoNotMoveTo = Static<typeof DoNotMoveToValues>;
 
 export function canLearnFrom(box: Imap.Box) {
-  return !DoNotLearnFromValues.guard(box.name);
+  return !DoNotLearnFromValues.guard(box.name.toUpperCase());
 }
