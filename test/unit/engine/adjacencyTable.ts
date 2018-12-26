@@ -69,10 +69,41 @@ describe('AdjacencyTable', () => {
       expect(raw.totalSamples).to.equal(1);
     });
 
-    it('calculates the correct probability of 1 letter given another', () => {
-      expect(aTable.pAThenB('o', 'o')).to.equal(2 / 3);
-      expect(aTable.pAThenB('p', 'o')).to.equal(1);
-      expect(aTable.pAThenB('o', 'p')).to.equal(0);
+    [
+      {
+        f: AdjacencyTable.START,
+        p: 1,
+        s: 'p'
+      },
+      {
+        f: 'o',
+        p: 2 / 3,
+        s: 'o'
+      },
+      {
+        f: 'p',
+        p: 1,
+        s: 'o'
+      },
+      {
+        f: 'o',
+        p: 0,
+        s: 'p'
+      },
+      {
+        f: 'o',
+        p: 1 / 3,
+        s: AdjacencyTable.FINISH
+      }
+    ].forEach(c => {
+      it(`calculates the probability of ${c.f} then ${c.s} correctly`, () => {
+        expect(aTable.pAThenB(c.f, c.s)).to.equal(c.p);
+      });
+    });
+
+    it('calculates the confidence of a string belonging to its set', () => {
+      // (1 + 1 + 1 / 3) / 3 = 7 / 9
+      expect(aTable.confidenceFor('po')).to.equal(7 / 9);
     });
 
     describe('added to an undefined aTable', () => {

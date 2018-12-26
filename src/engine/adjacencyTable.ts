@@ -95,6 +95,19 @@ export default class AdjacencyTable {
     this.tSamples += 1;
   };
 
+  public confidenceFor = (str: string) => {
+    let cumulativeProbability = 0;
+    let first = AdjacencyTable.START;
+    const strArray = [...Array.from(str), AdjacencyTable.FINISH];
+
+    for (const second of strArray) {
+      cumulativeProbability += this.pAThenB(first, second);
+      first = second;
+    }
+
+    return cumulativeProbability / strArray.length;
+  };
+
   private incrementAt = (key: string) => {
     this.addAt(key, 1);
   };
