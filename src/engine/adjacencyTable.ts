@@ -48,6 +48,17 @@ export default class AdjacencyTable {
     throw new Error(`Cannot split key "${key}"`);
   };
 
+  private static subtractFromMap = (map: IMap, key: string, value: number) => {
+    if (!map[key]) {
+      return;
+    }
+
+    map[key] -= value;
+    if (map[key] <= 0) {
+      delete map[key];
+    }
+  };
+
   constructor(source?: string | IAdjacencyTable) {
     if (_.isUndefined(source)) {
       return;
@@ -84,7 +95,7 @@ export default class AdjacencyTable {
 
     let previous = AdjacencyTable.START;
 
-    for (const char of source) {
+    for (const char of Array.from(source)) {
       const key = `${previous}${char}`;
       this.incrementAt(key);
       previous = char;
@@ -106,6 +117,10 @@ export default class AdjacencyTable {
     }
 
     return cumulativeProbability / strArray.length;
+  };
+
+  private decrementAt = (key: string) => {
+    this.subtractAt(key, 1);
   };
 
   private incrementAt = (key: string) => {
@@ -131,4 +146,41 @@ export default class AdjacencyTable {
       totalSamples: this.tSamples
     };
   }
+
+  subtractAdjacencyTable = (source?: IAdjacencyTable) => {
+    if (!source) {
+      return;
+    }
+
+    const table = source.table;
+    for (const key of Object.keys(table)) {
+      this.subtractAt(key, source.table[key]);
+    }
+
+    this.tSampleLength -= source.totalSampleLength;
+    this.tSamples -= source.totalSamples;
+  };
+
+  private subtractAt = (key: string, value: number) => {
+    AdjacencyTable.subtractFromMap(this.table, key, value);
+    AdjacencyTable.subtractFromMap(this.startTable, AdjacencyTable.firstChar(key), value);
+  };
+
+  subtractString = (source?: string) => {
+    if (!source) {
+      return;
+    }
+
+    let previous = AdjacencyTable.START;
+
+    for (const char of source) {
+      const key = `${previous}${char}`;
+      this.decrementAt(key);
+      previous = char;
+    }
+
+    this.decrementAt(`${previous}${AdjacencyTable.FINISH}`);
+    this.tSampleLength -= source.length;
+    this.tSamples -= 1;
+  };
 }

@@ -121,5 +121,23 @@ describe('AdjacencyTable', () => {
         expect(aTable.raw).to.equal(before);
       });
     });
+
+    describe('subtraction', () => {
+      const subtrahend = new AdjacencyTable('po');
+
+      it('of a string undoes addition', () => {
+        const minuend = new AdjacencyTable(aTable.raw);
+        minuend.addString('po');
+        minuend.subtractString('po');
+        expect(minuend.raw).to.equal(aTable.raw);
+      });
+
+      it('of an adjacency table undoes addition', () => {
+        const minuend = new AdjacencyTable(aTable.raw);
+        minuend.addAdjacencyTable(subtrahend.raw);
+        minuend.subtractAdjacencyTable(subtrahend.raw);
+        expect(minuend.raw).to.equal(aTable.raw);
+      });
+    });
   });
 });
