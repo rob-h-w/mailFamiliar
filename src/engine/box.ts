@@ -69,6 +69,10 @@ export default class Box {
     return this.qualifiedName.toUpperCase() === 'INBOX';
   }
 
+  confidenceFor = (str: string): number => {
+    return this.aTable.confidenceFor(str);
+  };
+
   mailboxChange = () => {};
 
   get messages(): ReadonlyArray<IMessage> {

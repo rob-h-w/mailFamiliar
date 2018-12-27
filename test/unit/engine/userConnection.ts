@@ -5,6 +5,7 @@ import * as sinon from 'sinon';
 
 let Imap: any;
 let imap: any;
+let logger: any;
 let persistence: any;
 let Promisified: any;
 let promisified: any;
@@ -22,6 +23,12 @@ describe('userConnection', () => {
 
     imap = {};
     Imap = sinon.stub().returns(imap);
+
+    logger = {
+      error: sinon.stub(),
+      info: sinon.stub(),
+      warn: sinon.stub()
+    };
 
     promisified = {
       closeBox: sinon.stub(),
@@ -43,6 +50,7 @@ describe('userConnection', () => {
 
     mockery.registerMock('imap', Imap);
     mockery.registerMock('../imap/promisified', {default: Promisified});
+    mockery.registerMock('../logger', {default: logger});
 
     mockery.registerAllowable('../../../src/engine/userConnection');
 

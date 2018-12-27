@@ -24,6 +24,7 @@ describe('Synchronizer', () => {
 
     user = {
       host: 'imap.example.com',
+      moveThreshold: 0.1,
       password: '000',
       port: 143,
       syncWindowDays: 1,
