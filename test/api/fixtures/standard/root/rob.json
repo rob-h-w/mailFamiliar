@@ -1,0 +1,9 @@
+{
+  "host": "imap.ratbags.com",
+  "moveThreshold": 0.1,
+  "password": "abc123",
+  "port": 993,
+  "syncWindowDays": 20,
+  "tls": true,
+  "user": "rob@robwilliamson.com"
+}

@@ -6,6 +6,8 @@ import * as mockery from 'mockery';
 import * as path from 'path';
 import * as sinon from 'sinon';
 
+import User from '../../src/persistence/user';
+
 const ROOT = process.cwd();
 const LOGSFOLDER = path.join(ROOT, 'logs');
 const LOGPATH = path.join(LOGSFOLDER, 'mailFamiliar.log');
@@ -16,13 +18,14 @@ let imap: sinon.SinonStub;
 let imapObj: any;
 let startServer: sinon.SinonStub;
 
-process.env.M_FAMILIAR_STORAGE = '/storage';
-
-const USER_PATH = path.join(process.env.M_FAMILIAR_STORAGE, 'user.json');
-const USER_SETTINGS = {
+const M_FAMILIAR_STORAGE = '/storage';
+const USER_PATH = path.join(M_FAMILIAR_STORAGE, 'user.json');
+const USER_SETTINGS: User = {
   host: 'imap.example.com',
+  moveThreshold: 0.1,
   password: '123',
   port: 143,
+  syncWindowDays: 60,
   tls: true,
   user: 'rob@example.com'
 };
@@ -32,6 +35,7 @@ describe('startup logging', () => {
   let writeStream: any;
 
   beforeEach(() => {
+    process.env.M_FAMILIAR_STORAGE = M_FAMILIAR_STORAGE;
     mockery.enable({
       useCleanCache: true,
       warnOnReplace: false,

@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
+import * as _ from 'lodash';
 import * as path from 'path';
 
 import Box, {IBoxPersisted} from '../engine/box';
@@ -14,8 +15,79 @@ function hashOf(value: string): string {
     .toString('hex');
 }
 
-function stringify<T extends {}>(object: T): string {
-  return JSON.stringify(object, null, 2);
+function indent(depth: number, value: string): string {
+  let result = '';
+
+  for (let i = 0; i < depth; i++) {
+    result += '  ';
+  }
+
+  return `${result}${value}`;
+}
+
+function skipMember(member: any) {
+  return _.isUndefined(member) || _.isFunction(member);
+}
+
+function stringify(value: any, depth: number = 0): string {
+  if (_.isNull(value)) {
+    return 'null';
+  }
+
+  if (_.isString(value)) {
+    return JSON.stringify(value);
+  }
+
+  if (_.isNumber(value)) {
+    return String(value);
+  }
+
+  if (_.isDate(value)) {
+    return JSON.stringify(value);
+  }
+
+  if (_.isArray(value)) {
+    if (_.isEmpty(value)) {
+      return '[]';
+    }
+
+    let separator = '';
+    let result = '[\n';
+
+    for (const member of value) {
+      if (skipMember(member)) {
+        continue;
+      }
+
+      result += `${separator}${indent(depth + 1, stringify(member, depth + 1))}`;
+      separator = ',\n';
+    }
+
+    return `${result}\n${indent(depth, ']')}`;
+  }
+
+  const keys = Object.keys(value).sort();
+  if (_.isEmpty(keys)) {
+    return '{}';
+  }
+
+  let separator = '';
+  let result = '{\n';
+
+  for (const key of keys) {
+    const v = value[key];
+    if (skipMember(v)) {
+      continue;
+    }
+
+    result += `${separator}${indent(
+      depth + 1,
+      `${JSON.stringify(key)}: ${stringify(v, depth + 1)}`
+    )}`;
+    separator = ',\n';
+  }
+
+  return `${result}\n${indent(depth, '}')}`;
 }
 
 export default class Json implements IInitializablePersistence<string> {
@@ -97,13 +169,15 @@ export default class Json implements IInitializablePersistence<string> {
 
         const boxen: Array<Box> = [];
 
-        files.forEach(file => {
-          const box = JSON.parse(fs.readFileSync(path.join(userDataRoot, file)).toString());
-          box.messages.forEach((message: any) => {
-            message.envelope.date = new Date(Date.parse(message.envelope.date));
+        files
+          .filter(file => file.endsWith('.json'))
+          .forEach(file => {
+            const box = JSON.parse(fs.readFileSync(path.join(userDataRoot, file)).toString());
+            box.messages.forEach((message: any) => {
+              message.date = new Date(Date.parse(message.date));
+            });
+            boxen.push(new Box(box as IBoxPersisted));
           });
-          boxen.push(new Box(box as IBoxPersisted));
-        });
 
         resolve(boxen);
       });
@@ -114,6 +188,7 @@ export default class Json implements IInitializablePersistence<string> {
     return new Promise<void>((resolve, reject) => {
       const boxPersisted: IBoxPersisted = {
         adjacencyTable: box.adjacencyTable,
+        box: box.box,
         messages: box.messages,
         name: box.name,
         qualifiedName: box.qualifiedName,

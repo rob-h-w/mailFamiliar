@@ -75,7 +75,7 @@ export default class AdjacencyTable {
     }
 
     const table = source.table;
-    for (const key of Object.keys(table)) {
+    for (const key of Object.keys(table).sort()) {
       this.addAt(key, source.table[key]);
     }
 
@@ -153,7 +153,7 @@ export default class AdjacencyTable {
     }
 
     const table = source.table;
-    for (const key of Object.keys(table)) {
+    for (const key of Object.keys(table).sort()) {
       this.subtractAt(key, source.table[key]);
     }
 

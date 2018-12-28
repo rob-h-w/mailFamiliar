@@ -1,4 +1,5 @@
 import * as Imap from 'imap';
+import {Literal, Static, Union} from 'runtypes';
 
 import AdjacencyTable, {IAdjacencyTable} from './adjacencyTable';
 import Promisified from '../imap/promisified';
@@ -13,6 +14,7 @@ interface IBoxRequired {
 }
 
 export interface IBoxPersisted extends IBoxRequired {
+  box?: Imap.Box;
   messages?: ReadonlyArray<IMessage>;
 }
 
@@ -21,8 +23,17 @@ interface IBox extends IBoxPersisted {
   pImap?: Promisified;
 }
 
+const BoxStateValues = Union(
+  Literal('UNREADY'),
+  Literal('UNCHANGED'),
+  Literal('UIDS_INVALID'),
+  Literal('NEW')
+);
+export type BoxState = Static<typeof BoxStateValues>;
+
 export default class Box {
   private aTable: AdjacencyTable;
+  private imapBox?: Imap.Box;
   private imapFolder?: Imap.Folder;
   private msgs: IMessage[];
   private pImap?: Promisified;
@@ -41,8 +52,18 @@ export default class Box {
     }
   }
 
-  constructor({adjacencyTable, imapFolder, messages, name, pImap, qualifiedName, syncedTo}: IBox) {
+  constructor({
+    adjacencyTable,
+    box,
+    imapFolder,
+    messages,
+    name,
+    pImap,
+    qualifiedName,
+    syncedTo
+  }: IBox) {
     this.aTable = new AdjacencyTable(adjacencyTable);
+    this.imapBox = box;
     this.imapFolder = imapFolder;
     this.name = name;
     this.msgs = [];
@@ -57,12 +78,16 @@ export default class Box {
 
   addMessage = (message: IMessage) => {
     this.msgs.push(message);
-    this.syncedToEpoch = Math.max(this.syncedToEpoch, message.envelope.date.getTime());
-    this.aTable.addString(message.headers);
+    this.syncedToEpoch = Math.max(this.syncedToEpoch, message.date.getTime());
+    this.aTable.addAdjacencyTable(message.engineState.adjacencyTable.raw);
   };
 
   get adjacencyTable() {
     return this.aTable.raw;
+  }
+
+  get box() {
+    return this.imapBox;
   }
 
   get isInbox(): boolean {
@@ -79,12 +104,32 @@ export default class Box {
     return this.msgs;
   }
 
-  open = async () => {
+  open = async (): Promise<BoxState> => {
     Box.check(this);
     if (this.pImap) {
       const box = await this.pImap.openBox(this.qualifiedName);
-      logger.info(box);
+      logger.info(`Opened ${JSON.stringify(box)}`);
+
+      let boxState: BoxState = !this.imapBox ? 'NEW' : 'UNCHANGED';
+
+      if (this.imapBox && this.imapBox.uidvalidity !== box.uidvalidity) {
+        logger.warn(
+          `The validity of ${this.qualifiedName} has expired from ${this.imapBox.uidvalidity} to ${
+            box.uidvalidity
+          }`
+        );
+
+        boxState = 'UIDS_INVALID';
+
+        // TODO Handle re-syncing messages.
+      }
+
+      this.imapBox = box;
+
+      return boxState;
     }
+
+    return 'UNREADY';
   };
 
   subscribe = async () => {

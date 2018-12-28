@@ -72,7 +72,8 @@ describe('userConnection', () => {
       persistence = {
         createBox: sinon.stub(),
         deleteBox: sinon.stub(),
-        listBoxes: sinon.stub()
+        listBoxes: sinon.stub(),
+        updateBox: sinon.stub()
       };
     });
 

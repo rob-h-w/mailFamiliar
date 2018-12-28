@@ -1,0 +1,43 @@
+{
+  "adjacencyTable": {
+    "table": {},
+    "totalSampleLength": 0,
+    "totalSamples": 0
+  },
+  "box": {
+    "flags": [
+      "\\Answered",
+      "\\Flagged",
+      "\\Deleted",
+      "\\Seen",
+      "\\Draft",
+      "NonJunk"
+    ],
+    "highestmodseq": "1",
+    "keywords": [
+      "NonJunk"
+    ],
+    "messages": {
+      "new": 0,
+      "total": 1418
+    },
+    "name": "GitHub",
+    "newKeywords": {},
+    "nomodseq": {},
+    "permFlags": [
+      "\\Answered",
+      "\\Flagged",
+      "\\Deleted",
+      "\\Seen",
+      "\\Draft"
+    ],
+    "persistentUIDs": {},
+    "readOnly": {},
+    "uidnext": 2104,
+    "uidvalidity": 1403793397
+  },
+  "messages": [],
+  "name": "GitHub",
+  "qualifiedName": "GitHub",
+  "syncedTo": 0
+}

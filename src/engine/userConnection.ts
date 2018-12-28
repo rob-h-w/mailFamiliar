@@ -1,17 +1,19 @@
 import * as Imap from 'imap';
 import * as _ from 'lodash';
 
+import AdjacencyTable from './adjacencyTable';
 import Box from './box';
 import {canLearnFrom, canMoveTo} from '../imap/boxFeatures';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
-import {IMessage, messageFromBody} from './message';
+import {messageFromBody, headersFromBody} from './message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
 
 /** TODO: split this class into an IMAP handler implementing IBoxListener & an engine implementing IPredictor passed to UserConnection. */
 export default class UserConnection implements IBoxListener, IPredictor {
+  private allBoxesATable: AdjacencyTable;
   private currentlyOpen?: Box;
   private inbox?: Box;
   private mailBoxes: ReadonlyArray<Box>;
@@ -83,6 +85,9 @@ export default class UserConnection implements IBoxListener, IPredictor {
     return boxes;
   };
 
+  private defaultStartDate = () =>
+    new Date(Date.now() - 24 * 60 * 60 * 1000 * this.user.syncWindowDays);
+
   private fetch = (source: any, seq = false) => {
     const fetchObj = seq ? this.pImap.imap.seq : this.pImap.imap;
     return this.pImap.fetch(
@@ -94,11 +99,13 @@ export default class UserConnection implements IBoxListener, IPredictor {
     );
   };
 
-  public folderFor = (message: IMessage): string | null => {
+  public folderFor = (headers: string): string | null => {
     let topBox: Box | null = null;
     let topThreshold: number = this.user.moveThreshold;
     for (const box of this.boxes.filter(box => canMoveTo(box.qualifiedName))) {
-      const confidence = box.confidenceFor(message.headers);
+      const aTableWithout = new AdjacencyTable(this.allBoxesATable.raw);
+      aTableWithout.subtractAdjacencyTable(box.adjacencyTable);
+      const confidence = box.confidenceFor(headers) - aTableWithout.confidenceFor(headers);
       if (confidence > topThreshold) {
         topBox = box;
         topThreshold = confidence;
@@ -110,35 +117,43 @@ export default class UserConnection implements IBoxListener, IPredictor {
 
   private handleNewMail = async () => {
     if (this.currentlyOpen && this.currentlyOpen.isInbox) {
-      const uids = await this.pImap.search([[`SINCE`, new Date(this.currentlyOpen.syncedTo)]]);
+      const inbox: Box = this.currentlyOpen;
+      const learning = this.currentlyOpen.syncedTo === 0;
+      const defaultStartDate = this.defaultStartDate();
+      const syncTo = Math.max(inbox.syncedTo, defaultStartDate.getTime());
+      const uids = await this.pImap.search([[`SINCE`, new Date(syncTo)]]);
       if (_.isEmpty(uids)) {
         return;
       }
 
       const messageBodies = await this.fetch(uids);
+      let update = false;
 
-      for (const messageBody of messageBodies) {
+      for (const messageBody of messageBodies.filter(
+        messageBody => messageBody.attrs.date.getTime() > syncTo
+      )) {
+        const headers = headersFromBody(messageBody);
         const message = messageFromBody(messageBody);
-        const recommendedBoxName = this.folderFor(message);
 
-        if (recommendedBoxName && recommendedBoxName !== this.currentlyOpen.qualifiedName) {
-          logger.warn(
-            `Would move (${message.envelope.from[0].name} subject: ${
-              message.envelope.subject
-            }) to ${recommendedBoxName}`
-          );
+        if (learning) {
+          logger.info(`keeping (${message.uid}) in the inbox.`);
         } else {
-          logger.info(
-            `keeping (${message.envelope.from[0].name} subject: ${
-              message.envelope.subject
-            }) in the inbox.`
-          );
+          const recommendedBoxName = this.folderFor(headers);
+          if (recommendedBoxName && recommendedBoxName !== this.currentlyOpen.qualifiedName) {
+            logger.warn(`Would move (${message.uid}) to ${recommendedBoxName}`);
+          } else {
+            logger.info(`keeping (${message.uid}) in the inbox.`);
+          }
         }
 
         this.currentlyOpen.addMessage(message);
+        this.allBoxesATable.addString(headers);
+        update = true;
       }
 
-      await this.persistence.updateBox(this.user, this.currentlyOpen);
+      if (update) {
+        await this.persistence.updateBox(this.user, this.currentlyOpen);
+      }
     }
   };
 
@@ -219,7 +234,13 @@ export default class UserConnection implements IBoxListener, IPredictor {
 
   private openBox = async (box: Box) => {
     await this.closeBox();
-    await this.pImap.openBox(box.qualifiedName);
+    switch (await box.open()) {
+      case 'NEW':
+      case 'UIDS_INVALID':
+        await this.persistence.updateBox(this.user, box);
+        break;
+    }
+
     this.currentlyOpen = box;
   };
 
@@ -234,8 +255,8 @@ export default class UserConnection implements IBoxListener, IPredictor {
   };
 
   shallowSync = async () => {
-    const syncWindowMs = 24 * 60 * 60 * 1000 * this.user.syncWindowDays;
-    const defaultStartDate = new Date(Date.now() - syncWindowMs);
+    this.allBoxesATable = new AdjacencyTable();
+    const defaultStartDate = this.defaultStartDate();
 
     for (const box of this.boxes.filter(box => canLearnFrom(box.qualifiedName))) {
       if (box.isInbox) {
@@ -254,9 +275,16 @@ export default class UserConnection implements IBoxListener, IPredictor {
 
         await this.persistence.updateBox(this.user, box);
       }
+
+      this.allBoxesATable.addAdjacencyTable(box.adjacencyTable);
     }
 
     await this.openInbox();
+
+    if (this.inbox) {
+      this.allBoxesATable.addAdjacencyTable(this.inbox.adjacencyTable);
+    }
+
     await this.handleNewMail();
 
     logger.info(`shallow sync complete`);

@@ -1,46 +1,39 @@
 import * as _ from 'lodash';
 
+import AdjacencyTable from './adjacencyTable';
 import {IMessageBody} from '../imap/promisified';
 
-interface IEmail {
-  host: string;
-  mailbox: string;
-  name: string | null;
-}
-
-interface IEnvelope {
-  bcc: IEmail[] | null;
-  cc: IEmail[] | null;
-  date: Date;
-  from: IEmail[];
-  inReplyTo: string[] | null;
-  messageId: string;
-  replyTo: IEmail[] | null;
-  sender: IEmail[] | null;
-  subject: string;
-  to: IEmail[] | null;
+interface IEngineState {
+  adjacencyTable: AdjacencyTable;
 }
 
 export interface IMessage {
-  envelope: IEnvelope;
-  headers: string;
+  engineState: IEngineState;
+  date: Date;
   size?: number;
   uid: number;
 }
 
-export function messageFromBody(message: IMessageBody): IMessage {
+export function headersFromBody(message: IMessageBody): string {
   if (!_.isString(message.body) || _.isEmpty(message.body)) {
     throw new Error('message body must be a non-empty string.');
   }
 
+  return String(message.body);
+}
+
+export function messageFromBody(message: IMessageBody): IMessage {
+  const headers = headersFromBody(message);
   const envelope = (message.attrs as any).envelope;
   if (_.isUndefined(envelope)) {
     throw new Error('envelope must be provided.');
   }
 
   return {
-    envelope,
-    headers: String(message.body),
+    date: envelope.date,
+    engineState: {
+      adjacencyTable: new AdjacencyTable(headers)
+    },
     size: message.attrs.size,
     uid: message.attrs.uid
   };
