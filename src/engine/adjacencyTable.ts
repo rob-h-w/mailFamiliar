@@ -1,13 +1,16 @@
 import * as _ from 'lodash';
+import {Dictionary, Number, Record, Static} from 'runtypes';
+
+export const AdjacencyTableJson = Record({
+  table: Dictionary(Number, 'string'),
+  totalSampleLength: Number.withConstraint(n => n >= 0),
+  totalSamples: Number.withConstraint(n => n > 0)
+});
+
+export type AdjacencyTableJson = Static<typeof AdjacencyTableJson>;
 
 interface IMap {
   [s: string]: number;
-}
-
-export interface IAdjacencyTable {
-  table: {[key: string]: number};
-  totalSampleLength: number;
-  totalSamples: number;
 }
 
 export default class AdjacencyTable {
@@ -59,18 +62,46 @@ export default class AdjacencyTable {
     }
   };
 
-  constructor(source?: string | IAdjacencyTable) {
+  constructor(
+    source?:
+      | AdjacencyTable
+      | ReadonlyArray<AdjacencyTableJson>
+      | ReadonlyArray<string>
+      | string
+      | AdjacencyTableJson
+  ) {
     if (_.isUndefined(source)) {
       return;
+    } else if (source instanceof AdjacencyTable) {
+      this.addAdjacencyTable(source.raw);
     } else if (_.isString(source)) {
       this.addString(source);
+    } else if (_.isArray(source)) {
+      if (_.isEmpty(source)) {
+        return;
+      }
+
+      if (_.isString(source[0])) {
+        for (const str of source) {
+          this.addString(str);
+        }
+      } else {
+        for (const aTable of source) {
+          this.addAdjacencyTable(aTable);
+        }
+      }
     } else {
-      this.addAdjacencyTable(source);
+      this.addAdjacencyTable(AdjacencyTableJson.check(source));
     }
   }
 
-  public addAdjacencyTable = (source?: IAdjacencyTable) => {
+  public addAdjacencyTable = (source?: AdjacencyTable | AdjacencyTableJson) => {
     if (!source) {
+      return;
+    }
+
+    if (source instanceof AdjacencyTable) {
+      this.addAdjacencyTable(source.raw);
       return;
     }
 
@@ -139,7 +170,7 @@ export default class AdjacencyTable {
     return totalForAThenB / totalForA;
   };
 
-  get raw(): IAdjacencyTable {
+  get raw(): AdjacencyTableJson {
     return {
       table: JSON.parse(JSON.stringify(this.table)),
       totalSampleLength: this.tSampleLength,
@@ -147,8 +178,13 @@ export default class AdjacencyTable {
     };
   }
 
-  subtractAdjacencyTable = (source?: IAdjacencyTable) => {
+  subtractAdjacencyTable = (source?: AdjacencyTable | AdjacencyTableJson) => {
     if (!source) {
+      return;
+    }
+
+    if (source instanceof AdjacencyTable) {
+      this.subtractAdjacencyTable(source.raw);
       return;
     }
 

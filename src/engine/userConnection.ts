@@ -1,24 +1,24 @@
 import * as Imap from 'imap';
 import * as _ from 'lodash';
 
-import AdjacencyTable from './adjacencyTable';
 import Box from './box';
-import {canLearnFrom, canMoveTo} from '../imap/boxFeatures';
+import {canLearnFrom} from '../imap/boxFeatures';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
 import {messageFromBody, headersFromBody} from './message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
+import {NaiveATable} from './naiveATable';
 
-/** TODO: split this class into an IMAP handler implementing IBoxListener & an engine implementing IPredictor passed to UserConnection. */
-export default class UserConnection implements IBoxListener, IPredictor {
-  private allBoxesATable: AdjacencyTable;
+export default class UserConnection implements IBoxListener {
   private currentlyOpen?: Box;
   private inbox?: Box;
   private mailBoxes: ReadonlyArray<Box>;
   private readonly persistence: IPersistence;
   private pImap: Promisified;
+  private readonly predictor: IPredictor;
+  private readonly predictors: ReadonlyArray<IPredictor>;
   private readonly user: User;
 
   public static async create(user: User, persistence: IPersistence): Promise<UserConnection> {
@@ -30,8 +30,36 @@ export default class UserConnection implements IBoxListener, IPredictor {
     return instance;
   }
 
+  private allPredictors<T>(fn: (predictor: IPredictor) => ReadonlyArray<T>): ReadonlyArray<T> {
+    const result: T[] = [];
+    this.predictors
+      .map(predictor => fn(predictor))
+      .reduce<T[]>((previous: T[], current: ReadonlyArray<T>) => {
+        return [...previous, ...current];
+      }, result);
+    return result;
+  }
+
   private constructor(persistence: IPersistence, user: User) {
     this.persistence = persistence;
+    this.predictor = {
+      addHeaders: (headers: string, qualifiedBoxName: string) => {
+        this.allPredictors<void>(predictor => [predictor.addHeaders(headers, qualifiedBoxName)]);
+      },
+      considerBox: (box: Box) => {
+        this.allPredictors(predictor => [predictor.considerBox(box)]);
+      },
+      folderFor: (headers: string) => {
+        const predictor = this.predictors.find(predictor => predictor.name() === 'adjacencyTable');
+        return predictor ? predictor.folderFor(headers) : null;
+      },
+      name: () => 'all',
+      removeHeaders: (headers: string, qualifiedBoxName) => {
+        this.allPredictors<void>(predictor => [predictor.removeHeaders(headers, qualifiedBoxName)]);
+      },
+      stateFromHeaders: () => ({})
+    };
+    this.predictors = [new NaiveATable(user)];
     this.user = user;
   }
 
@@ -63,11 +91,6 @@ export default class UserConnection implements IBoxListener, IPredictor {
         : '';
       const qualifiedName: string = `${root}${name}`;
       const box: Box = new Box({
-        adjacencyTable: {
-          table: {},
-          totalSampleLength: 0,
-          totalSamples: 0
-        },
         imapFolder: folder,
         name,
         pImap: this.pImap,
@@ -99,22 +122,6 @@ export default class UserConnection implements IBoxListener, IPredictor {
     );
   };
 
-  public folderFor = (headers: string): string | null => {
-    let topBox: Box | null = null;
-    let topThreshold: number = this.user.moveThreshold;
-    for (const box of this.boxes.filter(box => canMoveTo(box.qualifiedName))) {
-      const aTableWithout = new AdjacencyTable(this.allBoxesATable.raw);
-      aTableWithout.subtractAdjacencyTable(box.adjacencyTable);
-      const confidence = box.confidenceFor(headers) - aTableWithout.confidenceFor(headers);
-      if (confidence > topThreshold) {
-        topBox = box;
-        topThreshold = confidence;
-      }
-    }
-
-    return topBox ? topBox.qualifiedName : null;
-  };
-
   private handleNewMail = async () => {
     if (this.currentlyOpen && this.currentlyOpen.isInbox) {
       const inbox: Box = this.currentlyOpen;
@@ -133,12 +140,12 @@ export default class UserConnection implements IBoxListener, IPredictor {
         messageBody => messageBody.attrs.date.getTime() > syncTo
       )) {
         const headers = headersFromBody(messageBody);
-        const message = messageFromBody(messageBody);
+        const message = messageFromBody(messageBody, this.predictors);
 
         if (learning) {
           logger.info(`keeping (${message.uid}) in the inbox.`);
         } else {
-          const recommendedBoxName = this.folderFor(headers);
+          const recommendedBoxName = this.predictor.folderFor(headers);
           if (recommendedBoxName && recommendedBoxName !== this.currentlyOpen.qualifiedName) {
             logger.warn(`Would move (${message.uid}) to ${recommendedBoxName}`);
           } else {
@@ -147,9 +154,10 @@ export default class UserConnection implements IBoxListener, IPredictor {
         }
 
         this.currentlyOpen.addMessage(message);
-        this.allBoxesATable.addString(headers);
         update = true;
       }
+
+      this.predictor.considerBox(this.currentlyOpen);
 
       if (update) {
         await this.persistence.updateBox(this.user, this.currentlyOpen);
@@ -255,7 +263,6 @@ export default class UserConnection implements IBoxListener, IPredictor {
   };
 
   shallowSync = async () => {
-    this.allBoxesATable = new AdjacencyTable();
     const defaultStartDate = this.defaultStartDate();
 
     for (const box of this.boxes.filter(box => canLearnFrom(box.qualifiedName))) {
@@ -269,22 +276,20 @@ export default class UserConnection implements IBoxListener, IPredictor {
       if (search.length) {
         const messages = await this.fetch(search);
 
-        for (const message of messages) {
-          box.addMessage(messageFromBody(message));
+        for (const messageBody of messages) {
+          const message = messageFromBody(messageBody, this.predictors);
+          box.addMessage(message);
+        }
+
+        for (const predictor of this.predictors) {
+          predictor.considerBox(box);
         }
 
         await this.persistence.updateBox(this.user, box);
       }
-
-      this.allBoxesATable.addAdjacencyTable(box.adjacencyTable);
     }
 
     await this.openInbox();
-
-    if (this.inbox) {
-      this.allBoxesATable.addAdjacencyTable(this.inbox.adjacencyTable);
-    }
-
     await this.handleNewMail();
 
     logger.info(`shallow sync complete`);

@@ -1,13 +1,11 @@
 import * as Imap from 'imap';
 import {Literal, Static, Union} from 'runtypes';
 
-import AdjacencyTable, {IAdjacencyTable} from './adjacencyTable';
 import Promisified from '../imap/promisified';
 import logger from '../logger';
 import {IMessage} from './message';
 
 interface IBoxRequired {
-  adjacencyTable: IAdjacencyTable;
   name: string;
   qualifiedName: string;
   syncedTo: number;
@@ -32,7 +30,6 @@ const BoxStateValues = Union(
 export type BoxState = Static<typeof BoxStateValues>;
 
 export default class Box {
-  private aTable: AdjacencyTable;
   private imapBox?: Imap.Box;
   private imapFolder?: Imap.Folder;
   private msgs: IMessage[];
@@ -52,17 +49,7 @@ export default class Box {
     }
   }
 
-  constructor({
-    adjacencyTable,
-    box,
-    imapFolder,
-    messages,
-    name,
-    pImap,
-    qualifiedName,
-    syncedTo
-  }: IBox) {
-    this.aTable = new AdjacencyTable(adjacencyTable);
+  constructor({box, imapFolder, messages, name, pImap, qualifiedName, syncedTo}: IBox) {
     this.imapBox = box;
     this.imapFolder = imapFolder;
     this.name = name;
@@ -79,12 +66,7 @@ export default class Box {
   addMessage = (message: IMessage) => {
     this.msgs.push(message);
     this.syncedToEpoch = Math.max(this.syncedToEpoch, message.date.getTime());
-    this.aTable.addAdjacencyTable(message.engineState.adjacencyTable.raw);
   };
-
-  get adjacencyTable() {
-    return this.aTable.raw;
-  }
 
   get box() {
     return this.imapBox;
@@ -93,10 +75,6 @@ export default class Box {
   get isInbox(): boolean {
     return this.qualifiedName.toUpperCase() === 'INBOX';
   }
-
-  confidenceFor = (str: string): number => {
-    return this.aTable.confidenceFor(str);
-  };
 
   mailboxChange = () => {};
 
@@ -148,7 +126,6 @@ export default class Box {
       throw new Error(`Attempt to merge ${box.qualifiedName} into ${this.qualifiedName}`);
     }
 
-    this.aTable.addAdjacencyTable(box.adjacencyTable);
     this.imapFolder = this.imapFolder || box.imapFolder;
     this.pImap = this.pImap || box.pImap;
     this.syncedToEpoch = Math.max(box.syncedToEpoch, this.syncedToEpoch);

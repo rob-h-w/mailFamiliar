@@ -1,9 +1,4 @@
 {
-  "adjacencyTable": {
-    "table": {},
-    "totalSampleLength": 0,
-    "totalSamples": 0
-  },
   "box": {
     "flags": [
       "\\Answered",

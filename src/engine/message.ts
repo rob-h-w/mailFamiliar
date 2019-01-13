@@ -1,10 +1,11 @@
 import * as _ from 'lodash';
 
-import AdjacencyTable from './adjacencyTable';
 import {IMessageBody} from '../imap/promisified';
+import IJsonObject from '../types/json';
+import IPredictor from './predictor';
 
 interface IEngineState {
-  adjacencyTable: AdjacencyTable;
+  [key: string]: IJsonObject;
 }
 
 export interface IMessage {
@@ -22,18 +23,21 @@ export function headersFromBody(message: IMessageBody): string {
   return String(message.body);
 }
 
-export function messageFromBody(message: IMessageBody): IMessage {
+export function messageFromBody(
+  message: IMessageBody,
+  predictors: ReadonlyArray<IPredictor>
+): IMessage {
   const headers = headersFromBody(message);
-  const envelope = (message.attrs as any).envelope;
-  if (_.isUndefined(envelope)) {
-    throw new Error('envelope must be provided.');
+
+  const engineState: IEngineState = {};
+
+  for (const predictor of predictors) {
+    engineState[predictor.name()] = predictor.stateFromHeaders(headers);
   }
 
   return {
-    date: envelope.date,
-    engineState: {
-      adjacencyTable: new AdjacencyTable(headers)
-    },
+    date: message.attrs.date,
+    engineState,
     size: message.attrs.size,
     uid: message.attrs.uid
   };
