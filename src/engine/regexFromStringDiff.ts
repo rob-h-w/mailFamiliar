@@ -2,8 +2,11 @@ export default function regexFromStringDiff(stringDiff: ReadonlyArray<string | n
   return RegExp(
     stringDiff.reduce(
       (previous: string, current: string | null) =>
-        `${previous}${current === null ? '(.+)' : current}`,
+        `${previous}${
+          current === null ? '(.+)' : current.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
+        }`,
       ''
-    )
+    ),
+    'ms'
   );
 }
