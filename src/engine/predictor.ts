@@ -1,5 +1,5 @@
-import IJsonObject from '../types/json';
 import Box from './box';
+import IJsonObject from '../types/json';
 
 export default interface IPredictor {
   addHeaders(header: string, qualifiedBoxName: string): void;

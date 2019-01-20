@@ -10,6 +10,7 @@ import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
 import {NaiveATable} from './naiveATable';
+import RegexAndAtable from './regexAndAtable';
 
 export default class UserConnection implements IBoxListener {
   private currentlyOpen?: Box;
@@ -50,7 +51,7 @@ export default class UserConnection implements IBoxListener {
         this.allPredictors(predictor => [predictor.considerBox(box)]);
       },
       folderFor: (headers: string) => {
-        const predictor = this.predictors.find(predictor => predictor.name() === 'adjacencyTable');
+        const predictor = this.predictors.find(predictor => predictor.name() === 'regex');
         return predictor ? predictor.folderFor(headers) : null;
       },
       name: () => 'all',
@@ -59,7 +60,7 @@ export default class UserConnection implements IBoxListener {
       },
       stateFromHeaders: () => ({})
     };
-    this.predictors = [new NaiveATable(user)];
+    this.predictors = [new NaiveATable(user), new RegexAndAtable(user)];
     this.user = user;
   }
 
