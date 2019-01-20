@@ -166,10 +166,6 @@ export default class UserConnection implements IBoxListener {
     }
   };
 
-  private get inboxOpen() {
-    return this.currentlyOpen && this.currentlyOpen.isInbox;
-  }
-
   private async init(persistedBoxes: ReadonlyArray<Box>, pImap: Promisified) {
     this.pImap = pImap;
     const writablePersistedBoxes: Box[] = persistedBoxes.map(box => box);
@@ -230,11 +226,24 @@ export default class UserConnection implements IBoxListener {
   };
 
   onExpunge = async (seqNo: number) => {
-    // We care if the user moves something from the inbox.
-    if (this.inboxOpen) {
-      await this.fetch([`${seqNo}:*`]);
-      // TODO: Do something with the result.
+    if (!this.currentlyOpen) {
+      // TODO: Trigger check of all boxen.
+      return;
     }
+
+    const expungedMessage = this.currentlyOpen.messages.find(message => message.seq === seqNo);
+
+    if (!expungedMessage) {
+      // TODO: Trigger check of all boxen.
+      return;
+    }
+
+    this.currentlyOpen.removeMessage(expungedMessage);
+    await this.persistence.updateBox(this.user, this.currentlyOpen);
+
+    this.predictor.considerBox(this.currentlyOpen);
+
+    // TODO: Trigger check of all boxen.
   };
 
   onMail = async (/*count: number*/) => {

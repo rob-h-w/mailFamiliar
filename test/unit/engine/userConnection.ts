@@ -40,6 +40,7 @@ function mockBox(params: BoxParams) {
     name,
     open: sinon.stub().resolves(),
     qualifiedName: params.qualifiedName,
+    removeMessage: sinon.stub(),
     reset: sinon.stub(),
     subscribe: sinon.stub().resolves(),
     syncedTo: params.syncedTo
@@ -250,20 +251,20 @@ describe('userConnection', () => {
       });
 
       describe('when new mail is received', () => {
+        const message = {
+          attrs: {
+            date: new Date('2019-01-13T10:36:06.863Z'),
+            envelope: {},
+            size: 3,
+            uid: 1
+          },
+          body: 'abc',
+          seqno: 2
+        };
+
         beforeEach(async () => {
           promisified.search.resolves([1]);
-          promisified.fetch.resolves([
-            {
-              attrs: {
-                date: new Date('2019-01-13T10:36:06.863Z'),
-                envelope: {},
-                size: 3,
-                uid: 1
-              },
-              body: 'abc',
-              seqno: 1
-            }
-          ]);
+          promisified.fetch.resolves([message]);
           await userConnection.onMail(1);
         });
 
@@ -284,9 +285,29 @@ describe('userConnection', () => {
           expect(message.engineState).to.exist();
           expect(message.engineState.adjacencyTable).to.exist();
           expect(message.engineState.regex).to.exist();
-          expect(message.seq).to.equal(1);
+          expect(message.seq).to.equal(2);
           expect(message.size).to.equal(3);
           expect(message.uid).to.equal(1);
+        });
+
+        describe('when mail is expunged', () => {
+          beforeEach(async () => {
+            persistence.updateBox.reset();
+            mockedBoxen.INBOX.box.messages = mockedBoxen.INBOX.box.addMessage.firstCall.args;
+            await userConnection.onExpunge(2);
+          });
+
+          it('calls removeMessage', () => {
+            expect(mockedBoxen.INBOX.box.removeMessage.calledOnce).to.be.true();
+            expect(mockedBoxen.INBOX.box.removeMessage.firstCall.args).to.equal(
+              mockedBoxen.INBOX.box.addMessage.firstCall.args
+            );
+          });
+
+          it('persists the updated box', () => {
+            expect(persistence.updateBox.calledOnce).to.be.true();
+            expect(persistence.updateBox.firstCall.args).to.equal([user, mockedBoxen.INBOX.box]);
+          });
         });
       });
 

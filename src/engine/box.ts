@@ -120,6 +120,16 @@ export default class Box {
     return 'UNREADY';
   };
 
+  removeMessage = (message: IMessage) => {
+    const index = this.msgs.indexOf(message);
+
+    if (index === -1) {
+      return;
+    }
+
+    this.msgs.splice(index, 1);
+  };
+
   reset = () => {
     this.msgs = [];
     this.syncedToEpoch = 0;
