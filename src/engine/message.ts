@@ -11,6 +11,7 @@ interface IEngineState {
 export interface IMessage {
   engineState: IEngineState;
   date: Date;
+  seq: number;
   size?: number;
   uid: number;
 }
@@ -38,6 +39,7 @@ export function messageFromBody(
   return {
     date: message.attrs.date,
     engineState,
+    seq: message.seqno,
     size: message.attrs.size,
     uid: message.attrs.uid
   };

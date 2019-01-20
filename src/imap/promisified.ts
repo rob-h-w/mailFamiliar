@@ -8,6 +8,7 @@ export interface IBoxListener {
   onClose: (hadError: boolean) => void;
   onExpunge: (seqNo: number) => void;
   onMail: (count: number) => void;
+  onUidValidity: (validity: number) => void;
 }
 
 export interface IMessageBody {
@@ -76,7 +77,8 @@ export default class Promisified {
     this.imap.on('close', listener.onClose);
     this.imap.on('expunge', listener.onExpunge);
     this.imap.on('mail', listener.onMail);
-    ['alert', 'end', 'expunge', 'uidvalidity', 'update'].forEach(event => {
+    this.imap.on('uidvalidity', listener.onUidValidity);
+    ['alert', 'end', 'update'].forEach(event => {
       this.imap.on(event, (...args: any[]) => {
         logger.error({
           args,

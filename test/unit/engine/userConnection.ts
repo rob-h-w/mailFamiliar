@@ -40,6 +40,7 @@ function mockBox(params: BoxParams) {
     name,
     open: sinon.stub().resolves(),
     qualifiedName: params.qualifiedName,
+    reset: sinon.stub(),
     subscribe: sinon.stub().resolves(),
     syncedTo: params.syncedTo
   };
@@ -259,7 +260,8 @@ describe('userConnection', () => {
                 size: 3,
                 uid: 1
               },
-              body: 'abc'
+              body: 'abc',
+              seqno: 1
             }
           ]);
           await userConnection.onMail(1);
@@ -281,6 +283,67 @@ describe('userConnection', () => {
           expect(message.date).to.equal(new Date('2019-01-13T10:36:06.863Z'));
           expect(message.engineState).to.exist();
           expect(message.engineState.adjacencyTable).to.exist();
+          expect(message.engineState.regex).to.exist();
+          expect(message.seq).to.equal(1);
+          expect(message.size).to.equal(3);
+          expect(message.uid).to.equal(1);
+        });
+      });
+
+      describe('when uid validity changes', () => {
+        beforeEach(async () => {
+          promisified.search.resolves([]);
+          await userConnection.onUidValidity(1);
+        });
+
+        it('searches since the last synced date', () => {
+          expect(promisified.search.calledOnce).to.be.true();
+          expect(promisified.search.firstCall.args).to.equal([
+            [['SINCE', new Date(inbox.syncedTo)]]
+          ]);
+        });
+
+        it('resets the open box', () => {
+          expect(mockedBoxen.INBOX.box.reset.calledOnce).to.be.true();
+        });
+      });
+
+      describe('shallowSync', () => {
+        beforeEach(async () => {
+          promisified.search.resolves([1]);
+          promisified.fetch.resolves([
+            {
+              attrs: {
+                date: new Date('2019-01-13T10:36:06.863Z'),
+                envelope: {},
+                size: 3,
+                uid: 1
+              },
+              body: 'abc',
+              seqno: 1
+            }
+          ]);
+          await userConnection.shallowSync();
+        });
+
+        it('searches since the last synced date', () => {
+          expect(promisified.search.calledOnce).to.be.true();
+          expect(promisified.search.firstCall.args).to.equal([
+            [['SINCE', new Date(inbox.syncedTo)]]
+          ]);
+        });
+
+        it('adds the newly found message', () => {
+          expect(mockedBoxen.INBOX.box.addMessage.calledOnce).to.be.true();
+          const params = mockedBoxen.INBOX.box.addMessage.firstCall.args;
+          expect(params).to.be.an.array();
+          expect(params.length).to.equal(1);
+          const message = params[0];
+          expect(message.date).to.equal(new Date('2019-01-13T10:36:06.863Z'));
+          expect(message.engineState).to.exist();
+          expect(message.engineState.adjacencyTable).to.exist();
+          expect(message.engineState.regex).to.exist();
+          expect(message.seq).to.equal(1);
           expect(message.size).to.equal(3);
           expect(message.uid).to.equal(1);
         });

@@ -23,6 +23,7 @@ describe('Synchronizer', () => {
     });
 
     user = {
+      dryRun: false,
       host: 'imap.example.com',
       moveThreshold: 0.1,
       password: '000',

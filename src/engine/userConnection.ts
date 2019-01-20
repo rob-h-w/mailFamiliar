@@ -241,16 +241,32 @@ export default class UserConnection implements IBoxListener {
     await this.handleNewMail();
   };
 
+  onUidValidity = async (uidValidity: number) => {
+    const box = this.currentlyOpen;
+    if (box && _.get(box, 'uidValidity') !== uidValidity) {
+      // regenerate the entire box.
+      await this.resetBox();
+    }
+  };
+
   private openBox = async (box: Box) => {
     await this.closeBox();
+    let resetBox = false;
+
     switch (await box.open()) {
       case 'NEW':
-      case 'UIDS_INVALID':
         await this.persistence.updateBox(this.user, box);
+        break;
+      case 'UIDS_INVALID':
+        resetBox = true;
         break;
     }
 
     this.currentlyOpen = box;
+
+    if (resetBox) {
+      await this.resetBox();
+    }
   };
 
   private openInbox = async () => {
@@ -263,6 +279,41 @@ export default class UserConnection implements IBoxListener {
     await this.openBox(this.inbox);
   };
 
+  private populateBox = async (startDate?: Date) => {
+    if (!this.currentlyOpen) {
+      return;
+    }
+
+    if (_.isUndefined(startDate)) {
+      startDate = new Date(
+        Math.max(this.defaultStartDate().getTime(), this.currentlyOpen.syncedTo)
+      );
+    }
+
+    const search = await this.pImap.search([['SINCE', startDate]]);
+    if (search.length) {
+      const messages = await this.fetch(search);
+
+      for (const messageBody of messages) {
+        const message = messageFromBody(messageBody, this.predictors);
+        this.currentlyOpen.addMessage(message);
+      }
+    }
+
+    await this.persistence.updateBox(this.user, this.currentlyOpen);
+
+    this.predictor.considerBox(this.currentlyOpen);
+  };
+
+  private resetBox = async () => {
+    if (!this.currentlyOpen) {
+      return;
+    }
+
+    this.currentlyOpen.reset();
+    await this.populateBox();
+  };
+
   shallowSync = async () => {
     const defaultStartDate = this.defaultStartDate();
 
@@ -273,21 +324,7 @@ export default class UserConnection implements IBoxListener {
 
       const startDate = new Date(Math.max(defaultStartDate.getTime(), box.syncedTo));
       await this.openBox(box);
-      const search = await this.pImap.search([['SINCE', startDate]]);
-      if (search.length) {
-        const messages = await this.fetch(search);
-
-        for (const messageBody of messages) {
-          const message = messageFromBody(messageBody, this.predictors);
-          box.addMessage(message);
-        }
-
-        for (const predictor of this.predictors) {
-          predictor.considerBox(box);
-        }
-
-        await this.persistence.updateBox(this.user, box);
-      }
+      await this.populateBox(startDate);
     }
 
     await this.openInbox();

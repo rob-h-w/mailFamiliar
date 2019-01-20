@@ -21,6 +21,7 @@ let startServer: sinon.SinonStub;
 const M_FAMILIAR_STORAGE = '/storage';
 const USER_PATH = path.join(M_FAMILIAR_STORAGE, 'user.json');
 const USER_SETTINGS: User = {
+  dryRun: true,
   host: 'imap.example.com',
   moveThreshold: 0.1,
   password: '123',

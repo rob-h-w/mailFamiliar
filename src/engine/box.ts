@@ -1,4 +1,5 @@
 import * as Imap from 'imap';
+import * as _ from 'lodash';
 import {Literal, Static, Union} from 'runtypes';
 
 import Promisified from '../imap/promisified';
@@ -76,7 +77,18 @@ export default class Box {
     return this.qualifiedName.toUpperCase() === 'INBOX';
   }
 
-  mailboxChange = () => {};
+  mergeFrom(box: Box) {
+    if (box.qualifiedName !== this.qualifiedName) {
+      throw new Error(`Attempt to merge ${box.qualifiedName} into ${this.qualifiedName}`);
+    }
+
+    this.imapFolder = this.imapFolder || box.imapFolder;
+    this.msgs = this.msgs.concat(...box.msgs);
+    this.pImap = this.pImap || box.pImap;
+    this.syncedToEpoch = Math.max(box.syncedToEpoch, this.syncedToEpoch);
+
+    Box.check(this);
+  }
 
   get messages(): ReadonlyArray<IMessage> {
     return this.msgs;
@@ -98,8 +110,6 @@ export default class Box {
         );
 
         boxState = 'UIDS_INVALID';
-
-        // TODO Handle re-syncing messages.
       }
 
       this.imapBox = box;
@@ -108,6 +118,11 @@ export default class Box {
     }
 
     return 'UNREADY';
+  };
+
+  reset = () => {
+    this.msgs = [];
+    this.syncedToEpoch = 0;
   };
 
   subscribe = async () => {
@@ -121,16 +136,7 @@ export default class Box {
     return this.syncedToEpoch;
   }
 
-  mergeFrom(box: Box) {
-    if (box.qualifiedName !== this.qualifiedName) {
-      throw new Error(`Attempt to merge ${box.qualifiedName} into ${this.qualifiedName}`);
-    }
-
-    this.imapFolder = this.imapFolder || box.imapFolder;
-    this.msgs = this.msgs.concat(...box.msgs);
-    this.pImap = this.pImap || box.pImap;
-    this.syncedToEpoch = Math.max(box.syncedToEpoch, this.syncedToEpoch);
-
-    Box.check(this);
+  get uidValidity(): number | undefined {
+    return _.get(this, 'box.uidvalidity');
   }
 }

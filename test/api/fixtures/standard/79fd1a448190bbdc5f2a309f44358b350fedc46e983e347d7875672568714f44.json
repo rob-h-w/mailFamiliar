@@ -12,12 +12,7 @@
       "$MDNSent"
     ],
     "highestmodseq": "1195",
-    "keywords": [
-      "NonJunk",
-      "$Forwarded",
-      "Junk",
-      "$MDNSent"
-    ],
+    "keywords": ["NonJunk", "$Forwarded", "Junk", "$MDNSent"],
     "messages": {
       "new": 0,
       "total": 849
@@ -25,13 +20,7 @@
     "name": "Family & Friends",
     "newKeywords": {},
     "nomodseq": {},
-    "permFlags": [
-      "\\Answered",
-      "\\Flagged",
-      "\\Deleted",
-      "\\Seen",
-      "\\Draft"
-    ],
+    "permFlags": ["\\Answered", "\\Flagged", "\\Deleted", "\\Seen", "\\Draft"],
     "persistentUIDs": {},
     "readOnly": {},
     "uidnext": 1191,
@@ -41,6 +30,7 @@
     {
       "date": "2019-01-06T16:58:45.000Z",
       "engineState": {
+        "regex": {"headers": "test headers"},
         "adjacencyTable": {
           "table": {
             "\t0": 1,
@@ -1475,11 +1465,13 @@
         }
       },
       "size": 4490,
+      "seq": 1182,
       "uid": 1182
     },
     {
       "date": "2019-01-09T19:14:50.000Z",
       "engineState": {
+        "regex": {"headers": "test headers"},
         "adjacencyTable": {
           "table": {
             "\t0": 1,
@@ -2110,11 +2102,13 @@
         }
       },
       "size": 2648,
+      "seq": 1187,
       "uid": 1187
     },
     {
       "date": "2019-01-10T19:57:03.000Z",
       "engineState": {
+        "regex": {"headers": "test headers"},
         "adjacencyTable": {
           "table": {
             "\tB": 1,
@@ -3621,6 +3615,7 @@
         }
       },
       "size": 8796,
+      "seq": 1189,
       "uid": 1189
     }
   ],
