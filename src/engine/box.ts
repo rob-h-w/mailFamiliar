@@ -127,6 +127,7 @@ export default class Box {
     }
 
     this.imapFolder = this.imapFolder || box.imapFolder;
+    this.msgs = this.msgs.concat(...box.msgs);
     this.pImap = this.pImap || box.pImap;
     this.syncedToEpoch = Math.max(box.syncedToEpoch, this.syncedToEpoch);
 
