@@ -283,7 +283,7 @@ describe('userConnection', () => {
           const message = params[0];
           expect(message.date).to.equal(new Date('2019-01-13T10:36:06.863Z'));
           expect(message.engineState).to.exist();
-          expect(message.engineState.adjacencyTable).to.exist();
+          expect(message.engineState).to.exist();
           expect(message.engineState.regex).to.exist();
           expect(message.seq).to.equal(2);
           expect(message.size).to.equal(3);
@@ -362,7 +362,6 @@ describe('userConnection', () => {
           const message = params[0];
           expect(message.date).to.equal(new Date('2019-01-13T10:36:06.863Z'));
           expect(message.engineState).to.exist();
-          expect(message.engineState.adjacencyTable).to.exist();
           expect(message.engineState.regex).to.exist();
           expect(message.seq).to.equal(1);
           expect(message.size).to.equal(3);

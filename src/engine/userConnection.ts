@@ -9,7 +9,6 @@ import {messageFromBody, headersFromBody} from './message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
-import {NaiveATable} from './naiveATable';
 import RegexAndAtable from './regexAndAtable';
 
 export default class UserConnection implements IBoxListener {
@@ -60,7 +59,7 @@ export default class UserConnection implements IBoxListener {
       },
       stateFromHeaders: () => ({})
     };
-    this.predictors = [new NaiveATable(user), new RegexAndAtable(user)];
+    this.predictors = [new RegexAndAtable(user)];
     this.user = user;
   }
 
