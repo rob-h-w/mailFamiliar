@@ -4,6 +4,8 @@ const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').scri
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as path from 'path';
+// tslint:disable-next-line: no-var-requires
+const promiseRetry = require('promise-retry');
 import * as sinon from 'sinon';
 
 import mockImap, {MockResult} from './mocks/imap';
@@ -164,18 +166,29 @@ describe('folder selection', () => {
     };
     const serverPromise: Promise<any> = startServer();
 
-    await new Promise(resolve => {
-      setTimeout(() => {
-        imapMock.object.once.args.forEach((args: Array<any>) => {
-          expect(args.length).to.equal(2);
-          eventHandlers.once[args[0]] = args[1];
-        });
-        imapMock.object.on.args.forEach((args: Array<any>) => {
-          expect(args.length).to.equal(2);
-          eventHandlers.on[args[0]] = args[1];
-        });
-        resolve();
-      }, 10);
+    await promiseRetry((retry: (error: any) => never, attempt: number) => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          imapMock.object.once.args.forEach((args: Array<any>) => {
+            expect(args.length).to.equal(2);
+            eventHandlers.once[args[0]] = args[1];
+          });
+          imapMock.object.on.args.forEach((args: Array<any>) => {
+            expect(args.length).to.equal(2);
+            eventHandlers.on[args[0]] = args[1];
+          });
+          if (eventHandlers.once.ready) {
+            resolve();
+          }
+          reject(new Error('eventHandlers.once.ready not set'));
+        }, 10);
+      }).catch(error => {
+        if (attempt < 4) {
+          retry(error);
+        }
+
+        throw error;
+      });
     });
     eventHandlers.once.ready();
     server = await serverPromise;
