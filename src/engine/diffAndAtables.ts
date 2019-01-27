@@ -9,8 +9,8 @@ export interface DiffAndAtables {
   START: AdjacencyTable | null;
   FINISH: AdjacencyTable | null;
   diff: ReadonlyArray<string | null>;
-  headersList: ReadonlyArray<string>;
   otherAtables: ReadonlyArray<AdjacencyTable>;
+  strings: ReadonlyArray<string>;
 }
 
 interface DiffInfo {
@@ -33,20 +33,20 @@ function addStringToAtable(aTables: DiffAndAtables, selector: string, str: strin
   }
 }
 
-function addHeadersToAtables(
+function addStringsToAtables(
   aTables: DiffAndAtables,
-  headers: string,
+  str: string,
   regex: RegExp,
   hasFinish: boolean,
   hasStart: boolean
 ) {
   if (regex.source === '(?:)') {
-    // The regex matches everything. Add these headers to the start.
-    addStringToAtable(aTables, AdjacencyTable.START, headers);
+    // The regex matches everything. Add this string to the start.
+    addStringToAtable(aTables, AdjacencyTable.START, str);
     return;
   }
 
-  const matches = regex.exec(headers);
+  const matches = regex.exec(str);
 
   if (!matches) {
     return;
@@ -91,34 +91,31 @@ function diffInfo(aTables: DiffAndAtables): DiffInfo {
 }
 
 export const DiffAndAtables = {
-  addHeadersList: (
+  addStrings: (
     aTables: DiffAndAtables,
-    headersList: string[],
+    strings: string[],
     minLength: number = DEFAULT_MIN_LENGTH
   ): DiffAndAtables => {
     const regex = regexFromStringDiff(aTables.diff);
-    const rebuildAtables =
-      aTables.diff.length === 0 || headersList.some(headers => !regex.test(headers));
+    const rebuildAtables = aTables.diff.length === 0 || strings.some(str => !regex.test(str));
 
     if (rebuildAtables) {
-      aTables = DiffAndAtables.fromHeaders([...headersList, ...aTables.headersList], minLength);
+      aTables = DiffAndAtables.fromStrings([...strings, ...aTables.strings], minLength);
     } else {
       const {hasFinish, hasStart} = diffInfo(aTables);
-      headersList.forEach(headers =>
-        addHeadersToAtables(aTables, headers, regex, hasFinish, hasStart)
-      );
+      strings.forEach(str => addStringsToAtables(aTables, str, regex, hasFinish, hasStart));
     }
 
     return aTables;
   },
 
-  confidenceFor: (aTables: DiffAndAtables, headers: string): number => {
+  confidenceFor: (aTables: DiffAndAtables, str: string): number => {
     if (aTables.diff.length === 0) {
       return 0;
     }
 
     const regex = regexFromStringDiff(aTables.diff);
-    const matches = regex.exec(headers);
+    const matches = regex.exec(str);
 
     if (!matches) {
       return 0;
@@ -163,59 +160,59 @@ export const DiffAndAtables = {
       FINISH: null,
       START: null,
       diff: [],
-      headersList: [],
-      otherAtables: []
+      otherAtables: [],
+      strings: []
     };
   },
 
-  fromHeaders: (
-    headersList: ReadonlyArray<string>,
+  fromStrings: (
+    strings: ReadonlyArray<string>,
     minLength: number = DEFAULT_MIN_LENGTH
   ): DiffAndAtables => {
     const aTables = DiffAndAtables.emptyAtables();
-    aTables.headersList = headersList;
+    aTables.strings = strings;
 
-    headersList.forEach((headers, index) => {
+    strings.forEach((str, index) => {
       switch (index) {
         case 0:
           break;
         case 1:
-          aTables.diff = stringDiff(headersList[0], headers, minLength);
+          aTables.diff = stringDiff(strings[0], str, minLength);
           break;
         default:
-          aTables.diff = addStringToDiff(aTables.diff, headers, minLength);
+          aTables.diff = addStringToDiff(aTables.diff, str, minLength);
       }
     });
 
-    if (headersList.length < 2) {
+    if (strings.length < 2) {
       return aTables;
     }
 
     const {hasFinish, hasStart} = diffInfo(aTables);
     const regex = regexFromStringDiff(aTables.diff);
 
-    headersList.forEach(headers => {
-      addHeadersToAtables(aTables, headers, regex, hasFinish, hasStart);
+    strings.forEach(str => {
+      addStringsToAtables(aTables, str, regex, hasFinish, hasStart);
     });
 
     return aTables;
   },
 
-  removeHeadersList: (
+  removeStrings: (
     aTables: DiffAndAtables,
-    headersList: string[],
+    strings: string[],
     minLength: number = DEFAULT_MIN_LENGTH
   ): DiffAndAtables => {
-    const newHeadersList: string[] = [...aTables.headersList];
-    headersList.forEach(headers => {
-      const index = newHeadersList.indexOf(headers);
+    const newStrings: string[] = [...aTables.strings];
+    strings.forEach(str => {
+      const index = newStrings.indexOf(str);
 
       if (index !== -1) {
-        newHeadersList.splice(index, 1);
+        newStrings.splice(index, 1);
       }
     });
 
-    aTables = DiffAndAtables.fromHeaders(newHeadersList, minLength);
+    aTables = DiffAndAtables.fromStrings(newStrings, minLength);
     return aTables;
   }
 };

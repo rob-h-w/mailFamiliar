@@ -28,13 +28,13 @@ export default class RegexAndAtable implements IPredictor {
   addHeaders = (headers: string, qualifiedBoxName: string): void => {
     this.boxesToInstancesMap[qualifiedBoxName] = this.forEachInstanceOf(
       qualifiedBoxName,
-      instance => DiffAndAtables.addHeadersList(instance.daa, [headers], instance.minSegmentLength)
+      instance => DiffAndAtables.addStrings(instance.daa, [headers], instance.minSegmentLength)
     );
   };
 
   considerBox = (box: Box): void => {
     this.boxesToInstancesMap[box.qualifiedName] = MIN_SEGMENT_LENGTHS.map(minSegmentLength => ({
-      daa: DiffAndAtables.fromHeaders(
+      daa: DiffAndAtables.fromStrings(
         box.messages.map(message => message.engineState[this.name()].headers as string),
         minSegmentLength
       ),
@@ -80,8 +80,7 @@ export default class RegexAndAtable implements IPredictor {
   removeHeaders = (headers: string, qualifiedBoxName: string): void => {
     this.boxesToInstancesMap[qualifiedBoxName] = this.forEachInstanceOf(
       qualifiedBoxName,
-      instance =>
-        DiffAndAtables.removeHeadersList(instance.daa, [headers], instance.minSegmentLength)
+      instance => DiffAndAtables.removeStrings(instance.daa, [headers], instance.minSegmentLength)
     );
   };
 

@@ -21,7 +21,7 @@ describe('DiffAndAtables', () => {
 
     beforeEach(() => {
       daat = DiffAndAtables.emptyAtables();
-      DiffAndAtables.addHeadersList(daat, [theString]);
+      DiffAndAtables.addStrings(daat, [theString]);
     });
 
     it('has no confidence for the same string', () => {
@@ -34,7 +34,7 @@ describe('DiffAndAtables', () => {
 
     beforeEach(() => {
       daat = DiffAndAtables.emptyAtables();
-      daat = DiffAndAtables.addHeadersList(daat, [theString, theString]);
+      daat = DiffAndAtables.addStrings(daat, [theString, theString]);
     });
 
     it('has total confidence for the same string', () => {
@@ -48,7 +48,7 @@ describe('DiffAndAtables', () => {
 
     beforeEach(() => {
       daat = DiffAndAtables.emptyAtables();
-      daat = DiffAndAtables.addHeadersList(daat, [theString, theOtherString]);
+      daat = DiffAndAtables.addStrings(daat, [theString, theOtherString]);
     });
 
     it('has nonzero & non-1 confidence for each string', () => {
@@ -64,7 +64,7 @@ describe('DiffAndAtables', () => {
 
     it('increases its confidence for the string if another similar string is added', () => {
       const initialStringConfidence = DiffAndAtables.confidenceFor(daat, theString);
-      daat = DiffAndAtables.addHeadersList(daat, [theString]);
+      daat = DiffAndAtables.addStrings(daat, [theString]);
       expect(DiffAndAtables.confidenceFor(daat, theString)).to.be.greaterThan(
         initialStringConfidence
       );
