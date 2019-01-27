@@ -142,19 +142,30 @@ export default class UserConnection implements IBoxListener {
         const headers = headersFromBody(messageBody);
         const message = messageFromBody(messageBody, this.predictors);
 
+        let keep = false;
+
         if (learning) {
-          logger.info(`keeping (${message.uid}) in the inbox.`);
+          keep = true;
         } else {
           const recommendedBoxName = this.predictor.folderFor(headers);
           if (recommendedBoxName && recommendedBoxName !== this.currentlyOpen.qualifiedName) {
-            logger.warn(`Would move (${message.uid}) to ${recommendedBoxName}`);
+            if (this.user.dryRun) {
+              logger.warn(`Would move (${message.uid}) to ${recommendedBoxName}`);
+            } else {
+              // Actually do the move.
+              await this.pImap.move([String(message.uid)], recommendedBoxName);
+            }
           } else {
-            logger.info(`keeping (${message.uid}) in the inbox.`);
+            keep = true;
           }
         }
 
-        this.currentlyOpen.addMessage(message);
-        update = true;
+        if (keep) {
+          logger.info(`keeping (${message.uid}) in the inbox.`);
+
+          this.currentlyOpen.addMessage(message);
+          update = true;
+        }
       }
 
       this.predictor.considerBox(this.currentlyOpen);

@@ -23,6 +23,7 @@ export default class Promisified {
 
   readonly closeBox: () => Promise<void>;
   readonly getBoxes: () => Promise<Imap.MailBoxes>;
+  readonly move: (messageUids: string[], folder: string) => Promise<void>;
   readonly openBox: (mailboxName: string) => Promise<Imap.Box>;
   readonly search: (criteria: any[]) => Promise<number[]>;
   readonly subscribeBox: (mailboxName: string) => Promise<void>;
@@ -33,6 +34,7 @@ export default class Promisified {
 
     this.closeBox = promisify<void>(imap.closeBox.bind(imap));
     this.getBoxes = promisify<Imap.MailBoxes>(imap.getBoxes.bind(imap));
+    this.move = promisify<string[], string, void>(imap.move.bind(imap));
     this.openBox = promisify<string, Imap.Box>(imap.openBox.bind(imap));
     this.search = promisify<any[], number[]>(imap.search.bind(imap));
     this.subscribeBox = promisify<string, void>(imap.subscribeBox.bind(imap));

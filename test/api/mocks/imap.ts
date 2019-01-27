@@ -17,6 +17,7 @@ export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Imap.Box
     closeBox: sinon.stub().callsArg(0),
     connect: sinon.stub(),
     getBoxes: sinon.stub().callsArgWith(0, null, mailBoxes),
+    move: sinon.stub().callsArgWith(0, null),
     on: sinon.stub(),
     once: sinon.stub(),
     openBox: sinon.stub(),

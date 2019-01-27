@@ -6,6 +6,7 @@ import * as mockery from 'mockery';
 import * as path from 'path';
 import * as sinon from 'sinon';
 
+import mockImap, {MockResult} from './mocks/imap';
 import User from '../../src/persistence/user';
 
 const ROOT = process.cwd();
@@ -14,8 +15,7 @@ const LOGPATH = path.join(LOGSFOLDER, 'mailFamiliar.log');
 const SERVER = path.join(ROOT, 'src', 'index');
 
 let fsStubs: any;
-let imap: sinon.SinonStub;
-let imapObj: any;
+let imapMock: MockResult;
 let startServer: sinon.SinonStub;
 
 const M_FAMILIAR_STORAGE = '/storage';
@@ -67,18 +67,8 @@ describe('startup logging', () => {
 
     mockery.registerMock('fs', fsStubs);
 
-    imapObj = {
-      closeBox: sinon.stub(),
-      connect: sinon.stub(),
-      getBoxes: sinon.stub(),
-      on: sinon.stub(),
-      once: sinon.stub(),
-      openBox: sinon.stub(),
-      search: sinon.stub(),
-      subscribeBox: sinon.stub()
-    };
-    imap = sinon.stub().returns(imapObj);
-    mockery.registerMock('imap', imap);
+    imapMock = mockImap({}, []);
+    mockery.registerMock('imap', imapMock.class);
   });
 
   afterEach(async () => {
@@ -164,7 +154,7 @@ describe('startup logging', () => {
 
       await new Promise(resolve => {
         setTimeout(() => {
-          imapObj.once.args.forEach((args: Array<any>) => {
+          imapMock.object.once.args.forEach((args: Array<any>) => {
             expect(args.length).to.equal(2);
             eventHandlers[args[0]] = args[1];
           });
