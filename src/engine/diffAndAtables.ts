@@ -1,7 +1,9 @@
+import * as _ from 'lodash';
+
 import addStringToDiff from './addStringToDiff';
 import AdjacencyTable from './adjacencyTable';
 import regexFromStringDiff from './regexFromStringDiff';
-import stringDiff from './stringDiff';
+import stringDiff, {DEFAULT_MIN_LENGTH} from './stringDiff';
 
 export interface DiffAndAtables {
   START: AdjacencyTable | null;
@@ -16,6 +18,21 @@ interface DiffInfo {
   hasStart: boolean;
 }
 
+/**
+ *
+ * @param aTables The tables to select from
+ * @param selector If this doesn't select an AdjacencyTable, all bets are off.
+ * @param str The string to add.
+ */
+function addStringToAtable(aTables: DiffAndAtables, selector: string, str: string) {
+  const aTable = _.get(aTables, selector) as AdjacencyTable | null;
+  if (aTable) {
+    aTable.addString(str);
+  } else {
+    _.set(aTables, selector, new AdjacencyTable(str));
+  }
+}
+
 function addHeadersToAtables(
   aTables: DiffAndAtables,
   headers: string,
@@ -23,6 +40,12 @@ function addHeadersToAtables(
   hasFinish: boolean,
   hasStart: boolean
 ) {
+  if (regex.source === '(?:)') {
+    // The regex matches everything. Add these headers to the start.
+    addStringToAtable(aTables, AdjacencyTable.START, headers);
+    return;
+  }
+
   const matches = regex.exec(headers);
 
   if (!matches) {
@@ -39,27 +62,14 @@ function addHeadersToAtables(
     }
 
     if (index === 1 && hasStart) {
-      if (aTables.START) {
-        aTables.START.addString(match);
-      } else {
-        aTables.START = new AdjacencyTable(match);
-      }
-
+      addStringToAtable(aTables, AdjacencyTable.START, match);
       return;
     }
 
     if (index === end && hasFinish) {
-      if (aTables.FINISH) {
-        aTables.FINISH.addString(match);
-      } else {
-        aTables.FINISH = new AdjacencyTable(match);
-      }
+      addStringToAtable(aTables, AdjacencyTable.FINISH, match);
     } else {
-      if (aTables.otherAtables[otherAtablesIndex]) {
-        aTables.otherAtables[otherAtablesIndex].addString(match);
-      } else {
-        aTables.otherAtables = [...aTables.otherAtables, new AdjacencyTable(match)];
-      }
+      addStringToAtable(aTables, `otherAtables[${otherAtablesIndex}]`, match);
       otherAtablesIndex++;
     }
   });
@@ -84,10 +94,11 @@ export const DiffAndAtables = {
   addHeadersList: (
     aTables: DiffAndAtables,
     headersList: string[],
-    minLength: number
+    minLength: number = DEFAULT_MIN_LENGTH
   ): DiffAndAtables => {
     const regex = regexFromStringDiff(aTables.diff);
-    const rebuildAtables = headersList.some(headers => !regex.test(headers));
+    const rebuildAtables =
+      aTables.diff.length === 0 || headersList.some(headers => !regex.test(headers));
 
     if (rebuildAtables) {
       aTables = DiffAndAtables.fromHeaders([...headersList, ...aTables.headersList], minLength);
@@ -111,6 +122,11 @@ export const DiffAndAtables = {
 
     if (!matches) {
       return 0;
+    }
+
+    if (matches.length === 1 && matches[0].length > 0) {
+      // There is only 1 match, so the regex has no parentheses.
+      return 1;
     }
 
     const end = matches.length - 1;
@@ -152,7 +168,10 @@ export const DiffAndAtables = {
     };
   },
 
-  fromHeaders: (headersList: ReadonlyArray<string>, minLength: number): DiffAndAtables => {
+  fromHeaders: (
+    headersList: ReadonlyArray<string>,
+    minLength: number = DEFAULT_MIN_LENGTH
+  ): DiffAndAtables => {
     const aTables = DiffAndAtables.emptyAtables();
     aTables.headersList = headersList;
 
@@ -185,7 +204,7 @@ export const DiffAndAtables = {
   removeHeadersList: (
     aTables: DiffAndAtables,
     headersList: string[],
-    minLength: number
+    minLength: number = DEFAULT_MIN_LENGTH
   ): DiffAndAtables => {
     const newHeadersList: string[] = [...aTables.headersList];
     headersList.forEach(headers => {
