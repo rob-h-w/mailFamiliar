@@ -19,6 +19,7 @@ let fsStubs: any;
 let imapMock: MockResult;
 
 describe('folder selection', () => {
+  let eventHandlers: any;
   let server: any;
   let writeStream: any;
 
@@ -160,7 +161,7 @@ describe('folder selection', () => {
 
     const {startServer} = require(SERVER);
 
-    const eventHandlers: any = {
+    eventHandlers = {
       on: {},
       once: {}
     };
@@ -209,5 +210,87 @@ describe('folder selection', () => {
 
   it('spins up', () => {
     expect(server).to.exist();
+  });
+
+  describe("when there's already mail", () => {
+    const mail = [
+      {
+        attrs: {
+          date: new Date('2018-12-26T01:09:55.000Z'),
+          size: 15711,
+          uid: 68
+        },
+        body: 'interesting spam like this',
+        seqno: 68
+      },
+      {
+        attrs: {
+          date: new Date('2018-12-27T00:47:48.000Z'),
+          size: 3688,
+          uid: 69
+        },
+        body: 'interesting spam like that',
+        seqno: 69
+      },
+      {
+        attrs: {
+          date: new Date('2018-12-27T12:48:50.000Z'),
+          size: 3655,
+          uid: 70
+        },
+        body: 'interesting spam like this',
+        seqno: 70
+      }
+    ];
+
+    beforeEach(() => {
+      imapMock.object.search.callsArgWith(1, null, mail.map(msg => msg.attrs.uid));
+    });
+
+    it('spins up', () => {
+      expect(server).to.exist();
+    });
+
+    describe('when a new mail comes in that matches', () => {
+      beforeEach(async () => {
+        imapMock.fetchReturnsWith([
+          {
+            attributes: {
+              date: new Date(),
+              flags: [],
+              uid: 32
+            },
+            body: Buffer.from('interesting spam like the others'),
+            seqno: 1
+          }
+        ]);
+        await eventHandlers.on.mail(1);
+      });
+
+      it('moves the mail to "Interesting Spam"', () => {
+        expect(imapMock.object.move.called).to.be.true();
+      });
+    });
+
+    describe('when a new mail comes in that does not match', () => {
+      beforeEach(async () => {
+        imapMock.fetchReturnsWith([
+          {
+            attributes: {
+              date: new Date(),
+              flags: [],
+              uid: 32
+            },
+            body: Buffer.from("what's this now?"),
+            seqno: 2
+          }
+        ]);
+        await eventHandlers.on.mail(1);
+      });
+
+      it('does not move the mail', () => {
+        expect(imapMock.object.move.called).to.be.false();
+      });
+    });
   });
 });
