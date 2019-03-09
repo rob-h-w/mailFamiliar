@@ -4,7 +4,7 @@
     "allowJs": true,
     "baseUrl": "./src",
     "checkJs": true,
-    "lib": ["es6"],
+    "lib": ["es2017"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noImplicitAny": true,
@@ -14,6 +14,6 @@
     "sourceMap": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "target": "es6"
+    "target": "es2017"
   }
 }
