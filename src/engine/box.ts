@@ -30,10 +30,16 @@ const BoxStateValues = Union(
 );
 export type BoxState = Static<typeof BoxStateValues>;
 
+function msgHashString(message: IMessage): string {
+  return `${message.date}${message.seq}${message.uid}`;
+}
+
 export default class Box {
   private imapBox?: Imap.Box;
   private imapFolder?: Imap.Folder;
-  private msgs: IMessage[];
+  private msgHashes: {
+    [key: string]: IMessage;
+  };
   private pImap?: Promisified;
   private syncedToEpoch: number;
 
@@ -54,24 +60,39 @@ export default class Box {
     this.imapBox = box;
     this.imapFolder = imapFolder;
     this.name = name;
-    this.msgs = [];
+    this.msgHashes = {};
     this.pImap = pImap;
     this.qualifiedName = qualifiedName;
     this.syncedToEpoch = syncedTo;
 
     if (messages) {
-      this.msgs = this.msgs.concat(...messages);
+      for (const msg of messages) {
+        this.addMessageHash(msg);
+      }
     }
   }
 
   addMessage = (message: IMessage) => {
-    this.msgs.push(message);
+    if (this.hasMessage(message)) {
+      return;
+    }
+
+    this.addMessageHash(message);
     this.syncedToEpoch = Math.max(this.syncedToEpoch, message.date.getTime());
+  };
+
+  private addMessageHash = (message: IMessage) => {
+    this.msgHashes[msgHashString(message)] = message;
   };
 
   get box() {
     return this.imapBox;
   }
+
+  private hasMessage = (message: IMessage): boolean => {
+    const hashString = msgHashString(message);
+    return !!this.msgHashes[hashString];
+  };
 
   get isInbox(): boolean {
     return this.qualifiedName.toUpperCase() === 'INBOX';
@@ -83,7 +104,7 @@ export default class Box {
     }
 
     this.imapFolder = this.imapFolder || box.imapFolder;
-    this.msgs = this.msgs.concat(...box.msgs);
+    Object.assign(this.msgHashes, box.msgHashes);
     this.pImap = this.pImap || box.pImap;
     this.syncedToEpoch = Math.max(box.syncedToEpoch, this.syncedToEpoch);
 
@@ -91,7 +112,7 @@ export default class Box {
   }
 
   get messages(): ReadonlyArray<IMessage> {
-    return this.msgs;
+    return Object.values(this.msgHashes);
   }
 
   open = async (): Promise<BoxState> => {
@@ -121,17 +142,15 @@ export default class Box {
   };
 
   removeMessage = (message: IMessage) => {
-    const index = this.msgs.indexOf(message);
-
-    if (index === -1) {
+    if (!this.hasMessage(message)) {
       return;
     }
 
-    this.msgs.splice(index, 1);
+    delete this.msgHashes[msgHashString(message)];
   };
 
   reset = () => {
-    this.msgs = [];
+    this.msgHashes = {};
     this.syncedToEpoch = 0;
   };
 
@@ -144,6 +163,10 @@ export default class Box {
 
   get syncedTo() {
     return this.syncedToEpoch;
+  }
+
+  set syncedTo(value: number) {
+    this.syncedToEpoch = value;
   }
 
   get uidValidity(): number | undefined {
