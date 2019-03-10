@@ -19,6 +19,7 @@ export default class UserConnection implements IBoxListener {
   private pImap: Promisified;
   private readonly predictor: IPredictor;
   private readonly predictors: ReadonlyArray<IPredictor>;
+  private refreshTimer: NodeJS.Timer;
   private readonly user: User;
 
   public static async create(user: User, persistence: IPersistence): Promise<UserConnection> {
@@ -28,6 +29,20 @@ export default class UserConnection implements IBoxListener {
     await pImap.waitForConnection();
     await instance.init(persistedBoxes, pImap);
     return instance;
+  }
+
+  public static refresh(uc: UserConnection) {
+    return uc.shallowSync().then(() => {
+      if (uc.refreshTimer) {
+        clearTimeout(uc.refreshTimer);
+      }
+
+      uc.refreshTimer = setTimeout(
+        UserConnection.refresh,
+        uc.user.refreshPeriodMinutes * 60 * 1000,
+        uc
+      );
+    });
   }
 
   private allPredictors<T>(fn: (predictor: IPredictor) => ReadonlyArray<T>): ReadonlyArray<T> {
@@ -335,7 +350,7 @@ export default class UserConnection implements IBoxListener {
     await this.populateBox();
   };
 
-  shallowSync = async () => {
+  private shallowSync = async () => {
     await this.shallowSyncSince(this.defaultStartDate());
 
     logger.info(`shallow sync complete`);

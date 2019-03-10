@@ -28,6 +28,7 @@ describe('Synchronizer', () => {
       moveThreshold: 0.1,
       password: '000',
       port: 143,
+      refreshPeriodMinutes: 60,
       syncWindowDays: 1,
       tls: true,
       user: 'rob@example.com'
@@ -41,11 +42,10 @@ describe('Synchronizer', () => {
       updateBox: sinon.stub().resolves()
     };
 
-    userConnection = {
-      shallowSync: sinon.stub()
-    };
+    userConnection = {};
     UserConnection = sinon.stub();
     UserConnection.create = sinon.stub().returns(userConnection);
+    UserConnection.refresh = sinon.stub().resolves();
 
     mockery.registerMock('./userConnection', {default: UserConnection});
 
@@ -87,7 +87,7 @@ describe('Synchronizer', () => {
     });
 
     it('shallow syncs the user connection', () => {
-      expect(userConnection.shallowSync.calledOnce).to.be.true();
+      expect(UserConnection.refresh.calledOnce).to.be.true();
     });
   });
 });

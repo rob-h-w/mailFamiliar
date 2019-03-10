@@ -26,6 +26,7 @@ const USER_SETTINGS: User = {
   moveThreshold: 0.1,
   password: '123',
   port: 143,
+  refreshPeriodMinutes: 60,
   syncWindowDays: 60,
   tls: true,
   user: 'rob@example.com'
@@ -128,7 +129,7 @@ describe('startup logging', () => {
       ({startServer} = require(SERVER));
 
       fsStubs.readdir.callsFake(
-        (path: string, callback: ((err: Error | null, files: string[]) => void)) => {
+        (path: string, callback: (err: Error | null, files: string[]) => void) => {
           if (path === process.env.M_FAMILIAR_STORAGE) {
             callback(null, ['user.json']);
           } else if (

@@ -14,7 +14,7 @@ export default class Synchronizer {
 
     for (const user of users) {
       const userConnection = await UserConnection.create(user, this.persistence);
-      await userConnection.shallowSync();
+      await UserConnection.refresh(userConnection);
     }
   };
 }
