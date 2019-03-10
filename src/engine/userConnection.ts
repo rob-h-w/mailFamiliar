@@ -237,23 +237,25 @@ export default class UserConnection implements IBoxListener {
 
   onExpunge = async (seqNo: number) => {
     if (!this.currentlyOpen) {
-      // TODO: Trigger check of all boxen.
+      // Shouldn't be possible - log it & move on.
+      logger.warn(
+        `Sequence number ${seqNo} was expunged when no box was open. This shouldn't ever happen.`
+      );
       return;
     }
 
     const expungedMessage = this.currentlyOpen.messages.find(message => message.seq === seqNo);
 
     if (!expungedMessage) {
-      // TODO: Trigger check of all boxen.
+      // We never knew about the expunged message. All good.
       return;
     }
 
     this.currentlyOpen.removeMessage(expungedMessage);
-    await this.persistence.updateBox(this.user, this.currentlyOpen);
-
     this.predictor.considerBox(this.currentlyOpen);
 
-    // TODO: Trigger check of all boxen.
+    // Trigger check of all other boxen in case the message moved there.
+    await this.shallowSyncSince(expungedMessage.date, [this.currentlyOpen.qualifiedName], true);
   };
 
   onMail = async (/*count: number*/) => {
@@ -334,21 +336,33 @@ export default class UserConnection implements IBoxListener {
   };
 
   shallowSync = async () => {
-    const defaultStartDate = this.defaultStartDate();
+    await this.shallowSyncSince(this.defaultStartDate());
 
-    for (const box of this.boxes.filter(box => canLearnFrom(box.qualifiedName))) {
+    logger.info(`shallow sync complete`);
+  };
+
+  private shallowSyncSince = async (
+    date: Date,
+    excluding: string[] = [],
+    resetSyncedTo: boolean = false
+  ) => {
+    for (const box of this.boxes
+      .filter(box => canLearnFrom(box.qualifiedName))
+      .filter(box => excluding.indexOf(box.qualifiedName) === -1)) {
       if (box.isInbox) {
         continue;
       }
 
-      const startDate = new Date(Math.max(defaultStartDate.getTime(), box.syncedTo));
+      if (resetSyncedTo) {
+        box.syncedTo = date.getTime();
+      }
+
+      const startDate = new Date(Math.max(date.getTime(), box.syncedTo));
       await this.openBox(box);
       await this.populateBox(startDate);
     }
 
     await this.openInbox();
     await this.handleNewMail();
-
-    logger.info(`shallow sync complete`);
   };
 }
