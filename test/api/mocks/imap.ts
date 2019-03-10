@@ -97,6 +97,16 @@ function mockFetchResult(object: any) {
   };
 }
 
+function replaceReset(stub: sinon.SinonStub, f: (stub: sinon.SinonStub) => void) {
+  const originalReset = stub.reset;
+  stub.reset = () => {
+    originalReset.apply(stub);
+    f(stub);
+  };
+
+  stub.reset();
+}
+
 export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Imap.Box>): MockResult {
   const seq = {
     fetch: sinon.stub()
@@ -115,9 +125,11 @@ export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Imap.Box
     subscribeBox: sinon.stub().callsArg(1)
   };
 
-  for (const box of boxes) {
-    object.openBox.withArgs(box.name).callsArgWith(1, null, box);
-  }
+  replaceReset(object.openBox, openBox => {
+    for (const box of boxes) {
+      openBox.withArgs(box.name).callsArgWith(1, null, box);
+    }
+  });
 
   return {
     class: sinon.stub().returns(object),
