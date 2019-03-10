@@ -84,11 +84,14 @@ export default class UserConnection implements IBoxListener {
 
   private closeBox = async () => {
     if (this.currentlyOpen) {
+      try {
+        await this.pImap.closeBox();
+      } finally {
+        this.currentlyOpen = undefined;
+      }
+    } else {
       this.currentlyOpen = undefined;
-      await this.pImap.closeBox();
     }
-
-    this.currentlyOpen = undefined;
   };
 
   private collectMailboxes = (
@@ -289,16 +292,21 @@ export default class UserConnection implements IBoxListener {
     await this.closeBox();
     let resetBox = false;
 
-    switch (await box.open()) {
-      case 'NEW':
-        await this.persistence.updateBox(this.user, box);
-        break;
-      case 'UIDS_INVALID':
-        resetBox = true;
-        break;
-    }
+    try {
+      this.currentlyOpen = box;
 
-    this.currentlyOpen = box;
+      switch (await box.open()) {
+        case 'NEW':
+          await this.persistence.updateBox(this.user, box);
+          break;
+        case 'UIDS_INVALID':
+          resetBox = true;
+          break;
+      }
+    } catch (e) {
+      this.currentlyOpen = undefined;
+      throw e;
+    }
 
     if (resetBox) {
       await this.resetBox();
