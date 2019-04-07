@@ -2,7 +2,9 @@ import * as Imap from 'imap';
 
 import logger from '../logger';
 
-export function waitForConnection(imap: Imap): Promise<void> {
+export type OnDisconnect = () => void;
+
+export function waitForConnection(imap: Imap, callback?: OnDisconnect): Promise<void> {
   let resolve: (() => void) | null;
   let reject: ((error: any) => void) | null;
 
@@ -14,10 +16,16 @@ export function waitForConnection(imap: Imap): Promise<void> {
   imap.once('error', (error: Error) => {
     logger.error(error);
 
+    if (!reject && !callback) {
+      logger.warn(`No handler for IMAP error callback.`);
+    }
+
     if (reject) {
       reject(error);
-    } else {
-      logger.warn(`No handler for IMAP error callback.`);
+    }
+
+    if (callback) {
+      callback();
     }
 
     resolve = null;

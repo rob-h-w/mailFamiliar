@@ -1,7 +1,7 @@
 import * as Imap from 'imap';
 import {promisify} from 'util';
 
-import {waitForConnection} from './functions';
+import {OnDisconnect, waitForConnection} from './functions';
 import logger from '../logger';
 
 export interface IBoxListener {
@@ -90,7 +90,7 @@ export default class Promisified {
     });
   };
 
-  waitForConnection = (): Promise<void> => {
-    return waitForConnection(this.imap);
+  waitForConnection = (callback?: OnDisconnect): Promise<void> => {
+    return waitForConnection(this.imap, callback);
   };
 }
