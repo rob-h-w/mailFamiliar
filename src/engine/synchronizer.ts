@@ -13,8 +13,22 @@ export default class Synchronizer {
     const users: ReadonlyArray<User> = await this.persistence.listUsers();
 
     for (const user of users) {
-      const userConnection = await UserConnection.create(user, this.persistence);
-      await UserConnection.refresh(userConnection);
+      await this.initUserConnection(user);
     }
+  };
+
+  private initUserConnection = async (user: User, connectionAttempts: number = 0) => {
+    const userConnection = await UserConnection.create(user, this.persistence, connectionAttempts);
+    userConnection.onDisconnect = () => {
+      const timeout =
+        1000 *
+        user.reconnect.timeoutSeconds *
+        (1 +
+          user.reconnect.multiplier *
+            Math.min(userConnection.connectionAttempts, user.reconnect.backoffs));
+
+      setTimeout(this.initUserConnection, timeout, user, userConnection.connectionAttempts + 1);
+    };
+    await UserConnection.refresh(userConnection);
   };
 }

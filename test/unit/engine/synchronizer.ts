@@ -28,6 +28,11 @@ describe('Synchronizer', () => {
       moveThreshold: 0.1,
       password: '000',
       port: 143,
+      reconnect: {
+        backoffs: 5,
+        multiplier: 2,
+        timeoutSeconds: 5
+      },
       refreshPeriodMinutes: 60,
       syncWindowDays: 1,
       tls: true,

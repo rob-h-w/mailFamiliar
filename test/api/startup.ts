@@ -26,6 +26,11 @@ const USER_SETTINGS: User = {
   moveThreshold: 0.1,
   password: '123',
   port: 143,
+  reconnect: {
+    backoffs: 2,
+    multiplier: 2,
+    timeoutSeconds: 1
+  },
   refreshPeriodMinutes: 60,
   syncWindowDays: 60,
   tls: true,

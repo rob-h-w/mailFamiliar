@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 
 import Box from './box';
 import {canLearnFrom} from '../imap/boxFeatures';
+import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
 import {messageFromBody, headersFromBody} from './message';
@@ -12,7 +13,9 @@ import IPredictor from './predictor';
 import RegexAndAtable from './regexAndAtable';
 
 export default class UserConnection implements IBoxListener {
+  private attempts: number;
   private currentlyOpen?: Box;
+  private disconnectCallback?: OnDisconnect;
   private inbox?: Box;
   private mailBoxes: ReadonlyArray<Box>;
   private readonly persistence: IPersistence;
@@ -22,27 +25,36 @@ export default class UserConnection implements IBoxListener {
   private refreshTimer: NodeJS.Timer;
   private readonly user: User;
 
-  public static async create(user: User, persistence: IPersistence): Promise<UserConnection> {
+  public static async create(
+    user: User,
+    persistence: IPersistence,
+    attempts: number = 0
+  ): Promise<UserConnection> {
     const persistedBoxes: ReadonlyArray<Box> = (await persistence.listBoxes(user)) || [];
-    const instance = new UserConnection(persistence, user);
+    const instance = new UserConnection(persistence, user, attempts);
     const pImap = new Promisified(new Imap(user), instance);
-    await pImap.waitForConnection();
+    await pImap.waitForConnection(() => {
+      if (instance.disconnectCallback) {
+        instance.disconnectCallback();
+      }
+    });
     await instance.init(persistedBoxes, pImap);
+    instance.attempts = 0;
     return instance;
   }
 
   public static refresh(uc: UserConnection) {
-    return uc.shallowSync().then(() => {
-      if (uc.refreshTimer) {
-        clearTimeout(uc.refreshTimer);
-      }
+    if (uc.refreshTimer) {
+      clearTimeout(uc.refreshTimer);
+    }
 
-      uc.refreshTimer = setTimeout(
-        UserConnection.refresh,
-        uc.user.refreshPeriodMinutes * 60 * 1000,
-        uc
-      );
-    });
+    uc.refreshTimer = setTimeout(
+      UserConnection.refresh,
+      uc.user.refreshPeriodMinutes * 60 * 1000,
+      uc
+    );
+
+    return uc.shallowSync();
   }
 
   private allPredictors<T>(fn: (predictor: IPredictor) => ReadonlyArray<T>): ReadonlyArray<T> {
@@ -55,7 +67,8 @@ export default class UserConnection implements IBoxListener {
     return result;
   }
 
-  private constructor(persistence: IPersistence, user: User) {
+  private constructor(persistence: IPersistence, user: User, connectionAttempts: number) {
+    this.attempts = connectionAttempts;
     this.persistence = persistence;
     this.predictor = {
       addHeaders: (headers: string, qualifiedBoxName: string) => {
@@ -125,6 +138,10 @@ export default class UserConnection implements IBoxListener {
 
     return boxes;
   };
+
+  get connectionAttempts() {
+    return this.attempts;
+  }
 
   private defaultStartDate = () =>
     new Date(Date.now() - 24 * 60 * 60 * 1000 * this.user.syncWindowDays);
@@ -252,6 +269,14 @@ export default class UserConnection implements IBoxListener {
     logger.warn(`Connection for ${this.user.user} closed${hadError ? ' with error.' : '.'}`);
     // TODO: Re-create the entire setup.
   };
+
+  get onDisconnect() {
+    return this.disconnectCallback;
+  }
+
+  set onDisconnect(callback: OnDisconnect | undefined) {
+    this.disconnectCallback = callback;
+  }
 
   onExpunge = async (seqNo: number) => {
     if (!this.currentlyOpen) {
