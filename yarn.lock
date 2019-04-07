@@ -35,6 +35,13 @@
   resolved "https://registry.yarnpkg.com/@types/boom/-/boom-7.2.1.tgz#a21e21ba08cc49d17b26baef98e1a77ee4d6cdb0"
   integrity sha512-kOiap+kSa4DPoookJXQGQyKy1rjZ55tgfKAh9F0m1NUdukkcwVzpSnXPMH42a5L+U++ugdQlh/xFJu/WAdr1aw==
 
+"@types/bunyan@^1.8.6":
+  version "1.8.6"
+  resolved "https://registry.yarnpkg.com/@types/bunyan/-/bunyan-1.8.6.tgz#6527641cca30bedec5feb9ab527b7803b8000582"
+  integrity sha512-YiozPOOsS6bIuz31ilYqR5SlLif4TBWsousN2aCWLi5233nZSX19tFbcQUPdR7xJ8ypPyxkCGNxg0CIV5n9qxQ==
+  dependencies:
+    "@types/node" "*"
+
 "@types/catbox@*":
   version "10.0.4"
   resolved "https://registry.yarnpkg.com/@types/catbox/-/catbox-10.0.4.tgz#26a88c82856e18f4ea86b50e3a92b2f6f534f70d"
