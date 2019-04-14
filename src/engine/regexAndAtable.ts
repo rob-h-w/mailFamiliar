@@ -1,7 +1,6 @@
 import {DiffAndAtables} from './diffAndAtables';
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
-import User from 'persistence/user';
 import IPredictor from './predictor';
 import IJsonObject from '../types/json';
 
@@ -18,11 +17,9 @@ interface ITablesMap {
 
 export default class RegexAndAtable implements IPredictor {
   private readonly boxesToInstancesMap: ITablesMap;
-  private readonly user: User;
 
-  constructor(user: User) {
+  constructor() {
     this.boxesToInstancesMap = {};
-    this.user = user;
   }
 
   addHeaders = (headers: string, qualifiedBoxName: string): void => {
@@ -42,33 +39,28 @@ export default class RegexAndAtable implements IPredictor {
     }));
   };
 
-  folderFor = (headers: string): string | null => {
-    let bestMatch: string | null = null;
-    let threshold = this.user.moveThreshold;
-
-    for (const qualifiedName of Object.keys(this.boxesToInstancesMap).filter(name =>
-      canMoveTo(name)
-    )) {
-      const instances = this.boxesToInstancesMap[qualifiedName];
-      const confidence =
-        instances
-          .map(instance => DiffAndAtables.confidenceFor(instance.daa, headers))
-          .reduce((total, next) => total + next, 0) / instances.length;
-
-      if (confidence > threshold) {
-        bestMatch = qualifiedName;
-        threshold = confidence;
-      }
-    }
-
-    return bestMatch;
+  folderScore = (headers: string): Map<string, number> => {
+    const scores = new Map<string, number>(
+      Object.keys(this.boxesToInstancesMap)
+        .filter(name => canMoveTo(name))
+        .map(
+          key =>
+            [
+              key,
+              this.boxesToInstancesMap[key]
+                .map(instance => DiffAndAtables.confidenceFor(instance.daa, headers))
+                .reduce((total, next) => total + next, 0) / this.boxesToInstancesMap[key].length
+            ] as [string, number]
+        )
+    );
+    return scores;
   };
 
   private forEachInstanceOf = (
-    qualifieBoxName: string,
+    qualifiedBoxName: string,
     fn: (instance: IDiffAndAtablesInstance) => DiffAndAtables
   ): ReadonlyArray<IDiffAndAtablesInstance> => {
-    const instances = this.boxesToInstancesMap[qualifieBoxName];
+    const instances = this.boxesToInstancesMap[qualifiedBoxName];
     return instances.map(instance => ({
       daa: fn(instance),
       minSegmentLength: instance.minSegmentLength

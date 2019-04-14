@@ -77,9 +77,9 @@ export default class UserConnection implements IBoxListener {
       considerBox: (box: Box) => {
         this.allPredictors(predictor => [predictor.considerBox(box)]);
       },
-      folderFor: (headers: string) => {
+      folderScore: (headers: string) => {
         const predictor = this.predictors.find(predictor => predictor.name() === 'regex');
-        return predictor ? predictor.folderFor(headers) : null;
+        return predictor ? predictor.folderScore(headers) : new Map<string, number>();
       },
       name: () => 'all',
       removeHeaders: (headers: string, qualifiedBoxName) => {
@@ -87,7 +87,7 @@ export default class UserConnection implements IBoxListener {
       },
       stateFromHeaders: () => ({})
     };
-    this.predictors = [new RegexAndAtable(user)];
+    this.predictors = [new RegexAndAtable()];
     this.user = user;
   }
 
@@ -157,6 +157,28 @@ export default class UserConnection implements IBoxListener {
     );
   };
 
+  private folderFor = (headers: string): string | null => {
+    const scores = this.predictor.folderScore(headers);
+    let folderName = null;
+    let first = 0;
+    let second = 0;
+
+    for (const [fullyQualifiedName, score] of scores.entries()) {
+      if (score > first) {
+        second = first;
+        first = score;
+        folderName = fullyQualifiedName;
+      } else if (score > second) {
+        second = score;
+      }
+    }
+
+    if (first - second > this.user.moveThreshold) {
+      return folderName;
+    }
+    return null;
+  };
+
   private handleNewMail = async () => {
     if (this.currentlyOpen && this.currentlyOpen.isInbox) {
       const inbox: Box = this.currentlyOpen;
@@ -182,7 +204,7 @@ export default class UserConnection implements IBoxListener {
         if (learning) {
           keep = true;
         } else {
-          const recommendedBoxName = this.predictor.folderFor(headers);
+          const recommendedBoxName = this.folderFor(headers);
           if (recommendedBoxName && recommendedBoxName !== this.currentlyOpen.qualifiedName) {
             if (this.user.dryRun) {
               logger.warn(`Would move (${message.uid}) to ${recommendedBoxName}`);
