@@ -16,7 +16,10 @@ function integerValueOf(str: string): number {
   return value;
 }
 
-export function crossCorrelate1d(left: string[], right: string[]): number {
+export function crossCorrelate1d(
+  left: ReadonlyArray<string>,
+  right: ReadonlyArray<string>
+): number {
   if (left.length === 0 || right.length === 0) {
     return 0;
   }
