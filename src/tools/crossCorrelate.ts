@@ -64,3 +64,53 @@ export function crossCorrelate1d(
 
   return leastMeanSquaredOffset ? leastMeanSquaredOffset.offset : 0;
 }
+
+export function crossCorrelateStrings(
+  left: ReadonlyArray<string>,
+  right: ReadonlyArray<string>
+): number {
+  if (left.length === 0 || right.length === 0) {
+    return 0;
+  }
+
+  let leastMeanOffset: Offset | null = null;
+
+  const minOffset = 1 - right.length;
+  const maxOffset = left.length - 1;
+  const shortest = left.length > right.length ? right : left;
+  for (let offset = minOffset; offset <= maxOffset; offset++) {
+    const leftStartIndex = Math.max(0, offset);
+    const rightStartIndex = Math.max(0, -offset);
+    const offsetRangeLength = Math.max(
+      1,
+      Math.min(left.length - leftStartIndex, right.length - rightStartIndex)
+    );
+    let sum = shortest.length - offsetRangeLength;
+    const total = offsetRangeLength + sum;
+    for (let i = 0; i < offsetRangeLength; i++) {
+      const leftIndex = leftStartIndex + i;
+      const rightIndex = rightStartIndex + i;
+      const diff = left[leftIndex] === right[rightIndex] ? 0 : 1;
+      sum += diff;
+    }
+
+    const mean = sum / total;
+
+    if (leastMeanOffset) {
+      if (
+        mean < leastMeanOffset.meanSquared ||
+        (mean === leastMeanOffset.meanSquared && Math.abs(offset) < leastMeanOffset.offset)
+      ) {
+        leastMeanOffset.meanSquared = mean;
+        leastMeanOffset.offset = offset;
+      }
+    } else {
+      leastMeanOffset = {
+        meanSquared: mean,
+        offset
+      };
+    }
+  }
+
+  return leastMeanOffset ? leastMeanOffset.offset : 0;
+}
