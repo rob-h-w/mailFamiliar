@@ -2,7 +2,6 @@ import {DiffAndAtables} from './diffAndAtables';
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
 import IPredictor from './predictor';
-import IJsonObject from '../types/json';
 
 const MIN_SEGMENT_LENGTHS: ReadonlyArray<number> = [5, 6, 7, 8, 9, 10, 11, 13, 17, 19, 23, 29, 31];
 
@@ -32,7 +31,7 @@ export default class RegexAndAtable implements IPredictor {
   considerBox = (box: Box): void => {
     this.boxesToInstancesMap[box.qualifiedName] = MIN_SEGMENT_LENGTHS.map(minSegmentLength => ({
       daa: DiffAndAtables.fromStrings(
-        box.messages.map(message => message.engineState[this.name()].headers as string),
+        box.messages.map(message => message.headers as string),
         minSegmentLength
       ),
       minSegmentLength
@@ -74,11 +73,5 @@ export default class RegexAndAtable implements IPredictor {
       qualifiedBoxName,
       instance => DiffAndAtables.removeStrings(instance.daa, [headers], instance.minSegmentLength)
     );
-  };
-
-  stateFromHeaders = (headers: string): IJsonObject => {
-    return {
-      headers
-    };
   };
 }

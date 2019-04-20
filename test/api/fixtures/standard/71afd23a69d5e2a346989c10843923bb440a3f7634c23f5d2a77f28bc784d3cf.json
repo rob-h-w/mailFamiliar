@@ -19,126 +19,98 @@
   "messages": [
     {
       "date": "2018-12-26T01:09:55.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 15711,
       "seq": 68,
       "uid": 68
     },
     {
       "date": "2018-12-27T00:47:48.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like that"}
-      },
+      "headers": "interesting spam like that",
       "size": 3688,
       "seq": 69,
       "uid": 69
     },
     {
       "date": "2018-12-27T12:48:50.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 3655,
       "seq": 70,
       "uid": 70
     },
     {
       "date": "2018-12-27T16:18:42.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spom like this"}
-      },
+      "headers": "interesting spom like this",
       "size": 3669,
       "seq": 71,
       "uid": 71
     },
     {
       "date": "2018-12-27T21:38:22.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting odd spam like this"}
-      },
+      "headers": "interesting odd spam like this",
       "size": 4606,
       "seq": 72,
       "uid": 72
     },
     {
       "date": "2018-12-27T22:27:53.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 4625,
       "seq": 73,
       "uid": 73
     },
     {
       "date": "2018-12-28T19:10:22.000Z",
-      "engineState": {
-        "regex": {"headers": "worrying spam like this"}
-      },
+      "headers": "worrying spam like this",
       "size": 4774,
       "seq": 74,
       "uid": 74
     },
     {
       "date": "2018-12-31T10:56:24.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 3416,
       "seq": 75,
       "uid": 75
     },
     {
       "date": "2018-12-29T02:12:02.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 3853,
       "seq": 76,
       "uid": 76
     },
     {
       "date": "2018-12-28T23:51:24.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 21390,
       "seq": 77,
       "uid": 77
     },
     {
       "date": "2019-01-05T11:38:55.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 3613,
       "seq": 78,
       "uid": 78
     },
     {
       "date": "2019-01-06T13:37:52.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 3650,
       "seq": 79,
       "uid": 79
     },
     {
       "date": "2019-01-08T19:41:32.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 4738,
       "seq": 80,
       "uid": 80
     },
     {
       "date": "2019-01-10T01:39:45.000Z",
-      "engineState": {
-        "regex": {"headers": "interesting spam like this"}
-      },
+      "headers": "interesting spam like this",
       "size": 3647,
       "seq": 81,
       "uid": 81

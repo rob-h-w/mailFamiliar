@@ -28,1116 +28,868 @@
   "messages": [
     {
       "date": "2018-12-24T13:05:21.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88355,
       "seq": 40465,
       "uid": 40465
     },
     {
       "date": "2018-12-24T13:23:39.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 7307,
       "seq": 40466,
       "uid": 40466
     },
     {
       "date": "2018-12-24T16:50:43.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 7263,
       "seq": 40467,
       "uid": 40467
     },
     {
       "date": "2018-12-25T07:04:55.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 139406,
       "seq": 40468,
       "uid": 40468
     },
     {
       "date": "2018-12-25T09:46:11.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 7313,
       "seq": 40470,
       "uid": 40470
     },
     {
       "date": "2018-12-25T10:23:32.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 171979,
       "seq": 40471,
       "uid": 40471
     },
     {
       "date": "2018-12-25T11:15:21.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 63395,
       "seq": 40472,
       "uid": 40472
     },
     {
       "date": "2018-12-25T12:47:51.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 7337,
       "seq": 40473,
       "uid": 40473
     },
     {
       "date": "2018-12-25T13:05:51.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88435,
       "seq": 40474,
       "uid": 40474
     },
     {
       "date": "2018-12-26T08:42:38.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 33215,
       "seq": 40476,
       "uid": 40476
     },
     {
       "date": "2018-12-26T09:03:42.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88857,
       "seq": 40477,
       "uid": 40477
     },
     {
       "date": "2018-12-26T10:40:00.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 211175,
       "seq": 40478,
       "uid": 40478
     },
     {
       "date": "2018-12-26T11:20:42.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 12256,
       "seq": 40479,
       "uid": 40479
     },
     {
       "date": "2018-12-26T13:04:51.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88404,
       "seq": 40480,
       "uid": 40480
     },
     {
       "date": "2018-12-26T16:46:05.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 16252,
       "seq": 40481,
       "uid": 40481
     },
     {
       "date": "2018-12-26T18:04:32.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 17602,
       "seq": 40483,
       "uid": 40483
     },
     {
       "date": "2018-12-26T19:51:48.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 8738,
       "seq": 40503,
       "uid": 40503
     },
     {
       "date": "2018-12-26T19:38:59.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 8731,
       "seq": 40504,
       "uid": 40504
     },
     {
       "date": "2018-12-26T19:41:38.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 9245,
       "seq": 40505,
       "uid": 40505
     },
     {
       "date": "2018-12-26T19:45:29.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 8738,
       "seq": 40506,
       "uid": 40506
     },
     {
       "date": "2018-12-26T20:51:39.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 8766,
       "seq": 40507,
       "uid": 40507
     },
     {
       "date": "2018-12-26T23:22:47.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 40195,
       "seq": 40508,
       "uid": 40508
     },
     {
       "date": "2018-12-27T09:36:20.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 59018,
       "seq": 40509,
       "uid": 40509
     },
     {
       "date": "2018-12-27T12:44:27.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 47647,
       "seq": 40510,
       "uid": 40510
     },
     {
       "date": "2018-12-27T13:05:35.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88656,
       "seq": 40511,
       "uid": 40511
     },
     {
       "date": "2018-12-27T13:36:06.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 205173,
       "seq": 40512,
       "uid": 40512
     },
     {
       "date": "2018-12-27T16:28:49.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 9918,
       "seq": 40513,
       "uid": 40513
     },
     {
       "date": "2018-12-27T17:22:12.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 41710,
       "seq": 40514,
       "uid": 40514
     },
     {
       "date": "2018-12-27T18:23:37.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 77703,
       "seq": 40515,
       "uid": 40515
     },
     {
       "date": "2018-12-27T19:08:14.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 27218,
       "seq": 40516,
       "uid": 40516
     },
     {
       "date": "2018-12-28T00:26:42.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 49104,
       "seq": 40517,
       "uid": 40517
     },
     {
       "date": "2018-12-28T09:02:17.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88904,
       "seq": 40518,
       "uid": 40518
     },
     {
       "date": "2018-12-28T11:21:38.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 9163,
       "seq": 40519,
       "uid": 40519
     },
     {
       "date": "2018-12-28T11:54:11.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 256200,
       "seq": 40520,
       "uid": 40520
     },
     {
       "date": "2018-12-28T13:02:40.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 23614,
       "seq": 40521,
       "uid": 40521
     },
     {
       "date": "2018-12-28T13:05:08.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88174,
       "seq": 40522,
       "uid": 40522
     },
     {
       "date": "2018-12-28T14:11:49.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 32808,
       "seq": 40524,
       "uid": 40524
     },
     {
       "date": "2018-12-28T19:06:46.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 11469,
       "seq": 40525,
       "uid": 40525
     },
     {
       "date": "2018-12-28T20:11:36.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 49175,
       "seq": 40526,
       "uid": 40526
     },
     {
       "date": "2018-12-29T08:36:40.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 9133,
       "seq": 40527,
       "uid": 40527
     },
     {
       "date": "2018-12-29T09:03:13.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 58717,
       "seq": 40528,
       "uid": 40528
     },
     {
       "date": "2018-12-29T10:11:18.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 10008,
       "seq": 40529,
       "uid": 40529
     },
     {
       "date": "2018-12-29T13:03:06.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88421,
       "seq": 40530,
       "uid": 40530
     },
     {
       "date": "2018-12-29T13:03:20.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 21958,
       "seq": 40531,
       "uid": 40531
     },
     {
       "date": "2018-12-29T13:03:28.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 21661,
       "seq": 40532,
       "uid": 40532
     },
     {
       "date": "2018-12-29T14:11:03.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 23556,
       "seq": 40533,
       "uid": 40533
     },
     {
       "date": "2018-12-29T16:00:28.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 58973,
       "seq": 40534,
       "uid": 40534
     },
     {
       "date": "2018-12-29T22:44:38.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 87304,
       "seq": 40535,
       "uid": 40535
     },
     {
       "date": "2018-12-30T04:48:43.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 82336,
       "seq": 40536,
       "uid": 40536
     },
     {
       "date": "2018-12-30T13:03:59.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88424,
       "seq": 40537,
       "uid": 40537
     },
     {
       "date": "2018-12-30T18:02:46.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 91995,
       "seq": 40538,
       "uid": 40538
     },
     {
       "date": "2018-12-30T18:30:47.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 53112,
       "seq": 40539,
       "uid": 40539
     },
     {
       "date": "2018-12-31T00:39:34.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 68004,
       "seq": 40540,
       "uid": 40540
     },
     {
       "date": "2018-12-31T09:07:48.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88826,
       "seq": 40541,
       "uid": 40541
     },
     {
       "date": "2018-12-31T10:38:42.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 170821,
       "seq": 40542,
       "uid": 40542
     },
     {
       "date": "2018-12-31T13:04:44.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 87711,
       "seq": 40543,
       "uid": 40543
     },
     {
       "date": "2018-12-31T15:03:18.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 44158,
       "seq": 40544,
       "uid": 40544
     },
     {
       "date": "2018-12-31T18:00:02.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 14910,
       "seq": 40545,
       "uid": 40545
     },
     {
       "date": "2019-01-01T05:32:00.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 13431,
       "seq": 40546,
       "uid": 40546
     },
     {
       "date": "2019-01-01T07:06:54.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 129068,
       "seq": 40547,
       "uid": 40547
     },
     {
       "date": "2019-01-01T11:40:40.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 27491,
       "seq": 40548,
       "uid": 40548
     },
     {
       "date": "2019-01-01T13:04:53.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88035,
       "seq": 40549,
       "uid": 40549
     },
     {
       "date": "2019-01-01T18:22:13.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 96606,
       "seq": 40550,
       "uid": 40550
     },
     {
       "date": "2019-01-02T13:02:40.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88117,
       "seq": 40551,
       "uid": 40551
     },
     {
       "date": "2019-01-02T15:48:18.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 6353,
       "seq": 40552,
       "uid": 40552
     },
     {
       "date": "2019-01-02T16:30:59.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 27685,
       "seq": 40553,
       "uid": 40553
     },
     {
       "date": "2019-01-02T18:04:10.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 255532,
       "seq": 40554,
       "uid": 40554
     },
     {
       "date": "2019-01-02T22:58:30.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 103483,
       "seq": 40555,
       "uid": 40555
     },
     {
       "date": "2019-01-03T11:06:33.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 38524,
       "seq": 40556,
       "uid": 40556
     },
     {
       "date": "2019-01-03T13:04:40.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 87856,
       "seq": 40557,
       "uid": 40557
     },
     {
       "date": "2019-01-03T15:59:08.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 24835,
       "seq": 40558,
       "uid": 40558
     },
     {
       "date": "2019-01-03T18:53:47.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 78471,
       "seq": 40559,
       "uid": 40559
     },
     {
       "date": "2019-01-03T19:33:47.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 45566,
       "seq": 40560,
       "uid": 40560
     },
     {
       "date": "2019-01-03T22:21:08.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 90314,
       "seq": 40561,
       "uid": 40561
     },
     {
       "date": "2019-01-04T00:25:38.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 39341,
       "seq": 40562,
       "uid": 40562
     },
     {
       "date": "2019-01-04T13:05:33.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 87812,
       "seq": 40563,
       "uid": 40563
     },
     {
       "date": "2019-01-04T13:27:20.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 50135,
       "seq": 40564,
       "uid": 40564
     },
     {
       "date": "2019-01-04T18:23:53.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 39882,
       "seq": 40565,
       "uid": 40565
     },
     {
       "date": "2019-01-04T19:17:32.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 80625,
       "seq": 40566,
       "uid": 40566
     },
     {
       "date": "2019-01-04T22:45:26.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 86903,
       "seq": 40567,
       "uid": 40567
     },
     {
       "date": "2019-01-05T15:56:33.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 87416,
       "seq": 40568,
       "uid": 40568
     },
     {
       "date": "2019-01-05T16:13:42.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88534,
       "seq": 40569,
       "uid": 40569
     },
     {
       "date": "2019-01-06T08:10:30.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 82754,
       "seq": 40570,
       "uid": 40570
     },
     {
       "date": "2019-01-06T15:09:28.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88400,
       "seq": 40571,
       "uid": 40571
     },
     {
       "date": "2019-01-06T16:11:07.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 63080,
       "seq": 40572,
       "uid": 40572
     },
     {
       "date": "2019-01-06T18:31:17.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 78478,
       "seq": 40573,
       "uid": 40573
     },
     {
       "date": "2019-01-07T08:36:25.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 38132,
       "seq": 40574,
       "uid": 40574
     },
     {
       "date": "2019-01-07T11:12:56.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 4330,
       "seq": 40575,
       "uid": 40575
     },
     {
       "date": "2019-01-07T13:36:36.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88302,
       "seq": 40576,
       "uid": 40576
     },
     {
       "date": "2019-01-07T14:26:41.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 38380,
       "seq": 40577,
       "uid": 40577
     },
     {
       "date": "2019-01-07T16:19:37.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 139157,
       "seq": 40578,
       "uid": 40578
     },
     {
       "date": "2019-01-07T19:46:04.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 11180,
       "seq": 40579,
       "uid": 40579
     },
     {
       "date": "2019-01-07T20:30:19.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 32625,
       "seq": 40580,
       "uid": 40580
     },
     {
       "date": "2019-01-08T01:51:04.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 74274,
       "seq": 40581,
       "uid": 40581
     },
     {
       "date": "2019-01-08T07:07:47.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 142053,
       "seq": 40582,
       "uid": 40582
     },
     {
       "date": "2019-01-08T09:32:24.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 246213,
       "seq": 40583,
       "uid": 40583
     },
     {
       "date": "2019-01-08T10:50:57.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 21978,
       "seq": 40584,
       "uid": 40584
     },
     {
       "date": "2019-01-08T13:07:14.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88519,
       "seq": 40585,
       "uid": 40585
     },
     {
       "date": "2019-01-08T18:18:53.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 8173,
       "seq": 40586,
       "uid": 40586
     },
     {
       "date": "2019-01-09T01:20:47.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 66883,
       "seq": 40587,
       "uid": 40587
     },
     {
       "date": "2019-01-09T05:37:19.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 9748,
       "seq": 40588,
       "uid": 40588
     },
     {
       "date": "2019-01-09T08:24:13.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 18826,
       "seq": 40589,
       "uid": 40589
     },
     {
       "date": "2019-01-09T13:08:21.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88543,
       "seq": 40590,
       "uid": 40590
     },
     {
       "date": "2019-01-09T14:20:16.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 37181,
       "seq": 40591,
       "uid": 40591
     },
     {
       "date": "2019-01-09T15:23:55.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 96669,
       "seq": 40592,
       "uid": 40592
     },
     {
       "date": "2019-01-10T02:15:21.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 72414,
       "seq": 40593,
       "uid": 40593
     },
     {
       "date": "2019-01-10T13:04:37.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88350,
       "seq": 40595,
       "uid": 40595
     },
     {
       "date": "2019-01-10T15:01:30.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 46161,
       "seq": 40596,
       "uid": 40596
     },
     {
       "date": "2019-01-10T16:33:40.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 35629,
       "seq": 40597,
       "uid": 40597
     },
     {
       "date": "2019-01-10T18:12:54.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 41880,
       "seq": 40598,
       "uid": 40598
     },
     {
       "date": "2019-01-10T18:16:15.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 86286,
       "seq": 40599,
       "uid": 40599
     },
     {
       "date": "2019-01-11T01:50:32.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 70323,
       "seq": 40601,
       "uid": 40601
     },
     {
       "date": "2019-01-11T13:06:21.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88294,
       "seq": 40602,
       "uid": 40602
     },
     {
       "date": "2019-01-11T13:06:50.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 80536,
       "seq": 40603,
       "uid": 40603
     },
     {
       "date": "2019-01-11T17:04:31.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 30846,
       "seq": 40604,
       "uid": 40604
     },
     {
       "date": "2019-01-11T17:52:34.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 2298245,
       "seq": 40605,
       "uid": 40605
     },
     {
       "date": "2019-01-11T19:51:21.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 27148,
       "seq": 40606,
       "uid": 40606
     },
     {
       "date": "2019-01-11T20:34:33.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 50726,
       "seq": 40607,
       "uid": 40607
     },
     {
       "date": "2019-01-11T22:37:19.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 86406,
       "seq": 40608,
       "uid": 40608
     },
     {
       "date": "2019-01-11T23:03:19.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 21667,
       "seq": 40609,
       "uid": 40609
     },
     {
       "date": "2019-01-12T13:04:08.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 88728,
       "seq": 40611,
       "uid": 40611
     },
     {
       "date": "2019-01-12T18:11:02.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 87266,
       "seq": 40612,
       "uid": 40612
     },
     {
       "date": "2019-01-12T19:51:33.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 8549,
       "seq": 40613,
       "uid": 40613
     },
     {
       "date": "2019-01-13T05:02:29.000Z",
-      "engineState": {
-        "regex": {"headers": "test headers"}
-      },
+      "headers": "test headers",
       "size": 82185,
       "seq": 40614,
       "uid": 40614

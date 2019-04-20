@@ -6,7 +6,7 @@ import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
-import {messageFromBody, headersFromBody} from './message';
+import {messageFromBody} from './message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
@@ -84,8 +84,7 @@ export default class UserConnection implements IBoxListener {
       name: () => 'all',
       removeHeaders: (headers: string, qualifiedBoxName) => {
         this.allPredictors<void>(predictor => [predictor.removeHeaders(headers, qualifiedBoxName)]);
-      },
-      stateFromHeaders: () => ({})
+      }
     };
     this.predictors = [new RegexAndAtable()];
     this.user = user;
@@ -196,15 +195,14 @@ export default class UserConnection implements IBoxListener {
       for (const messageBody of messageBodies.filter(
         messageBody => messageBody.attrs.date.getTime() > syncTo
       )) {
-        const headers = headersFromBody(messageBody);
-        const message = messageFromBody(messageBody, this.predictors);
+        const message = messageFromBody(messageBody);
 
         let keep = false;
 
         if (learning) {
           keep = true;
         } else {
-          const recommendedBoxName = this.folderFor(headers);
+          const recommendedBoxName = this.folderFor(message.headers);
           if (recommendedBoxName && recommendedBoxName !== this.currentlyOpen.qualifiedName) {
             if (this.user.dryRun) {
               logger.warn(`Would move (${message.uid}) to ${recommendedBoxName}`);
@@ -386,7 +384,7 @@ export default class UserConnection implements IBoxListener {
       const messages = await this.fetch(search);
 
       for (const messageBody of messages) {
-        const message = messageFromBody(messageBody, this.predictors);
+        const message = messageFromBody(messageBody);
         this.currentlyOpen.addMessage(message);
       }
     }
