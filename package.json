@@ -8,7 +8,6 @@
   "license": "GPL-3.0-only",
   "private": false,
   "dependencies": {
-    "@types/bunyan": "^1.8.6",
     "bunyan": "^1.8.12",
     "env-var": "^3.3.0",
     "hapi": "^17.6.0",
@@ -28,6 +27,7 @@
     "test:unit:debug": "lab --inspect --sourcemaps --transform node_modules/lab-transform-typescript ./test/unit/**/*.ts"
   },
   "devDependencies": {
+    "@types/bunyan": "^1.8.6",
     "@types/code": "^4.0.5",
     "@types/hapi": "^17.6.4",
     "@types/imap": "^0.8.29",
