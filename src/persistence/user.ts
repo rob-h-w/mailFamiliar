@@ -1,5 +1,12 @@
 import {Config} from 'imap';
 
+export interface TrialSettings {
+  lastSyncedDaysAgo: number;
+  logFile?: string;
+  logToStdOut: boolean;
+  predictor?: string;
+}
+
 interface User extends Config {
   dryRun: boolean;
   moveThreshold: number;
@@ -10,6 +17,7 @@ interface User extends Config {
   };
   refreshPeriodMinutes: number;
   syncWindowDays: number;
+  trial?: TrialSettings;
 }
 
 export default User;

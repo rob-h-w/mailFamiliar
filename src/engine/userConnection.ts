@@ -11,6 +11,8 @@ import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
 import RegexAndAtable from './regexAndAtable';
+import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
+import NewMailHandler from './newMailHandler';
 
 export default class UserConnection implements IBoxListener {
   private attempts: number;
@@ -18,18 +20,20 @@ export default class UserConnection implements IBoxListener {
   private disconnectCallback?: OnDisconnect;
   private inbox?: Box;
   private mailBoxes: ReadonlyArray<Box>;
-  private readonly persistence: IPersistence;
+  private newMailHander: NewMailHandler;
+  private readonly persistenceReference: IPersistence;
   private pImap: Promisified;
-  private readonly predictor: IPredictor;
+  private readonly currentPredictor: IPredictor;
   private readonly predictors: ReadonlyArray<IPredictor>;
   private refreshTimer: NodeJS.Timer;
-  private readonly user: User;
+  private readonly userReference: User;
 
   public static async create(
-    user: User,
+    u: User,
     persistence: IPersistence,
     attempts: number = 0
   ): Promise<UserConnection> {
+    const user = withTrialSettings(u);
     const persistedBoxes: ReadonlyArray<Box> = (await persistence.listBoxes(user)) || [];
     const instance = new UserConnection(persistence, user, attempts);
     const pImap = new Promisified(new Imap(user), instance);
@@ -69,8 +73,8 @@ export default class UserConnection implements IBoxListener {
 
   private constructor(persistence: IPersistence, user: User, connectionAttempts: number) {
     this.attempts = connectionAttempts;
-    this.persistence = persistence;
-    this.predictor = {
+    this.persistenceReference = persistence;
+    this.currentPredictor = {
       addHeaders: (headers: string, qualifiedBoxName: string) => {
         this.allPredictors<void>(predictor => [predictor.addHeaders(headers, qualifiedBoxName)]);
       },
@@ -87,7 +91,7 @@ export default class UserConnection implements IBoxListener {
       }
     };
     this.predictors = [new RegexAndAtable()];
-    this.user = user;
+    this.userReference = user;
   }
 
   get boxes(): ReadonlyArray<Box> {
@@ -142,10 +146,9 @@ export default class UserConnection implements IBoxListener {
     return this.attempts;
   }
 
-  private defaultStartDate = () =>
-    new Date(Date.now() - 24 * 60 * 60 * 1000 * this.user.syncWindowDays);
+  defaultStartDate = () => new Date(Date.now() - 24 * 60 * 60 * 1000 * this.user.syncWindowDays);
 
-  private fetch = (source: any, seq = false) => {
+  fetch = (source: any, seq = false) => {
     const fetchObj = seq ? this.pImap.imap.seq : this.pImap.imap;
     return this.pImap.fetch(
       fetchObj.fetch(source, {
@@ -156,83 +159,15 @@ export default class UserConnection implements IBoxListener {
     );
   };
 
-  private folderFor = (headers: string): string | null => {
-    const scores = this.predictor.folderScore(headers);
-    let folderName = null;
-    let first = 0;
-    let second = 0;
-
-    for (const [fullyQualifiedName, score] of scores.entries()) {
-      if (score > first) {
-        second = first;
-        first = score;
-        folderName = fullyQualifiedName;
-      } else if (score > second) {
-        second = score;
-      }
-    }
-
-    if (first - second > this.user.moveThreshold) {
-      return folderName;
-    }
-    return null;
-  };
-
   private handleNewMail = async () => {
     if (this.currentlyOpen && this.currentlyOpen.isInbox) {
-      const inbox: Box = this.currentlyOpen;
-      const learning = this.currentlyOpen.syncedTo === 0;
-      const defaultStartDate = this.defaultStartDate();
-      const syncTo = Math.max(inbox.syncedTo, defaultStartDate.getTime());
-      const uids = await this.pImap.search([[`SINCE`, new Date(syncTo)]]);
-      if (_.isEmpty(uids)) {
-        return;
-      }
-
-      const messageBodies = await this.fetch(uids);
-      let update = false;
-
-      for (const messageBody of messageBodies.filter(
-        messageBody => messageBody.attrs.date.getTime() > syncTo
-      )) {
-        const message = messageFromBody(messageBody);
-
-        let keep = false;
-
-        if (learning) {
-          keep = true;
-        } else {
-          const recommendedBoxName = this.folderFor(message.headers);
-          if (recommendedBoxName && recommendedBoxName !== this.currentlyOpen.qualifiedName) {
-            if (this.user.dryRun) {
-              logger.warn(`Would move (${message.uid}) to ${recommendedBoxName}`);
-            } else {
-              // Actually do the move.
-              await this.pImap.move([String(message.uid)], recommendedBoxName);
-            }
-          } else {
-            keep = true;
-          }
-        }
-
-        if (keep) {
-          logger.info(`keeping (${message.uid}) in the inbox.`);
-
-          this.currentlyOpen.addMessage(message);
-          update = true;
-        }
-      }
-
-      this.predictor.considerBox(this.currentlyOpen);
-
-      if (update) {
-        await this.persistence.updateBox(this.user, this.currentlyOpen);
-      }
+      this.newMailHander.handleMail(this.currentlyOpen);
     }
   };
 
   private async init(persistedBoxes: ReadonlyArray<Box>, pImap: Promisified) {
     this.pImap = pImap;
+    this.newMailHander = new NewMailHandler(this, this.pImap);
     const writablePersistedBoxes: Box[] = persistedBoxes.map(box => box);
     const mailBoxes = await this.pImap.getBoxes();
     const discoveredBoxes = this.collectMailboxes(mailBoxes);
@@ -315,7 +250,7 @@ export default class UserConnection implements IBoxListener {
     }
 
     this.currentlyOpen.removeMessage(expungedMessage);
-    this.predictor.considerBox(this.currentlyOpen);
+    this.currentPredictor.considerBox(this.currentlyOpen);
 
     // Trigger check of all other boxen in case the message moved there.
     await this.shallowSyncSince(expungedMessage.date, [this.currentlyOpen.qualifiedName], true);
@@ -373,9 +308,9 @@ export default class UserConnection implements IBoxListener {
       return;
     }
 
-    if (_.isUndefined(startDate)) {
+    if (_.isUndefined(startDate) || this.user.trial) {
       startDate = new Date(
-        Math.max(this.defaultStartDate().getTime(), this.currentlyOpen.syncedTo)
+        Math.max(this.defaultStartDate().getTime(), getSyncedTo(this.currentlyOpen))
       );
     }
 
@@ -391,8 +326,22 @@ export default class UserConnection implements IBoxListener {
 
     await this.persistence.updateBox(this.user, this.currentlyOpen);
 
-    this.predictor.considerBox(this.currentlyOpen);
+    this.currentPredictor.considerBox(this.currentlyOpen);
   };
+
+  get persistence(): IPersistence {
+    return this.persistenceReference;
+  }
+
+  get predictor(): IPredictor {
+    if (this.user.trial && this.user.trial.predictor) {
+      return this.predictors.filter(
+        predictor => this.user.trial && predictor.name() === this.user.trial.predictor
+      )[0];
+    }
+
+    return this.currentPredictor;
+  }
 
   private resetBox = async () => {
     if (!this.currentlyOpen) {
@@ -433,4 +382,8 @@ export default class UserConnection implements IBoxListener {
     await this.openInbox();
     await this.handleNewMail();
   };
+
+  get user(): User {
+    return this.userReference;
+  }
 }

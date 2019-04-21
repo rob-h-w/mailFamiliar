@@ -19,6 +19,12 @@ const LOGPATH = path.join(LOGSFOLDER, 'mailFamiliar.log');
 let fsStubs: any;
 let imapMock: MockResult;
 
+function waitATick() {
+  return new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+}
+
 describe('folder selection', () => {
   let eventHandlers: EventHandlers;
   let server: any;
@@ -134,10 +140,15 @@ describe('folder selection', () => {
           }
         ]);
         await eventHandlers.on.mail(1);
+        await waitATick();
       });
 
-      it('moves the mail to "Interesting Spam"', () => {
+      it('moves the mail', () => {
         expect(imapMock.object.move.called).to.be.true();
+      });
+
+      it('moves the mail to "Interesting spam"', () => {
+        expect(imapMock.object.move.args[0][1]).to.equal('Interesting spam');
       });
     });
 
@@ -155,6 +166,7 @@ describe('folder selection', () => {
           }
         ]);
         await eventHandlers.on.mail(1);
+        await waitATick();
       });
 
       it('does not move the mail', () => {

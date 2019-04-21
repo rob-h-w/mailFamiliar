@@ -47,6 +47,13 @@
   resolved "https://registry.yarnpkg.com/@types/catbox/-/catbox-10.0.4.tgz#26a88c82856e18f4ea86b50e3a92b2f6f534f70d"
   integrity sha512-N+a5rLOsZyLYoqtCHYfw5sIcTJgm0SofLM8GSNNOwvZdFbuefMyHScJrN4xHtmcXwkY+aGXN7M2bQWtz63gJhA==
 
+"@types/cli@^0.11.19":
+  version "0.11.19"
+  resolved "https://registry.yarnpkg.com/@types/cli/-/cli-0.11.19.tgz#31ff7d006734c0b6647aa2b3d87d21d62eadb54b"
+  integrity sha1-Mf99AGc0wLZkeqKz2H0h1i6ttUs=
+  dependencies:
+    "@types/node" "*"
+
 "@types/code@^4.0.5":
   version "4.0.5"
   resolved "https://registry.yarnpkg.com/@types/code/-/code-4.0.5.tgz#e7c051d01bbbc5d33642c2ec3aa3b2722901740b"
@@ -407,6 +414,14 @@ cli-width@^2.0.0:
   resolved "https://registry.yarnpkg.com/cli-width/-/cli-width-2.2.0.tgz#ff19ede8a9a5e579324147b0c11f0fbcbabed639"
   integrity sha1-/xnt6Kml5XkyQUewwR8PvLq+1jk=
 
+cli@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/cli/-/cli-1.0.1.tgz#22817534f24bfa4950c34d532d48ecbc621b8c14"
+  integrity sha1-IoF1NPJL+klQw01TLUjsvGIbjBQ=
+  dependencies:
+    exit "0.1.2"
+    glob "^7.1.1"
+
 code@^5.2.0:
   version "5.2.4"
   resolved "https://registry.yarnpkg.com/code/-/code-5.2.4.tgz#b1bb981e96acf8099ff847605b42d04db05caffa"
@@ -649,6 +664,11 @@ esutils@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/esutils/-/esutils-2.0.2.tgz#0abf4f1caa5bcb1f7a9d8acc6dea4faaa04bac9b"
   integrity sha1-Cr9PHKpbyx96nYrMbepPqqBLrJs=
+
+exit@0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/exit/-/exit-0.1.2.tgz#0632638f8d877cc82107d30a0fff1a17cba1cd0c"
+  integrity sha1-BjJjj42HfMghB9MKD/8aF8uhzQw=
 
 external-editor@^2.1.0:
   version "2.2.0"

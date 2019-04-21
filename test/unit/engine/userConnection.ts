@@ -115,7 +115,8 @@ describe('userConnection', () => {
     UserConnection = require('../../../src/engine/userConnection').default;
 
     user = {
-      syncWindowDays: 10
+      syncWindowDays: 10,
+      trial: undefined
     };
   });
 
@@ -210,7 +211,7 @@ describe('userConnection', () => {
 
       it('creates a persisted box', () => {
         expect(persistence.createBox.calledOnce).to.be.true();
-        expect(persistence.createBox.firstCall.args[0]).to.equal(user);
+        expect(persistence.createBox.firstCall.args[0]).to.contain(user);
       });
 
       it('exposes the box', () => {

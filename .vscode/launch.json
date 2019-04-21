@@ -8,7 +8,19 @@
       "env": {
         "M_FAMILIAR_STORAGE": "${workspaceFolder}/tmp"
       },
-      "name": "Launch via NPM",
+      "name": "Trial",
+      "preLaunchTask": "npm: build",
+      "port": 9229,
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run-script", "try"],
+      "type": "node"
+    },
+    {
+      "env": {
+        "M_FAMILIAR_STORAGE": "${workspaceFolder}/tmp"
+      },
+      "name": "Server",
       "preLaunchTask": "npm: build",
       "port": 9229,
       "request": "launch",
