@@ -11,6 +11,20 @@ function undefinedDecorator<T>(fn: (undefinable: T) => void) {
   };
 }
 
+function addAdjacencyTableDecorator(
+  self: AdjacencyTable,
+  fn: (source: AdjacencyTableJson) => void
+) {
+  return (source: AdjacencyTable | AdjacencyTableJson) => {
+    if (source instanceof AdjacencyTable) {
+      self.addAdjacencyTable(source.raw);
+      return;
+    }
+
+    fn(source);
+  };
+}
+
 export const AdjacencyTableJson = Record({
   table: Dictionary(Number, 'string'),
   totalSampleLength: Number.withConstraint(n => n >= 0),
@@ -87,42 +101,42 @@ export default class AdjacencyTable {
     } else if (_.isString(source)) {
       this.addString(source);
     } else if (_.isArray(source)) {
-      if (_.isEmpty(source)) {
-        return;
-      }
-
-      if (_.isString(source[0])) {
-        for (const str of source) {
-          this.addString(str);
-        }
-      } else {
-        for (const aTable of source) {
-          this.addAdjacencyTable(aTable);
-        }
-      }
+      this.handleArray(source);
     } else {
       this.addAdjacencyTable(AdjacencyTableJson.check(source));
     }
   }
 
-  public addAdjacencyTable = undefinedDecorator((source: AdjacencyTable | AdjacencyTableJson) => {
-    if (source instanceof AdjacencyTable) {
-      this.addAdjacencyTable(source.raw);
+  private handleArray(source: Array<any>) {
+    if (_.isEmpty(source)) {
       return;
     }
 
-    const table = source.table;
-    for (const key of Object.keys(table).sort()) {
-      this.addAt(key, source.table[key]);
+    if (_.isString(source[0])) {
+      for (const str of source) {
+        this.addString(str);
+      }
+    } else {
+      for (const aTable of source) {
+        this.addAdjacencyTable(aTable);
+      }
     }
+  }
 
-    this.tSampleLength += source.totalSampleLength;
-    this.tSamples += source.totalSamples;
-  });
+  public addAdjacencyTable = undefinedDecorator(
+    addAdjacencyTableDecorator(this, (source: AdjacencyTableJson) => {
+      const table = source.table;
+      for (const key of Object.keys(table).sort()) {
+        this.addAt(key, source.table[key]);
+      }
+
+      this.tSampleLength += source.totalSampleLength;
+      this.tSamples += source.totalSamples;
+    })
+  );
 
   private addAt = (key: string, value: number) => {
-    AdjacencyTable.addToMap(this.table, key, value);
-    AdjacencyTable.addToMap(this.startTable, AdjacencyTable.firstChar(key), value);
+    this.aTableOperationAt('addToMap', key, value);
   };
 
   public addString = undefinedDecorator((source: string) => {
@@ -138,6 +152,15 @@ export default class AdjacencyTable {
     this.tSampleLength += source.length;
     this.tSamples += 1;
   });
+
+  private aTableOperationAt = (
+    opName: 'addToMap' | 'subtractFromMap',
+    key: string,
+    value: number
+  ) => {
+    AdjacencyTable[opName](this.table, key, value);
+    AdjacencyTable[opName](this.startTable, AdjacencyTable.firstChar(key), value);
+  };
 
   public confidenceFor = (str: string) => {
     let cumulativeProbability = 0;
@@ -180,24 +203,20 @@ export default class AdjacencyTable {
     };
   }
 
-  subtractAdjacencyTable = undefinedDecorator((source: AdjacencyTable | AdjacencyTableJson) => {
-    if (source instanceof AdjacencyTable) {
-      this.subtractAdjacencyTable(source.raw);
-      return;
-    }
+  subtractAdjacencyTable = undefinedDecorator(
+    addAdjacencyTableDecorator(this, (source: AdjacencyTableJson) => {
+      const table = source.table;
+      for (const key of Object.keys(table).sort()) {
+        this.subtractAt(key, source.table[key]);
+      }
 
-    const table = source.table;
-    for (const key of Object.keys(table).sort()) {
-      this.subtractAt(key, source.table[key]);
-    }
-
-    this.tSampleLength -= source.totalSampleLength;
-    this.tSamples -= source.totalSamples;
-  });
+      this.tSampleLength -= source.totalSampleLength;
+      this.tSamples -= source.totalSamples;
+    })
+  );
 
   private subtractAt = (key: string, value: number) => {
-    AdjacencyTable.subtractFromMap(this.table, key, value);
-    AdjacencyTable.subtractFromMap(this.startTable, AdjacencyTable.firstChar(key), value);
+    this.aTableOperationAt('subtractFromMap', key, value);
   };
 
   subtractString = undefinedDecorator((source: string) => {
