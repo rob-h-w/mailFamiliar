@@ -5,12 +5,23 @@ import {useTrialSettings} from '../../src/tools/trialSettings';
 const options = cli.parse({
   days_ago: ['d', 'Days ago to use as "now".', 'int', 1],
   log_file: ['f', 'Log to file', 'file'],
-  std_log: ['l', 'Log to stdout.', 'true', false]
+  predictor: ['p', 'Predictor to use', 'string'],
+  std_log: ['l', 'Log to stdout.', 'boolean', false]
 });
+
+let terminateTimeout: NodeJS.Timeout | null = null;
 
 useTrialSettings({
   lastSyncedDaysAgo: options.days_ago,
-  logToStdOut: options.std_log
+  logFile: options.log_file,
+  logToStdOut: options.std_log,
+  newMailHandled: () => {
+    if (terminateTimeout) {
+      clearTimeout(terminateTimeout);
+    }
+
+    terminateTimeout = setTimeout(process.exit, 5000);
+  }
 });
 
-glue.init().then(() => process.exit());
+glue.init();

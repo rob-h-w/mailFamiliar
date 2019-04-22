@@ -13,7 +13,7 @@
       "port": 9229,
       "request": "launch",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run-script", "try"],
+      "runtimeArgs": ["run-script", "try:debug"],
       "type": "node"
     },
     {

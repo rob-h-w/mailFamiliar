@@ -4,6 +4,7 @@ export interface TrialSettings {
   lastSyncedDaysAgo: number;
   logFile?: string;
   logToStdOut: boolean;
+  newMailHandled: () => void;
   predictor?: string;
 }
 

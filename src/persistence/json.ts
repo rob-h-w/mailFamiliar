@@ -6,6 +6,7 @@ import * as path from 'path';
 import Box, {IBoxPersisted} from '../engine/box';
 import {IInitializablePersistence} from './persistence';
 import User from './user';
+import {BadJsonException} from './exceptions';
 
 function hashOf(value: string): string {
   return crypto
@@ -172,11 +173,27 @@ export default class Json implements IInitializablePersistence<string> {
         files
           .filter(file => file.endsWith('.json'))
           .forEach(file => {
-            const box = JSON.parse(fs.readFileSync(path.join(userDataRoot, file)).toString());
-            box.messages.forEach((message: any) => {
-              message.date = new Date(Date.parse(message.date));
-            });
-            boxen.push(new Box(box as IBoxPersisted));
+            try {
+              const filePath = path.join(userDataRoot, file);
+              const contents: string = fs.readFileSync(filePath).toString();
+
+              if (contents.length === 0) {
+                fs.unlinkSync(filePath);
+                return;
+              }
+
+              const box = JSON.parse(contents);
+              box.messages.forEach((message: any) => {
+                message.date = new Date(Date.parse(message.date));
+              });
+              boxen.push(new Box(box as IBoxPersisted));
+            } catch (e) {
+              if (e instanceof SyntaxError) {
+                e = new BadJsonException(path.join(userDataRoot, file), e);
+              }
+
+              throw e;
+            }
           });
 
         resolve(boxen);

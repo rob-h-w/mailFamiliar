@@ -5,6 +5,7 @@ import Promisified from 'imap/promisified';
 import logger from '../logger';
 import {messageFromBody, IMessage} from './message';
 import UserConnection from './userConnection';
+import {getSyncedTo} from '../tools/trialSettings';
 
 export default class NewMailHandler {
   private readonly pImap: Promisified;
@@ -16,7 +17,7 @@ export default class NewMailHandler {
   }
 
   private messageIdentifier(message: IMessage): string {
-    const MAX_LENGTH = 10;
+    const MAX_LENGTH = 20;
     const FROM = 'From: ';
     const SUBJECT = 'Subject: ';
     const hdrs = message.headers;
@@ -29,21 +30,24 @@ export default class NewMailHandler {
     let update = false;
     let keep = false;
 
+    const user = this.userConnection.user;
+    const trial = user.trial;
+
     if (box.syncedTo === 0) {
       keep = true;
     } else {
       const recommendedBoxName = this.folderFor(message.headers);
       if (recommendedBoxName && recommendedBoxName !== box.qualifiedName) {
-        if (this.userConnection.user.dryRun || this.userConnection.user.trial) {
+        if (user.dryRun || trial) {
           const logMessage = `Would move ${this.messageIdentifier(
             message
           )} to ${recommendedBoxName}`;
 
-          logger.warn(logMessage);
-
-          if (this.userConnection.user.trial) {
+          if (trial) {
             // tslint:disable-next-line:no-console
             console.log(logMessage);
+          } else {
+            logger.warn(logMessage);
           }
         } else {
           // Actually do the move.
@@ -55,7 +59,13 @@ export default class NewMailHandler {
     }
 
     if (keep) {
-      logger.info(`keeping ${this.messageIdentifier(message)} in the inbox.`);
+      const logMessage = `keeping ${this.messageIdentifier(message)} in the inbox.`;
+      if (trial) {
+        // tslint:disable-next-line:no-console
+        console.log(logMessage);
+      } else {
+        logger.info(logMessage);
+      }
 
       box.addMessage(message);
       update = true;
@@ -66,7 +76,7 @@ export default class NewMailHandler {
 
   public async handleMail(box: Box) {
     const defaultStartDate = this.userConnection.defaultStartDate();
-    const syncTo = Math.max(box.syncedTo, defaultStartDate.getTime());
+    const syncTo = Math.max(getSyncedTo(box), defaultStartDate.getTime());
     const uids = await this.pImap.search([[`SINCE`, new Date(syncTo)]]);
     if (_.isEmpty(uids)) {
       return;
@@ -78,13 +88,18 @@ export default class NewMailHandler {
     for (const messageBody of messageBodies.filter(
       messageBody => messageBody.attrs.date.getTime() > syncTo
     )) {
-      update = update || (await this.handleMessage(messageFromBody(messageBody), box));
+      update = (await this.handleMessage(messageFromBody(messageBody), box)) || update;
     }
 
     this.userConnection.predictor.considerBox(box);
 
     if (update) {
       await this.userConnection.persistence.updateBox(this.userConnection.user, box);
+    }
+
+    const trial = this.userConnection.user.trial;
+    if (trial && trial.newMailHandled) {
+      trial.newMailHandled();
     }
   }
 
