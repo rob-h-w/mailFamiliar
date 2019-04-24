@@ -326,7 +326,10 @@ export default class UserConnection implements IBoxListener {
 
     await this.persistence.updateBox(this.user, this.currentlyOpen);
 
-    this.currentPredictor.considerBox(this.currentlyOpen);
+    // Update box may have the consequence of making this.currentlyOpen undefined.
+    if (this.currentlyOpen) {
+      this.currentPredictor.considerBox(this.currentlyOpen);
+    }
   };
 
   get persistence(): IPersistence {
