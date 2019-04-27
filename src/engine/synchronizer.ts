@@ -18,7 +18,7 @@ export default class Synchronizer {
   };
 
   private initUserConnection = async (user: User, connectionAttempts: number = 0) => {
-    const userConnection = await UserConnection.create(user, this.persistence, connectionAttempts);
+    const userConnection = new UserConnection(this.persistence, user, connectionAttempts);
     userConnection.onDisconnect = () => {
       const timeout =
         1000 *
@@ -29,6 +29,6 @@ export default class Synchronizer {
 
       setTimeout(this.initUserConnection, timeout, user, userConnection.connectionAttempts + 1);
     };
-    await UserConnection.refresh(userConnection);
+    await userConnection.init();
   };
 }

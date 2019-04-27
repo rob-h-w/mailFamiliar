@@ -47,10 +47,10 @@ describe('Synchronizer', () => {
       updateBox: sinon.stub().resolves()
     };
 
-    userConnection = {};
-    UserConnection = sinon.stub();
-    UserConnection.create = sinon.stub().returns(userConnection);
-    UserConnection.refresh = sinon.stub().resolves();
+    userConnection = {
+      init: sinon.stub().resolves()
+    };
+    UserConnection = sinon.stub().returns(userConnection);
 
     mockery.registerMock('./userConnection', {default: UserConnection});
 
@@ -88,11 +88,11 @@ describe('Synchronizer', () => {
     });
 
     it('creates a user connection', () => {
-      expect(UserConnection.create.calledOnce).to.be.true();
+      expect(UserConnection.calledOnce).to.be.true();
     });
 
-    it('shallow syncs the user connection', () => {
-      expect(UserConnection.refresh.calledOnce).to.be.true();
+    it('initializes the user connection', () => {
+      expect(userConnection.init.calledOnce).to.be.true();
     });
   });
 });

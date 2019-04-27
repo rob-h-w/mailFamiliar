@@ -142,7 +142,8 @@ describe('userConnection', () => {
     describe('created with no prior boxes & no online boxes', () => {
       beforeEach(async () => {
         persistence.listBoxes.returns([]);
-        userConnection = await UserConnection.create(user, persistence);
+        userConnection = new UserConnection(persistence, user);
+        await userConnection.init();
       });
 
       it('exposes boxes', () => {
@@ -167,7 +168,8 @@ describe('userConnection', () => {
           }
         });
         persistence.listBoxes.returns([]);
-        userConnection = await UserConnection.create(user, persistence);
+        userConnection = new UserConnection(persistence, user);
+        await userConnection.init();
       });
 
       it('does not delete boxes', () => {
@@ -186,6 +188,10 @@ describe('userConnection', () => {
         expect(box.name).to.equal('INBOX');
         expect(box.qualifiedName).to.equal('INBOX');
       });
+
+      it('searches for mail', () => {
+        expect(promisified.search.calledOnce).to.be.true();
+      });
     });
 
     describe('created with a prior box that should be deleted & an online box', () => {
@@ -201,7 +207,8 @@ describe('userConnection', () => {
           }
         });
         persistence.listBoxes.returns([deletedBox]);
-        userConnection = await UserConnection.create(user, persistence);
+        userConnection = new UserConnection(persistence, user);
+        await userConnection.init();
       });
 
       it('deletes the old box', () => {
@@ -248,7 +255,8 @@ describe('userConnection', () => {
           }
         });
         persistence.listBoxes.returns([inbox]);
-        userConnection = await UserConnection.create(user, persistence);
+        userConnection = new UserConnection(persistence, user);
+        await userConnection.init();
       });
 
       describe('when new mail is received', () => {
@@ -264,6 +272,7 @@ describe('userConnection', () => {
         };
 
         beforeEach(async () => {
+          promisified.search.reset();
           promisified.search.resolves([1]);
           promisified.fetch.resolves([message]);
           await userConnection.onMail(1);
@@ -312,6 +321,7 @@ describe('userConnection', () => {
 
       describe('when uid validity changes', () => {
         beforeEach(async () => {
+          promisified.search.reset();
           promisified.search.resolves([]);
           await userConnection.onUidValidity(1);
         });
@@ -330,6 +340,7 @@ describe('userConnection', () => {
 
       describe('shallowSync', () => {
         beforeEach(async () => {
+          promisified.search.reset();
           promisified.search.resolves([1]);
           promisified.fetch.resolves([
             {

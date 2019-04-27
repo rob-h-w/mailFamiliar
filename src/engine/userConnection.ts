@@ -2,6 +2,7 @@ import * as Imap from 'imap';
 import * as _ from 'lodash';
 
 import Box from './box';
+import CrossCorrelate from './crossCorrelate';
 import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
@@ -22,32 +23,13 @@ export default class UserConnection implements IBoxListener {
   private mailBoxes: ReadonlyArray<Box>;
   private newMailHander: NewMailHandler;
   private readonly persistenceReference: IPersistence;
-  private pImap: Promisified;
+  private readonly pImap: Promisified;
   private readonly currentPredictor: IPredictor;
   private readonly predictors: ReadonlyArray<IPredictor>;
   private refreshTimer: NodeJS.Timer;
   private readonly userReference: User;
 
-  public static async create(
-    u: User,
-    persistence: IPersistence,
-    attempts: number = 0
-  ): Promise<UserConnection> {
-    const user = withTrialSettings(u);
-    const persistedBoxes: ReadonlyArray<Box> = (await persistence.listBoxes(user)) || [];
-    const instance = new UserConnection(persistence, user, attempts);
-    const pImap = new Promisified(new Imap(user), instance);
-    await pImap.waitForConnection(() => {
-      if (instance.disconnectCallback) {
-        instance.disconnectCallback();
-      }
-    });
-    await instance.init(persistedBoxes, pImap);
-    instance.attempts = 0;
-    return instance;
-  }
-
-  public static refresh(uc: UserConnection) {
+  private static refresh(uc: UserConnection) {
     if (uc.refreshTimer) {
       clearTimeout(uc.refreshTimer);
     }
@@ -71,9 +53,11 @@ export default class UserConnection implements IBoxListener {
     return result;
   }
 
-  private constructor(persistence: IPersistence, user: User, connectionAttempts: number) {
+  public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
+    const user = withTrialSettings(u);
     this.attempts = connectionAttempts;
     this.persistenceReference = persistence;
+    this.pImap = new Promisified(new Imap(user), this);
     this.currentPredictor = {
       addHeaders: (headers: string, qualifiedBoxName: string) => {
         this.allPredictors<void>(predictor => [predictor.addHeaders(headers, qualifiedBoxName)]);
@@ -90,7 +74,7 @@ export default class UserConnection implements IBoxListener {
         this.allPredictors<void>(predictor => [predictor.removeHeaders(headers, qualifiedBoxName)]);
       }
     };
-    this.predictors = [new RegexAndAtable()];
+    this.predictors = [new RegexAndAtable(), new CrossCorrelate()];
     this.userReference = user;
   }
 
@@ -165,8 +149,13 @@ export default class UserConnection implements IBoxListener {
     }
   };
 
-  private async init(persistedBoxes: ReadonlyArray<Box>, pImap: Promisified) {
-    this.pImap = pImap;
+  public async init() {
+    const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
+    await this.pImap.waitForConnection(() => {
+      if (this.disconnectCallback) {
+        this.disconnectCallback();
+      }
+    });
     this.newMailHander = new NewMailHandler(this, this.pImap);
     const writablePersistedBoxes: Box[] = persistedBoxes.map(box => box);
     const mailBoxes = await this.pImap.getBoxes();
@@ -216,13 +205,17 @@ export default class UserConnection implements IBoxListener {
 
     this.mailBoxes = resultingBoxes;
     await this.openInbox();
+    this.attempts = 0;
+    await UserConnection.refresh(this);
 
     logger.info('init complete');
   }
 
   onClose = (hadError: boolean) => {
     logger.warn(`Connection for ${this.user.user} closed${hadError ? ' with error.' : '.'}`);
-    // TODO: Re-create the entire setup.
+    if (this.onDisconnect) {
+      this.onDisconnect();
+    }
   };
 
   get onDisconnect() {
