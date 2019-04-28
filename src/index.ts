@@ -6,8 +6,25 @@ import logger from './logger';
 declare const process: any;
 declare const __filename: string;
 
+function ignore(reason: any): boolean {
+  if (!reason) {
+    return false;
+  }
+
+  if (reason.type === 'bad' && reason.source === 'protocol') {
+    return true;
+  }
+
+  return false;
+}
+
 function handleError(reason: Error) {
   logger.error(reason);
+
+  if (ignore(reason)) {
+    return;
+  }
+
   setTimeout(() => {
     process.exit(1);
   }, 10);
