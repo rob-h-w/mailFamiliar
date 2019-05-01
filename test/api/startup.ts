@@ -1,45 +1,22 @@
 import {expect} from 'code';
-import * as fs from 'fs';
 const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as path from 'path';
 import * as sinon from 'sinon';
 
-import mockImap, {MockResult} from './mocks/imap';
-import User from '../../src/persistence/user';
+import fs, {LOGSFOLDER, M_FAMILIAR_STORAGE, MockResult as FsMock} from './mocks/fs';
+import mockImap, {MockResult as ImapMock} from './mocks/imap';
 
 const ROOT = process.cwd();
-const LOGSFOLDER = path.join(ROOT, 'logs');
-const LOGPATH = path.join(LOGSFOLDER, 'mailFamiliar.log');
 const SERVER = path.join(ROOT, 'src', 'index');
 
-let fsStubs: any;
-let imapMock: MockResult;
+let fsMock: FsMock;
+let imapMock: ImapMock;
 let startServer: sinon.SinonStub;
-
-const M_FAMILIAR_STORAGE = '/storage';
-const USER_PATH = path.join(M_FAMILIAR_STORAGE, 'user.json');
-const USER_SETTINGS: User = {
-  dryRun: true,
-  host: 'imap.example.com',
-  moveThreshold: 0.1,
-  password: '123',
-  port: 143,
-  reconnect: {
-    backoffs: 2,
-    multiplier: 2,
-    timeoutSeconds: 1
-  },
-  refreshPeriodMinutes: 60,
-  syncWindowDays: 60,
-  tls: true,
-  user: 'rob@example.com'
-};
 
 describe('startup logging', () => {
   let server: any;
-  let writeStream: any;
 
   beforeEach(() => {
     process.env.M_FAMILIAR_STORAGE = M_FAMILIAR_STORAGE;
@@ -49,29 +26,10 @@ describe('startup logging', () => {
       warnOnUnregistered: false
     });
 
-    fsStubs = sinon.stub(fs);
-    _.functions(fsStubs).forEach(f => {
-      fsStubs[f].callThrough();
-    });
+    fsMock = fs();
+    fsMock.setup().withLog();
 
-    fsStubs.existsSync.withArgs(LOGSFOLDER).returns(true);
-
-    writeStream = {
-      end: sinon.stub().returns(false),
-      write: sinon.stub().callsFake((...args) => {
-        // tslint:disable-next-line:no-console
-        console.log(...args);
-      })
-    };
-
-    fsStubs.createWriteStream
-      .withArgs(LOGPATH, {
-        encoding: 'utf8',
-        flags: 'a'
-      })
-      .returns(writeStream);
-
-    mockery.registerMock('fs', fsStubs);
+    mockery.registerMock('fs', fsMock.fs());
 
     imapMock = mockImap({}, []);
     mockery.registerMock('imap', imapMock.class);
@@ -83,16 +41,14 @@ describe('startup logging', () => {
       server = null;
     }
 
-    _.functions(fsStubs).forEach(f => {
-      fsStubs[f].restore();
-    });
+    fsMock.teardown();
 
     mockery.disable();
   });
 
   describe('log folder creation', () => {
     beforeEach(() => {
-      fsStubs.mkdirSync.resetBehavior();
+      fsMock.fs().mkdirSync.resetBehavior();
     });
 
     describe('when logs exists', () => {
@@ -105,13 +61,16 @@ describe('startup logging', () => {
       });
 
       it('does not create a logs folder', () => {
-        expect(fsStubs.mkdirSync.called).to.be.false();
+        expect(fsMock.fs().mkdirSync.called).to.be.false();
       });
     });
 
     describe('when logs does not exist', () => {
       beforeEach(async () => {
-        fsStubs.existsSync.withArgs(LOGSFOLDER).returns(false);
+        fsMock
+          .fs()
+          .existsSync.withArgs(LOGSFOLDER)
+          .returns(false);
 
         ({startServer} = require(SERVER));
       });
@@ -121,7 +80,7 @@ describe('startup logging', () => {
       });
 
       it('creates a logs folder', () => {
-        expect(fsStubs.mkdirSync.called).to.be.true();
+        expect(fsMock.fs().mkdirSync.called).to.be.true();
       });
     });
   });
@@ -132,27 +91,7 @@ describe('startup logging', () => {
 
     beforeEach(async () => {
       ({startServer} = require(SERVER));
-
-      fsStubs.readdir.callsFake(
-        (path: string, callback: (err: Error | null, files: string[]) => void) => {
-          if (path === process.env.M_FAMILIAR_STORAGE) {
-            callback(null, ['user.json']);
-          } else if (
-            process.env.M_FAMILIAR_STORAGE &&
-            path.startsWith(process.env.M_FAMILIAR_STORAGE)
-          ) {
-            callback(null, []);
-          } else {
-            return fs.readdir(path, callback);
-          }
-        }
-      );
-
-      fsStubs.statSync.withArgs('/storage/user.json').returns({
-        isFile: sinon.stub().returns(true)
-      });
-
-      fsStubs.readFileSync.withArgs(USER_PATH).returns(JSON.stringify(USER_SETTINGS));
+      fsMock.config().withConfig();
 
       eventHandlers = {};
 
