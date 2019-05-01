@@ -12,6 +12,7 @@ function ignore(reason: any): boolean {
   }
 
   if (reason.type === 'bad' && reason.source === 'protocol') {
+    logger.warn('bad protocol error');
     return true;
   }
 
@@ -25,6 +26,7 @@ function handleError(reason: Error) {
     return;
   }
 
+  logger.fatal('!!!!!!!!!!!!!!!!!!!!! Exiting !!!!!!!!!!!!!!!!!!!!!!!!');
   setTimeout(() => {
     process.exit(1);
   }, 10);

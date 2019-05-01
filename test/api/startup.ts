@@ -3,7 +3,7 @@ const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').scri
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as path from 'path';
-import * as sinon from 'sinon';
+import {stub, SinonStub} from 'sinon';
 
 import fs, {LOGSFOLDER, M_FAMILIAR_STORAGE, MockResult as FsMock} from './mocks/fs';
 import mockImap, {MockResult as ImapMock} from './mocks/imap';
@@ -15,37 +15,181 @@ let fsMock: FsMock;
 let imapMock: ImapMock;
 let startServer: sinon.SinonStub;
 
-describe('startup logging', () => {
-  let server: any;
+let server: any;
 
-  beforeEach(() => {
-    process.env.M_FAMILIAR_STORAGE = M_FAMILIAR_STORAGE;
-    mockery.enable({
-      useCleanCache: true,
-      warnOnReplace: false,
-      warnOnUnregistered: false
+class BadProtocol extends Error {
+  source: string;
+  type: string;
+
+  constructor() {
+    super();
+    this.source = 'protocol';
+    this.type = 'bad';
+  }
+}
+
+beforeEach(() => {
+  process.env.M_FAMILIAR_STORAGE = M_FAMILIAR_STORAGE;
+  mockery.enable({
+    useCleanCache: true,
+    warnOnReplace: false,
+    warnOnUnregistered: false
+  });
+
+  fsMock = fs();
+  fsMock.setup().withLog();
+
+  mockery.registerMock('fs', fsMock.fs());
+
+  imapMock = mockImap({}, []);
+  mockery.registerMock('imap', imapMock.class);
+
+  stub(process, 'on');
+});
+
+afterEach(async () => {
+  if (server) {
+    await server.stop();
+    server = null;
+  }
+
+  fsMock.teardown();
+
+  mockery.disable();
+
+  ((process.on as unknown) as sinon.SinonStub).restore();
+});
+
+describe('startup', () => {
+  describe('startServer', () => {
+    let uncaughtException: (reason: Error) => void;
+    let unhandledRejection: (reason: Error) => void;
+    let eventHandlers: any;
+    let serverPromise: Promise<any>;
+
+    beforeEach(async () => {
+      ({startServer} = require(SERVER));
+      fsMock.config().withConfig();
+
+      eventHandlers = {};
+
+      serverPromise = startServer();
+
+      await new Promise(resolve => {
+        setTimeout(() => {
+          imapMock.object.once.args.forEach((args: Array<any>) => {
+            expect(args.length).to.equal(2);
+            eventHandlers[args[0]] = args[1];
+          });
+          const on: SinonStub = (process.on as unknown) as SinonStub;
+          on.getCalls().forEach(call => {
+            if (call.args.length) {
+              if (call.args[0] === 'uncaughtException') {
+                uncaughtException = call.args[1];
+              }
+              if (call.args[0] === 'unhandledRejection') {
+                unhandledRejection = call.args[1];
+              }
+            }
+          });
+          resolve();
+        }, 10);
+      });
     });
 
-    fsMock = fs();
-    fsMock.setup().withLog();
+    it('registers an error handler', () => {
+      expect(eventHandlers.error).to.be.a.function();
+    });
 
-    mockery.registerMock('fs', fsMock.fs());
+    it('registers a ready handler', () => {
+      expect(eventHandlers.ready).to.be.a.function();
+    });
 
-    imapMock = mockImap({}, []);
-    mockery.registerMock('imap', imapMock.class);
+    it('registers an uncaught exception handler', () => {
+      expect(uncaughtException).to.exist();
+    });
+
+    it('registers an unhandled rejection handler', () => {
+      expect(unhandledRejection).to.exist();
+    });
+
+    describe('success', () => {
+      beforeEach(async () => {
+        eventHandlers.ready();
+        server = await serverPromise;
+      });
+
+      it('returns an object', () => {
+        expect(server).to.exist();
+        expect(server).to.be.an.object();
+      });
+
+      describe('then', () => {
+        const badProtocol = new BadProtocol();
+
+        const cases = [
+          {
+            error: new Error(),
+            kills: true,
+            name: 'general uncaught exception',
+            uncaught: true
+          },
+          {
+            error: new Error(),
+            kills: true,
+            name: 'general unhandled rejection',
+            uncaught: false
+          },
+          {
+            error: badProtocol,
+            kills: false,
+            name: 'uncaught bad protocol error',
+            uncaught: true
+          },
+          {
+            error: badProtocol,
+            kills: false,
+            name: 'unhandled bad protocol error',
+            uncaught: false
+          }
+        ];
+
+        beforeEach(async () => {
+          stub(process, 'exit');
+        });
+
+        afterEach(() => {
+          ((process.exit as unknown) as sinon.SinonStub).restore();
+        });
+
+        cases.forEach(c => {
+          describe(c.name, () => {
+            beforeEach(async () => {
+              if (c.uncaught) {
+                uncaughtException(c.error);
+              } else {
+                unhandledRejection(c.error);
+              }
+              await new Promise(resolve => setTimeout(resolve, 20));
+            });
+
+            if (c.kills) {
+              it('kills the process', () => {
+                expect(((process.exit as unknown) as sinon.SinonStub).called).to.be.true();
+              });
+            } else {
+              it('does not kill the process', () => {
+                expect(((process.exit as unknown) as sinon.SinonStub).called).to.be.false();
+              });
+            }
+          });
+        });
+      });
+    });
   });
+});
 
-  afterEach(async () => {
-    if (server) {
-      await server.stop();
-      server = null;
-    }
-
-    fsMock.teardown();
-
-    mockery.disable();
-  });
-
+describe('startup logging', () => {
   describe('log folder creation', () => {
     beforeEach(() => {
       fsMock.fs().mkdirSync.resetBehavior();
@@ -71,60 +215,11 @@ describe('startup logging', () => {
           .fs()
           .existsSync.withArgs(LOGSFOLDER)
           .returns(false);
-
         ({startServer} = require(SERVER));
-      });
-
-      it('exposes a function', () => {
-        expect(startServer).to.be.a.function();
       });
 
       it('creates a logs folder', () => {
         expect(fsMock.fs().mkdirSync.called).to.be.true();
-      });
-    });
-  });
-
-  describe('startServer', () => {
-    let eventHandlers: any;
-    let serverPromise: Promise<any>;
-
-    beforeEach(async () => {
-      ({startServer} = require(SERVER));
-      fsMock.config().withConfig();
-
-      eventHandlers = {};
-
-      serverPromise = startServer();
-
-      await new Promise(resolve => {
-        setTimeout(() => {
-          imapMock.object.once.args.forEach((args: Array<any>) => {
-            expect(args.length).to.equal(2);
-            eventHandlers[args[0]] = args[1];
-          });
-          resolve();
-        }, 10);
-      });
-    });
-
-    it('registers an error handler', () => {
-      expect(eventHandlers.error).to.be.a.function();
-    });
-
-    it('registers a ready handler', () => {
-      expect(eventHandlers.ready).to.be.a.function();
-    });
-
-    describe('success', () => {
-      beforeEach(async () => {
-        eventHandlers.ready();
-        server = await serverPromise;
-      });
-
-      it('returns an object', () => {
-        expect(server).to.exist();
-        expect(server).to.be.an.object();
       });
     });
   });
