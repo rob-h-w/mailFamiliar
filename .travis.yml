@@ -21,6 +21,7 @@ jobs:
       script: yarn test:api
 
 after_script:
+  - rm coverage/codeclimate.json || true
   - ./cc-test-reporter format-coverage -t lcov -o coverage/codeclimate.unit.json coverage/lcov.info
   - ./cc-test-reporter format-coverage -t lcov -o coverage/codeclimate.api.json coverage/api.lcov.info
   - ./cc-test-reporter sum-coverage coverage/codeclimate.*.json -p 2
