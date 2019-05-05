@@ -1,8 +1,8 @@
 import * as Imap from 'imap';
+import {Map} from 'immutable';
 import * as _ from 'lodash';
 
 import Box from './box';
-import CrossCorrelate from './crossCorrelate';
 import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
@@ -11,9 +11,9 @@ import {messageFromBody} from './message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
-import RegexAndAtable from './regexAndAtable';
 import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
 import NewMailHandler from './newMailHandler';
+import {create as createPredictors, PredictorType, PredictorTypeValues} from './predictors';
 
 export default class UserConnection implements IBoxListener {
   private attempts: number;
@@ -24,8 +24,8 @@ export default class UserConnection implements IBoxListener {
   private newMailHander: NewMailHandler;
   private readonly persistenceReference: IPersistence;
   private readonly pImap: Promisified;
+  private readonly predictors: Map<PredictorType, IPredictor>;
   private readonly currentPredictor: IPredictor;
-  private readonly predictors: ReadonlyArray<IPredictor>;
   private refreshTimer: NodeJS.Timer;
   private readonly userReference: User;
 
@@ -43,13 +43,11 @@ export default class UserConnection implements IBoxListener {
     return uc.shallowSync();
   }
 
-  private allPredictors<T>(fn: (predictor: IPredictor) => ReadonlyArray<T>): ReadonlyArray<T> {
+  private allPredictors<T>(visitor: (predictor: IPredictor) => ReadonlyArray<T>): ReadonlyArray<T> {
     const result: T[] = [];
-    this.predictors
-      .map(predictor => fn(predictor))
-      .reduce<T[]>((previous: T[], current: ReadonlyArray<T>) => {
-        return [...previous, ...current];
-      }, result);
+    this.predictors.forEach(value => {
+      result.push(...visitor(value));
+    });
     return result;
   }
 
@@ -58,6 +56,7 @@ export default class UserConnection implements IBoxListener {
     this.attempts = connectionAttempts;
     this.persistenceReference = persistence;
     this.pImap = new Promisified(new Imap(user), this);
+    this.predictors = createPredictors();
     this.currentPredictor = {
       addHeaders: (headers: string, qualifiedBoxName: string) => {
         this.allPredictors<void>(predictor => [predictor.addHeaders(headers, qualifiedBoxName)]);
@@ -66,15 +65,14 @@ export default class UserConnection implements IBoxListener {
         this.allPredictors(predictor => [predictor.considerBox(box)]);
       },
       folderScore: (headers: string) => {
-        const predictor = this.predictors.find(predictor => predictor.name() === 'regex');
-        return predictor ? predictor.folderScore(headers) : new Map<string, number>();
+        const predictor = this.predictors.get('RegexAndAtable');
+        return predictor ? predictor.folderScore(headers) : Map<string, number>();
       },
       name: () => 'all',
       removeHeaders: (headers: string, qualifiedBoxName) => {
         this.allPredictors<void>(predictor => [predictor.removeHeaders(headers, qualifiedBoxName)]);
       }
     };
-    this.predictors = [new RegexAndAtable(), new CrossCorrelate()];
     this.userReference = user;
   }
 
@@ -331,9 +329,13 @@ export default class UserConnection implements IBoxListener {
 
   get predictor(): IPredictor {
     if (this.user.trial && this.user.trial.predictor) {
-      return this.predictors.filter(
-        predictor => this.user.trial && predictor.name() === this.user.trial.predictor
-      )[0];
+      const predictor = this.predictors.get(PredictorTypeValues.check(this.user.trial.predictor));
+
+      if (predictor === undefined) {
+        throw new Error(`Predictor ${this.user.trial.predictor} is not found`);
+      }
+
+      return predictor;
     }
 
     return this.currentPredictor;

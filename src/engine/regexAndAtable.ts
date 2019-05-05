@@ -1,3 +1,5 @@
+import {Map as ImMap} from 'immutable';
+
 import {DiffAndAtables} from './diffAndAtables';
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
@@ -38,8 +40,8 @@ export default class RegexAndAtable implements IPredictor {
     }));
   };
 
-  folderScore = (headers: string): Map<string, number> => {
-    const scores = new Map<string, number>(
+  folderScore = (headers: string): ImMap<string, number> => {
+    return ImMap(
       Object.keys(this.boxesToInstancesMap)
         .filter(name => canMoveTo(name))
         .map(
@@ -52,7 +54,6 @@ export default class RegexAndAtable implements IPredictor {
             ] as [string, number]
         )
     );
-    return scores;
   };
 
   private forEachInstanceOf = (

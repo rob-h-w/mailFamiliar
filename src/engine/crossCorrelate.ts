@@ -1,3 +1,5 @@
+import {Map as ImMap} from 'immutable';
+
 import Box from './box';
 import IPredictor from './predictor';
 import {crossCorrelateStrings} from '../tools/crossCorrelate';
@@ -21,7 +23,7 @@ export default class CrossCorrelate implements IPredictor {
     }
   }
 
-  folderScore(headers: string): Map<string, number> {
+  folderScore(headers: string): ImMap<string, number> {
     const result = new Map<string, number>();
 
     for (const [qualifiedName, headersList] of this.boxToHeaders.entries()) {
@@ -47,7 +49,7 @@ export default class CrossCorrelate implements IPredictor {
       result.set(qualifiedName, 1 - mode);
     }
 
-    return result;
+    return ImMap.of(...result.entries());
   }
 
   private getHeaders(qualifiedName: string): Array<string> {

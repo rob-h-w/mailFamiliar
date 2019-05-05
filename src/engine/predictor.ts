@@ -1,3 +1,5 @@
+import {Map} from 'immutable';
+
 import Box from './box';
 
 export default interface IPredictor {
