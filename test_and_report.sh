@@ -1,4 +1,4 @@
-#! /env/bash
+#!/bin/bash
 
 yarn test:unit
 yarn test:api
