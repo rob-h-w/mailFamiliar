@@ -9,9 +9,9 @@ script: skip
 
 jobs:
   include:
-    - stage: lint
+    - stage: fail fast
       script: yarn lint
-    - stage: build
+    - stage: fail fast
       script: yarn build
     - stage: tests
       name: unit tests
