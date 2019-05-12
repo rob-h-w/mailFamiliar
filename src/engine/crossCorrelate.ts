@@ -4,6 +4,18 @@ import Box from './box';
 import IPredictor from './predictor';
 import {crossCorrelateStrings} from '../tools/crossCorrelate';
 
+const MODE_SLOTS = 100;
+
+interface ModeRange {
+  from: number;
+  to: number;
+}
+
+function toMode(range: ModeRange): number {
+  const step = range.to - range.from;
+  return range.from + step / 2;
+}
+
 export default class CrossCorrelate implements IPredictor {
   private readonly boxToHeaders: Map<string, Array<string>>;
 
@@ -27,26 +39,36 @@ export default class CrossCorrelate implements IPredictor {
     const result = new Map<string, number>();
 
     for (const [qualifiedName, headersList] of this.boxToHeaders.entries()) {
-      const modes: Map<number, number> = new Map();
-      let minimum = 1;
+      const [scores, minimum, maximum] = CrossCorrelate.scoreStatsFrom(headersList, headers);
 
-      for (const encounteredHeader of headersList) {
-        const score = crossCorrelateStrings(Array.from(encounteredHeader), Array.from(headers));
-        const mode = modes.get(score);
-        modes.set(score, mode === undefined ? 1 : mode + 1);
-        minimum = Math.min(minimum, score);
+      const ranges = CrossCorrelate.rangesFrom(minimum, maximum);
+
+      // Shortcut in case we've found a perfect match.
+      if (minimum === 0) {
+        result.set(qualifiedName, 1);
+        continue;
       }
 
-      let mode = 1;
+      const modeRangeIndexToCount: Map<number, number> = new Map();
+      for (const score of scores) {
+        const modeRangeIndex = Math.max(
+          0,
+          ranges.findIndex(range => range.from < score && range.to >= score)
+        );
+        const count = modeRangeIndexToCount.get(modeRangeIndex) || 0;
+        modeRangeIndexToCount.set(modeRangeIndex, count + 1);
+      }
+
+      let modeRange: ModeRange = ranges[0];
       let max = 0;
-      modes.forEach((value, key) => {
-        if (value > max) {
-          mode = key;
-          max = value;
+      modeRangeIndexToCount.forEach((count, rangeIndex) => {
+        if (count > max) {
+          modeRange = ranges[rangeIndex];
+          max = count;
         }
       });
 
-      result.set(qualifiedName, 1 - mode);
+      result.set(qualifiedName, 1 - toMode(modeRange));
     }
 
     return ImMap.of(...result.entries());
@@ -60,6 +82,15 @@ export default class CrossCorrelate implements IPredictor {
     return 'cross correlate';
   }
 
+  private static rangesFrom(minimum: number, maximum: number): ReadonlyArray<ModeRange> {
+    const step = (maximum - minimum) / MODE_SLOTS;
+    const ranges: Array<ModeRange> = [];
+    for (let i = minimum; i < maximum; i += step) {
+      ranges.push({from: i, to: i + step});
+    }
+    return ranges;
+  }
+
   removeHeaders(headers: string, qualifiedBoxName: string): void {
     const headersList = this.getHeaders(qualifiedBoxName);
     const index = headersList.indexOf(headers);
@@ -70,5 +101,22 @@ export default class CrossCorrelate implements IPredictor {
 
     headersList.splice(index, 1);
     this.boxToHeaders.set(qualifiedBoxName, headersList);
+  }
+
+  private static scoreStatsFrom(
+    headersList: ReadonlyArray<string>,
+    headers: string
+  ): [ReadonlyArray<number>, number, number] {
+    const scores = [];
+    let minimum = 0;
+    let maximum = 1;
+    for (const encounteredHeader of headersList) {
+      const score = crossCorrelateStrings(Array.from(encounteredHeader), Array.from(headers));
+      minimum = Math.min(minimum, score);
+      maximum = Math.max(maximum, score);
+      scores.push(score);
+    }
+
+    return [scores, minimum, maximum];
   }
 }
