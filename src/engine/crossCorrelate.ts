@@ -39,39 +39,53 @@ export default class CrossCorrelate implements IPredictor {
     const result = new Map<string, number>();
 
     for (const [qualifiedName, headersList] of this.boxToHeaders.entries()) {
-      const [scores, minimum, maximum] = CrossCorrelate.scoreStatsFrom(headersList, headers);
-
-      const ranges = CrossCorrelate.rangesFrom(minimum, maximum);
-
-      // Shortcut in case we've found a perfect match.
-      if (minimum === 0) {
-        result.set(qualifiedName, 1);
-        continue;
-      }
-
-      const modeRangeIndexToCount: Map<number, number> = new Map();
-      for (const score of scores) {
-        const modeRangeIndex = Math.max(
-          0,
-          ranges.findIndex(range => range.from < score && range.to >= score)
-        );
-        const count = modeRangeIndexToCount.get(modeRangeIndex) || 0;
-        modeRangeIndexToCount.set(modeRangeIndex, count + 1);
-      }
-
-      let modeRange: ModeRange = ranges[0];
-      let max = 0;
-      modeRangeIndexToCount.forEach((count, rangeIndex) => {
-        if (count > max) {
-          modeRange = ranges[rangeIndex];
-          max = count;
-        }
-      });
-
-      result.set(qualifiedName, 1 - toMode(modeRange));
+      result.set(qualifiedName, this.entryScore(headers, headersList));
     }
 
     return ImMap.of(...result.entries());
+  }
+
+  private entryScore(headers: string, headersList: ReadonlyArray<string>): number {
+    const [scores, minimum, maximum] = CrossCorrelate.scoreStatsFrom(headersList, headers);
+
+    const ranges = CrossCorrelate.rangesFrom(minimum, maximum);
+
+    // Shortcut in case we've found a perfect match.
+    if (minimum === 0) {
+      return 1;
+    }
+
+    const modeRangeIndexToCount: Map<
+      number,
+      number
+    > = CrossCorrelate.getRangeIndicesToIncidenceCount(ranges, scores);
+
+    let modeRange: ModeRange = ranges[0];
+    let max = 0;
+    modeRangeIndexToCount.forEach((count, rangeIndex) => {
+      if (count > max) {
+        modeRange = ranges[rangeIndex];
+        max = count;
+      }
+    });
+
+    return 1 - toMode(modeRange);
+  }
+
+  private static getRangeIndicesToIncidenceCount(
+    ranges: ReadonlyArray<ModeRange>,
+    scores: ReadonlyArray<number>
+  ): Map<number, number> {
+    const modeRangeIndexToCount: Map<number, number> = new Map();
+    for (const score of scores) {
+      const modeRangeIndex = Math.max(
+        0,
+        ranges.findIndex(range => range.from < score && range.to >= score)
+      );
+      const count = modeRangeIndexToCount.get(modeRangeIndex) || 0;
+      modeRangeIndexToCount.set(modeRangeIndex, count + 1);
+    }
+    return modeRangeIndexToCount;
   }
 
   private getHeaders(qualifiedName: string): Array<string> {
