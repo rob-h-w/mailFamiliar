@@ -13,7 +13,7 @@ import User from '../persistence/user';
 import IPredictor from './predictor';
 import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
 import NewMailHandler from './newMailHandler';
-import {create as createPredictors, PredictorType, PredictorTypeValues} from './predictors';
+import {create as createPredictors, PredictorType} from './predictors';
 
 export default class UserConnection implements IBoxListener {
   private attempts: number;
@@ -43,36 +43,13 @@ export default class UserConnection implements IBoxListener {
     return uc.shallowSync();
   }
 
-  private allPredictors<T>(visitor: (predictor: IPredictor) => ReadonlyArray<T>): ReadonlyArray<T> {
-    const result: T[] = [];
-    this.predictors.forEach(value => {
-      result.push(...visitor(value));
-    });
-    return result;
-  }
-
   public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
     this.attempts = connectionAttempts;
     this.persistenceReference = persistence;
     this.pImap = new Promisified(new Imap(user), this);
     this.predictors = createPredictors();
-    this.currentPredictor = {
-      addHeaders: (headers: string, qualifiedBoxName: string) => {
-        this.allPredictors<void>(predictor => [predictor.addHeaders(headers, qualifiedBoxName)]);
-      },
-      considerBox: (box: Box) => {
-        this.allPredictors(predictor => [predictor.considerBox(box)]);
-      },
-      folderScore: (headers: string) => {
-        const predictor = this.predictors.get('RegexAndAtable');
-        return predictor ? predictor.folderScore(headers) : Map<string, number>();
-      },
-      name: () => 'all',
-      removeHeaders: (headers: string, qualifiedBoxName) => {
-        this.allPredictors<void>(predictor => [predictor.removeHeaders(headers, qualifiedBoxName)]);
-      }
-    };
+    this.currentPredictor = this.predictors.get(u.predictorType || 'RegexAndAtable') as IPredictor;
     this.userReference = user;
   }
 
@@ -328,16 +305,6 @@ export default class UserConnection implements IBoxListener {
   }
 
   get predictor(): IPredictor {
-    if (this.user.trial && this.user.trial.predictor) {
-      const predictor = this.predictors.get(PredictorTypeValues.check(this.user.trial.predictor));
-
-      if (predictor === undefined) {
-        throw new Error(`Predictor ${this.user.trial.predictor} is not found`);
-      }
-
-      return predictor;
-    }
-
     return this.currentPredictor;
   }
 

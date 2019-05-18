@@ -115,6 +115,7 @@ describe('userConnection', () => {
     UserConnection = require('../../../src/engine/userConnection').default;
 
     user = {
+      predictorType: undefined,
       syncWindowDays: 10,
       trial: undefined
     };

@@ -14,8 +14,8 @@ export function reset() {
 
 export function withTrialSettings(user: User): User {
   return {
-    trial: trialSettings,
-    ...user
+    ...user,
+    trial: trialSettings
   };
 }
 
