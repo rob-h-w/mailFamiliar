@@ -1,7 +1,9 @@
 interface Offset {
-  meanSquared: number;
+  score: number;
   offset: number;
 }
+
+type DiffFunction = (left: string, right: string) => number;
 
 function integerValueOf(str: string): number {
   const buf = Buffer.from(str);
@@ -16,68 +18,53 @@ function integerValueOf(str: string): number {
   return value;
 }
 
-export function crossCorrelate1d(
+export function crossCorrelateMeanSquared(
   left: ReadonlyArray<string>,
   right: ReadonlyArray<string>
-): number {
-  if (left.length === 0 || right.length === 0) {
-    return 0;
-  }
-
-  let leastMeanSquaredOffset: Offset | null = null;
-
-  const minOffset = 1 - right.length;
-  const maxOffset = left.length - 1;
-  for (let offset = minOffset; offset <= maxOffset; offset++) {
-    const leftStartIndex = Math.max(0, offset);
-    const rightStartIndex = Math.max(0, -offset);
-    const offsetRangeLength = Math.max(
-      1,
-      Math.min(left.length - leftStartIndex, right.length - rightStartIndex)
-    );
-    let sumSquared = 0;
-    for (let i = 0; i < offsetRangeLength; i++) {
-      const leftIndex = leftStartIndex + i;
-      const rightIndex = rightStartIndex + i;
-      const diff = integerValueOf(left[leftIndex]) - integerValueOf(right[rightIndex]);
-      sumSquared += diff * diff;
-    }
-
-    const meanSquared = sumSquared / offsetRangeLength;
-
-    if (leastMeanSquaredOffset) {
-      if (meanSquared < leastMeanSquaredOffset.meanSquared) {
-        leastMeanSquaredOffset.meanSquared = meanSquared;
-        leastMeanSquaredOffset.offset = offset;
-      }
-
-      if (leastMeanSquaredOffset.meanSquared === 0) {
-        return leastMeanSquaredOffset.offset;
-      }
-    } else {
-      leastMeanSquaredOffset = {
-        meanSquared,
-        offset
-      };
-    }
-  }
-
-  return leastMeanSquaredOffset ? leastMeanSquaredOffset.offset : 0;
+): Offset | null {
+  return crossCorrelate(left, right, meanSquaredDiff);
 }
 
 export function crossCorrelateStrings(
   left: ReadonlyArray<string>,
   right: ReadonlyArray<string>
+): Offset | null {
+  return crossCorrelate(left, right, stringDiff);
+}
+
+export function correlateStringMeanSquared(
+  left: ReadonlyArray<string>,
+  right: ReadonlyArray<string>
 ): number {
+  return correlate1d(left, right, meanSquaredDiff);
+}
+
+export function correlateStringDiff(
+  left: ReadonlyArray<string>,
+  right: ReadonlyArray<string>
+): number {
+  return correlate1d(left, right, stringDiff);
+}
+
+const stringDiff: DiffFunction = (left, right) => (left === right ? 0 : 1);
+const meanSquaredDiff: DiffFunction = (left, right) => {
+  const diff = integerValueOf(left) - integerValueOf(right);
+  return diff * diff;
+};
+
+function crossCorrelate(
+  left: ReadonlyArray<string>,
+  right: ReadonlyArray<string>,
+  diff: DiffFunction
+): Offset | null {
   if (left.length === 0 || right.length === 0) {
-    return 0;
+    return null;
   }
 
   let leastMeanOffset: Offset | null = null;
 
   const minOffset = 1 - right.length;
   const maxOffset = left.length - 1;
-  const shortest = left.length > right.length ? right : left;
   for (let offset = minOffset; offset <= maxOffset; offset++) {
     const leftStartIndex = Math.max(0, offset);
     const rightStartIndex = Math.max(0, -offset);
@@ -85,32 +72,48 @@ export function crossCorrelateStrings(
       1,
       Math.min(left.length - leftStartIndex, right.length - rightStartIndex)
     );
-    let sum = shortest.length - offsetRangeLength;
-    const total = offsetRangeLength + sum;
-    for (let i = 0; i < offsetRangeLength; i++) {
-      const leftIndex = leftStartIndex + i;
-      const rightIndex = rightStartIndex + i;
-      const diff = left[leftIndex] === right[rightIndex] ? 0 : 1;
-      sum += diff;
-    }
-
-    const mean = sum / total;
+    const mean = correlate1d(
+      left.slice(leftStartIndex, leftStartIndex + offsetRangeLength),
+      right.slice(rightStartIndex, rightStartIndex + offsetRangeLength),
+      diff
+    );
 
     if (leastMeanOffset) {
       if (
-        mean < leastMeanOffset.meanSquared ||
-        (mean === leastMeanOffset.meanSquared && Math.abs(offset) < leastMeanOffset.offset)
+        mean < leastMeanOffset.score ||
+        (mean === leastMeanOffset.score && Math.abs(offset) < leastMeanOffset.offset)
       ) {
-        leastMeanOffset.meanSquared = mean;
+        leastMeanOffset.score = mean;
         leastMeanOffset.offset = offset;
       }
     } else {
       leastMeanOffset = {
-        meanSquared: mean,
-        offset
+        offset,
+        score: mean
       };
     }
   }
 
-  return leastMeanOffset ? leastMeanOffset.offset : 0;
+  return leastMeanOffset;
+}
+
+function correlate1d(
+  left: ReadonlyArray<string>,
+  right: ReadonlyArray<string>,
+  diff: DiffFunction
+): number {
+  if (left.length !== right.length) {
+    throw new RangeError(
+      `Left & right strings are not of equal length! ${left.length} & ${
+        right.length
+      }, respectively.`
+    );
+  }
+
+  let sum = 0;
+  for (let i = 0; i < left.length; i++) {
+    sum += diff(left[i], right[i]);
+  }
+
+  return sum / left.length;
 }

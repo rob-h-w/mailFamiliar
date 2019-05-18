@@ -1,72 +1,87 @@
 import {expect} from 'code';
 const {describe, it} = (exports.lab = require('lab').script());
 
-import {crossCorrelate1d, crossCorrelateStrings} from '../../../src/tools/crossCorrelate';
+import {crossCorrelateMeanSquared, crossCorrelateStrings} from '../../../src/tools/crossCorrelate';
 
-describe('crossCorrelate1d', () => {
+describe('crossCorrelateMeanSquared', () => {
   describe('with one empty sequence', () => {
-    it('returns 0', () => {
-      expect(crossCorrelate1d(['a', 'b'], [])).to.equal(0);
-      expect(crossCorrelate1d([], ['a', 'b'])).to.equal(0);
+    it('returns null', () => {
+      expect(crossCorrelateMeanSquared(['a', 'b'], [])).to.equal(null);
+      expect(crossCorrelateMeanSquared([], ['a', 'b'])).to.equal(null);
     });
   });
 
   describe('with equal sequences', () => {
-    it('returns 0', () => {
-      expect(crossCorrelate1d(['a', 'b'], ['a', 'b'])).to.equal(0);
+    it('returns offset 0', () => {
+      expect(crossCorrelateMeanSquared(['a', 'b'], ['a', 'b'])).to.equal({offset: 0, score: 0});
     });
   });
 
   describe('with the left sequence first', () => {
-    it('returns 2', () => {
-      expect(crossCorrelate1d(['a', 'a', 'b', 'c'], ['b', 'c'])).to.equal(2);
+    it('returns offset 2', () => {
+      expect(crossCorrelateMeanSquared(['a', 'a', 'b', 'c'], ['b', 'c'])).to.equal({
+        offset: 2,
+        score: 0
+      });
     });
   });
 
   describe('with the right sequence first', () => {
-    it('returns -2', () => {
-      expect(crossCorrelate1d(['b', 'c'], ['a', 'b', 'b', 'c'])).to.equal(-2);
+    it('returns offset -2', () => {
+      expect(crossCorrelateMeanSquared(['b', 'c'], ['a', 'b', 'b', 'c'])).to.equal({
+        offset: -2,
+        score: 0
+      });
     });
   });
 
   describe('with a surrogate character', () => {
     it('still finds the correct offset', () => {
-      expect(crossCorrelate1d(['\u2665', 'b', 'c'], ['a', 'b', '\u2665', 'b', 'c'])).to.equal(-2);
+      expect(
+        crossCorrelateMeanSquared(['\u2665', 'b', 'c'], ['a', 'b', '\u2665', 'b', 'c'])
+      ).to.equal({offset: -2, score: 0});
     });
   });
 });
 
 describe('crossCorrelateStrings', () => {
   describe('with one empty sequence', () => {
-    it('returns 0', () => {
-      expect(crossCorrelateStrings(['a', 'b'], [])).to.equal(0);
-      expect(crossCorrelateStrings([], ['a', 'b'])).to.equal(0);
+    it('returns null', () => {
+      expect(crossCorrelateStrings(['a', 'b'], [])).to.equal(null);
+      expect(crossCorrelateStrings([], ['a', 'b'])).to.equal(null);
     });
   });
 
   describe('with equal sequences', () => {
-    it('returns 0', () => {
-      expect(crossCorrelateStrings(['a', 'b'], ['a', 'b'])).to.equal(0);
+    it('returns offset 0', () => {
+      expect(crossCorrelateStrings(['a', 'b'], ['a', 'b'])).to.equal({offset: 0, score: 0});
     });
   });
 
   describe('with the left sequence first', () => {
-    it('returns 2', () => {
-      expect(crossCorrelateStrings(['a', 'a', 'b', 'c'], ['b', 'c'])).to.equal(2);
+    it('returns offset 2', () => {
+      expect(crossCorrelateStrings(['a', 'a', 'b', 'c'], ['b', 'c'])).to.equal({
+        offset: 2,
+        score: 0
+      });
     });
   });
 
   describe('with the right sequence first', () => {
-    it('returns -2', () => {
-      expect(crossCorrelateStrings(['b', 'c'], ['a', 'b', 'b', 'c'])).to.equal(-2);
+    it('returns offset -2', () => {
+      expect(crossCorrelateStrings(['b', 'c'], ['a', 'b', 'b', 'c'])).to.equal({
+        offset: -2,
+        score: 0
+      });
     });
   });
 
   describe('with a surrogate character', () => {
     it('still finds the correct offset', () => {
-      expect(crossCorrelateStrings(['\u2665', 'b', 'c'], ['a', 'b', '\u2665', 'b', 'c'])).to.equal(
-        -2
-      );
+      expect(crossCorrelateStrings(['\u2665', 'b', 'c'], ['a', 'b', '\u2665', 'b', 'c'])).to.equal({
+        offset: -2,
+        score: 0
+      });
     });
   });
 });

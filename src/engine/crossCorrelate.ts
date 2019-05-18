@@ -36,23 +36,33 @@ export default class CrossCorrelate implements IPredictor {
   }
 
   folderScore(headers: string): ImMap<string, number> {
-    const result = new Map<string, number>();
+    const result: {[key: string]: number} = {};
 
     for (const [qualifiedName, headersList] of this.boxToHeaders.entries()) {
-      result.set(qualifiedName, this.entryScore(headers, headersList));
+      result[qualifiedName] = this.entryScore(headers, headersList);
     }
 
-    return ImMap.of(...result.entries());
+    return ImMap(result);
   }
 
   private entryScore(headers: string, headersList: ReadonlyArray<string>): number {
     const [scores, minimum, maximum] = CrossCorrelate.scoreStatsFrom(headersList, headers);
+
+    // If we can't score (because, perhaps the folder is empty) just return 0 confidence.
+    if (scores.length === 0) {
+      return 0;
+    }
 
     const ranges = CrossCorrelate.rangesFrom(minimum, maximum);
 
     // Shortcut in case we've found a perfect match.
     if (minimum === 0) {
       return 1;
+    }
+
+    // If there's no range, just return the first score.
+    if (ranges.length === 0) {
+      return scores[0];
     }
 
     const modeRangeIndexToCount: Map<
@@ -122,13 +132,15 @@ export default class CrossCorrelate implements IPredictor {
     headers: string
   ): [ReadonlyArray<number>, number, number] {
     const scores = [];
-    let minimum = 0;
-    let maximum = 1;
+    let minimum = 1;
+    let maximum = 0;
     for (const encounteredHeader of headersList) {
-      const score = crossCorrelateStrings(Array.from(encounteredHeader), Array.from(headers));
-      minimum = Math.min(minimum, score);
-      maximum = Math.max(maximum, score);
-      scores.push(score);
+      const result = crossCorrelateStrings(Array.from(encounteredHeader), Array.from(headers));
+      if (result) {
+        minimum = Math.min(minimum, result.score);
+        maximum = Math.max(maximum, result.score);
+        scores.push(result.score);
+      }
     }
 
     return [scores, minimum, maximum];

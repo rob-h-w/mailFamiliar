@@ -9,7 +9,6 @@ const ROOT = process.cwd();
 export const LOGSFOLDER = path.join(ROOT, 'logs');
 const LOGPATH = path.join(LOGSFOLDER, 'mailFamiliar.log');
 export const M_FAMILIAR_STORAGE = '/storage';
-const USER_PATH = path.join(M_FAMILIAR_STORAGE, 'user.json');
 const USER_SETTINGS: User = {
   dryRun: true,
   host: 'imap.example.com',
@@ -41,29 +40,42 @@ class Fluent {
     this.mockResult = mockResult;
   }
 
-  withConfig(): Fluent {
+  withConfig(
+    config?: Partial<User>,
+    filename: string = 'user.json',
+    useFakeConfig: boolean = true
+  ): Fluent {
     const mockResult = this.mockResult.fs();
 
-    mockResult.readdir.callsFake(
-      (path: string, callback: (err: Error | null, files: string[]) => void) => {
-        if (path === process.env.M_FAMILIAR_STORAGE) {
-          callback(null, ['user.json']);
-        } else if (
-          process.env.M_FAMILIAR_STORAGE &&
-          path.startsWith(process.env.M_FAMILIAR_STORAGE)
-        ) {
-          callback(null, []);
-        } else {
-          return f.readdir(path, callback);
+    if (useFakeConfig) {
+      mockResult.readdir.callsFake(
+        (path: string, callback: (err: Error | null, files: string[]) => void) => {
+          if (path === process.env.M_FAMILIAR_STORAGE) {
+            callback(null, [filename]);
+          } else if (
+            process.env.M_FAMILIAR_STORAGE &&
+            path.startsWith(process.env.M_FAMILIAR_STORAGE)
+          ) {
+            callback(null, []);
+          } else {
+            return f.readdir(path, callback);
+          }
         }
-      }
-    );
+      );
+    }
 
-    mockResult.statSync.withArgs('/storage/user.json').returns({
+    const folderPath = process.env.M_FAMILIAR_STORAGE || M_FAMILIAR_STORAGE;
+    const userPath = path.join(folderPath, filename);
+
+    mockResult.statSync.withArgs(userPath).returns({
       isFile: stub().returns(true)
     });
 
-    mockResult.readFileSync.withArgs(USER_PATH).returns(JSON.stringify(USER_SETTINGS));
+    const rawSettings = useFakeConfig
+      ? USER_SETTINGS
+      : JSON.parse(f.readFileSync(userPath).toString());
+    const settings = {...rawSettings, ...config};
+    mockResult.readFileSync.withArgs(userPath).returns(JSON.stringify(settings));
     return this;
   }
 
