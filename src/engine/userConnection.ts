@@ -29,20 +29,6 @@ export default class UserConnection implements IBoxListener {
   private refreshTimer: NodeJS.Timer;
   private readonly userReference: User;
 
-  private static refresh(uc: UserConnection) {
-    if (uc.refreshTimer) {
-      clearTimeout(uc.refreshTimer);
-    }
-
-    uc.refreshTimer = setTimeout(
-      UserConnection.refresh,
-      uc.user.refreshPeriodMinutes * 60 * 1000,
-      uc
-    );
-
-    return uc.shallowSync();
-  }
-
   public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
     this.attempts = connectionAttempts;
@@ -181,7 +167,7 @@ export default class UserConnection implements IBoxListener {
     this.mailBoxes = resultingBoxes;
     await this.openInbox();
     this.attempts = 0;
-    await UserConnection.refresh(this);
+    await this.refresh();
 
     logger.info('init complete');
   }
@@ -306,6 +292,20 @@ export default class UserConnection implements IBoxListener {
 
   get predictor(): IPredictor {
     return this.currentPredictor;
+  }
+
+  private refresh() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+    }
+
+    this.refreshTimer = setTimeout(
+      this.refresh.bind(this),
+      this.user.refreshPeriodMinutes * 60 * 1000,
+      this
+    );
+
+    return this.shallowSync();
   }
 
   private resetBox = async () => {
