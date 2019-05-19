@@ -1,6 +1,6 @@
 {
   "name": "mailFamiliar",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Mail management server.",
   "main": "src/index.js",
   "repository": "https://github.com/rob-h-w/mailFamiliar",

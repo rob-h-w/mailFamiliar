@@ -8,7 +8,7 @@ interface ThresholdedDiffCollection {
 }
 
 const MAX_REDUCER = (max: number, candidate: number) => (candidate > max ? candidate : max);
-const MIN_EQUALITY = 0.1;
+const MIN_EQUALITY = 0.5;
 
 export default class ThresholdedDiffAndAtables {
   private readonly diffs: ThresholdedDiffCollection;

@@ -35,7 +35,7 @@ export default class UserConnection implements IBoxListener {
     this.persistenceReference = persistence;
     this.pImap = new Promisified(new Imap(user), this);
     this.predictors = createPredictors();
-    this.currentPredictor = this.predictors.get(u.predictorType || 'RegexAndAtable') as IPredictor;
+    this.currentPredictor = this.predictors.get(u.predictorType || 'Traat') as IPredictor;
     this.userReference = user;
   }
 
