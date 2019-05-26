@@ -119,7 +119,7 @@ export default class Box {
     Box.check(this);
     if (this.pImap) {
       const box = await this.pImap.openBox(this.qualifiedName);
-      logger.info(`Opened ${JSON.stringify(box)}`);
+      logger.info(`Opened ${this.qualifiedName}`);
 
       let boxState: BoxState = !this.imapBox ? 'NEW' : 'UNCHANGED';
 
