@@ -5,7 +5,7 @@ export default function stringDiff(
   second: string,
   minLength: number = DEFAULT_MIN_LENGTH
 ): ReadonlyArray<string | null> {
-  const [f, s] = [Array.from(first), Array.from(second)];
+  const [f, s] = [[...first], [...second]];
   const result: Array<string | null> = [];
 
   if (minLength < 2) {
