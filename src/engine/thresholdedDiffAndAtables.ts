@@ -2,6 +2,8 @@ import {List} from 'immutable';
 
 import {DiffAndAtables} from './diffAndAtables';
 import MIN_SEGMENT_LENGTHS from './segmentLengths';
+import addStringToDiff from './addStringToDiff';
+import stringDiff from './stringDiff';
 
 interface ThresholdedDiffCollection {
   [index: number]: List<DiffAndAtables>;
@@ -21,7 +23,7 @@ export default class ThresholdedDiffAndAtables {
     this.addStrings(strings);
   }
 
-  addStrings(strings: string[]) {
+  addStrings(strings: ReadonlyArray<string>) {
     strings.forEach(this.addString.bind(this));
   }
 
@@ -34,47 +36,30 @@ export default class ThresholdedDiffAndAtables {
   }
 
   private addStringToSegLength(strVal: string, segLength: number) {
-    const diffAndAtablesList = this.diffs[segLength];
-
-    const replacementAndIndex = this.getReplacementAndIndex(diffAndAtablesList, segLength, strVal);
-
-    if (replacementAndIndex.value === null) {
-      this.diffs[segLength] = diffAndAtablesList.push(
-        DiffAndAtables.fromStrings([strVal], segLength)
-      );
-    } else {
-      this.diffs[segLength] = diffAndAtablesList.update(
-        replacementAndIndex.index,
-        () => replacementAndIndex.value as DiffAndAtables
-      );
-    }
+    this.diffs[segLength] = this.withString(this.diffs[segLength], segLength, strVal);
   }
 
-  private getReplacementAndIndex(
+  private withString(
     diffAndAtablesList: List<DiffAndAtables>,
     segLength: number,
     strVal: string
-  ): {value: DiffAndAtables | null; index: number} {
-    let candidateDiffAndAtableReplacement: DiffAndAtables | null = null;
-    let replacementIndex = -1;
+  ): List<DiffAndAtables> {
+    let newVal: DiffAndAtables | null = null;
+    let replacementIndex = 0;
 
     diffAndAtablesList.find((diffAndAtable, index) => {
-      const candidateStringArray = diffAndAtable.strings.concat(strVal);
-      candidateDiffAndAtableReplacement = DiffAndAtables.fromStrings(
-        candidateStringArray,
-        segLength
-      );
-
-      if (this.isWithinThreshold(candidateDiffAndAtableReplacement.diff, strVal)) {
+      if (this.isWithinThreshold(diffAndAtable, strVal, segLength)) {
+        newVal = DiffAndAtables.addStrings(diffAndAtable, [strVal], segLength);
         replacementIndex = index;
         return true;
-      } else {
-        candidateDiffAndAtableReplacement = null;
-        return false;
       }
+
+      return false;
     });
 
-    return {value: candidateDiffAndAtableReplacement, index: replacementIndex};
+    return newVal
+      ? diffAndAtablesList.update(replacementIndex, () => newVal as DiffAndAtables)
+      : diffAndAtablesList.push(DiffAndAtables.fromStrings([strVal], segLength));
   }
 
   confidenceFor(strVal: string): number {
@@ -85,8 +70,22 @@ export default class ThresholdedDiffAndAtables {
 
   private confidenceForSegLength(strVal: string, segLength: number): number {
     return this.diffs[segLength]
-      .map(diff => DiffAndAtables.confidenceFor(diff, strVal))
+      .map(diff => this.confidenceForDiff(diff, strVal, segLength))
       .reduce(MAX_REDUCER, 0);
+  }
+
+  private confidenceForDiff(diff: DiffAndAtables, strVal: string, segLength: number): number {
+    const naiveConfidence = DiffAndAtables.confidenceFor(diff, strVal);
+
+    if (!naiveConfidence) {
+      return 0;
+    }
+
+    const hypotheticallyAddedTdaat = DiffAndAtables.addStrings(diff, [strVal], segLength);
+    const matchingCharacters = this.countCharacters(hypotheticallyAddedTdaat.diff);
+    const nonMatchingCharacters = strVal.length - matchingCharacters;
+
+    return (matchingCharacters + naiveConfidence * nonMatchingCharacters) / strVal.length;
   }
 
   removeStrings(strings: string[]) {
@@ -130,15 +129,28 @@ export default class ThresholdedDiffAndAtables {
     );
   }
 
-  private isWithinThreshold(diff: ReadonlyArray<string | null>, candidate: string): boolean {
-    if (candidate.length === 0) {
+  private isWithinThreshold(daa: DiffAndAtables, candidate: string, segLength: number): boolean {
+    if (candidate.length === 0 || daa.strings.length === 0) {
       return true;
     }
 
-    return (
-      diff.map(val => (val ? val.length : 0)).reduce((sum, val) => sum + val, 0) /
-        candidate.length >
-      MIN_EQUALITY
-    );
+    if (daa.strings.length === 1) {
+      return this.diffIsWithinThreshold(stringDiff(daa.strings[0], candidate), candidate);
+    }
+
+    const newDiff = addStringToDiff(daa.diff, candidate, segLength);
+    if (newDiff.length === 0 || (newDiff.length === 1 && newDiff[0] === null)) {
+      return false;
+    }
+
+    return this.diffIsWithinThreshold(newDiff, candidate);
+  }
+
+  private diffIsWithinThreshold(diff: ReadonlyArray<string | null>, candidate: string): boolean {
+    return this.countCharacters(diff) / candidate.length > MIN_EQUALITY;
+  }
+
+  private countCharacters(diff: ReadonlyArray<string | null>) {
+    return diff.map(val => (val ? val.length : 0)).reduce((sum, val) => sum + val, 0);
   }
 }

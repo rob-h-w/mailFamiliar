@@ -10,6 +10,7 @@ export interface DiffAndAtables {
   FINISH: AdjacencyTable | null;
   diff: ReadonlyArray<string | null>;
   otherAtables: ReadonlyArray<AdjacencyTable>;
+  regex: RegExp | null;
   strings: ReadonlyArray<string>;
 }
 
@@ -90,20 +91,26 @@ function diffInfo(aTables: DiffAndAtables): DiffInfo {
   return result;
 }
 
+function confidenceFromStringList(aTables: DiffAndAtables, str: string) {
+  return aTables.strings.indexOf(str) === -1 ? 0 : 1;
+}
+
 export const DiffAndAtables = {
   addStrings: (
     aTables: DiffAndAtables,
     strings: string[],
     minLength: number = DEFAULT_MIN_LENGTH
   ): DiffAndAtables => {
-    const regex = regexFromStringDiff(aTables.diff);
-    const rebuildAtables = aTables.diff.length === 0 || strings.some(str => !regex.test(str));
+    const rebuildAtables =
+      aTables.diff.length === 0 || strings.some(str => !DiffAndAtables.test(aTables, str));
 
     if (rebuildAtables) {
       aTables = DiffAndAtables.fromStrings([...strings, ...aTables.strings], minLength);
     } else {
       const {hasFinish, hasStart} = diffInfo(aTables);
-      strings.forEach(str => addStringsToAtables(aTables, str, regex, hasFinish, hasStart));
+      strings.forEach(str =>
+        addStringsToAtables(aTables, str, aTables.regex || new RegExp(''), hasFinish, hasStart)
+      );
     }
 
     return aTables;
@@ -111,11 +118,11 @@ export const DiffAndAtables = {
 
   confidenceFor: (aTables: DiffAndAtables, str: string): number => {
     if (aTables.diff.length === 0) {
-      return 0;
+      return confidenceFromStringList(aTables, str);
     }
 
-    const regex = regexFromStringDiff(aTables.diff);
-    const matches = regex.exec(str);
+    const regex = aTables.regex;
+    const matches = (regex && regex.exec(str)) || null;
 
     if (!matches) {
       return 0;
@@ -161,6 +168,7 @@ export const DiffAndAtables = {
       START: null,
       diff: [],
       otherAtables: [],
+      regex: null,
       strings: []
     };
   },
@@ -195,6 +203,8 @@ export const DiffAndAtables = {
       addStringsToAtables(aTables, str, regex, hasFinish, hasStart);
     });
 
+    aTables.regex = strings.length > 1 ? regex : null;
+
     return aTables;
   },
 
@@ -214,5 +224,8 @@ export const DiffAndAtables = {
 
     aTables = DiffAndAtables.fromStrings(newStrings, minLength);
     return aTables;
-  }
+  },
+
+  test: (aTables: DiffAndAtables, str: string): boolean =>
+    aTables.strings.length <= 1 || (aTables.regex ? aTables.regex.test(str) : false)
 };
