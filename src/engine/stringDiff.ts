@@ -5,12 +5,16 @@ export default function stringDiff(
   second: string,
   minLength: number = DEFAULT_MIN_LENGTH
 ): ReadonlyArray<string | null> {
-  const [f, s] = [[...first], [...second]];
-  const result: Array<string | null> = [];
-
   if (minLength < 2) {
     throw new Error(`Minlength must be greater than 1, but was ${minLength}`);
   }
+
+  if (first && first === second) {
+    return [first];
+  }
+
+  const [f, s] = [[...first], [...second]];
+  const result: Array<string | null> = [];
 
   if (f.length < minLength || s.length < minLength) {
     return result;
@@ -27,8 +31,8 @@ export default function stringDiff(
   for (let i = 0; i < firstEndIndex; i++) {
     let iNext = i;
     for (let j = jNext; j < s.length; j++) {
-      const foundFirst = !!matchLength;
       const firstNext = f[iNext];
+      const foundFirst = !!matchLength;
       const secondNext = s[j];
       const secondNextIsFirst = j === 0;
       const secondNextIsLast = j === s.length - 1;
@@ -39,6 +43,12 @@ export default function stringDiff(
       }
 
       const inAMatch = matchLength >= minLength;
+
+      if (thisMatches && inAMatch && !secondNextIsLast) {
+        iNext++;
+        jNext = j;
+        continue;
+      }
 
       const prependNull = !inAMatch && !thisMatches && !secondNextIsFirst && result.length === 0;
 
