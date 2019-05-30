@@ -52,6 +52,7 @@ export default class NewMailHandler {
         } else {
           // Actually do the move.
           await this.pImap.move([String(message.uid)], recommendedBoxName);
+          logger.info(`Moved ${this.messageIdentifier(message)} to ${recommendedBoxName}`);
         }
       } else {
         keep = true;
@@ -59,7 +60,7 @@ export default class NewMailHandler {
     }
 
     if (keep) {
-      const logMessage = `keeping ${this.messageIdentifier(message)} in the inbox.`;
+      const logMessage = `Keeping ${this.messageIdentifier(message)} in the inbox.`;
       if (trial) {
         // tslint:disable-next-line:no-console
         console.log(logMessage);
