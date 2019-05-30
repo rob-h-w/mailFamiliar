@@ -1,5 +1,149 @@
 export const DEFAULT_MIN_LENGTH = 2;
 
+interface StringState {
+  next: number;
+}
+
+interface MatchState {
+  first: StringState;
+  minLength: number;
+  second: StringState;
+  tentative?: string[];
+}
+
+interface StateResult {
+  interimResult?: string | null;
+  nextMatcher: Matcher | null;
+  result?: string | null;
+  state: MatchState;
+}
+
+type Matcher = (
+  first: ReadonlyArray<string>,
+  second: ReadonlyArray<string>,
+  state: MatchState
+) => StateResult;
+
+const StateResult = {
+  from: (state: MatchState): StateResult => ({
+    nextMatcher: null,
+    result: null,
+    state: {
+      first: {
+        next: state.first.next
+      },
+      minLength: state.minLength,
+      second: {
+        next: state.second.next
+      },
+      tentative: state.tentative
+    }
+  })
+};
+
+const initial: Matcher = (
+  first: ReadonlyArray<string>,
+  second: ReadonlyArray<string>,
+  state: MatchState
+) => {
+  const stateResult: StateResult = StateResult.from(state);
+  stateResult.result = undefined;
+  const fState: StringState = stateResult.state.first;
+  const sState: StringState = stateResult.state.second;
+  stateResult.nextMatcher = first[fState.next] === second[sState.next] ? potentialMatch : noMatch;
+  return stateResult;
+};
+
+const noMatch: Matcher = (
+  first: ReadonlyArray<string>,
+  second: ReadonlyArray<string>,
+  state: MatchState
+) => {
+  const stateResult: StateResult = StateResult.from(state);
+  stateResult.result = state.tentative ? undefined : null;
+  const fState: StringState = stateResult.state.first;
+  const sState: StringState = stateResult.state.second;
+  sState.next++;
+
+  for (let i = fState.next; i < first.length; i++) {
+    for (let j = sState.next; j < second.length; j++) {
+      if (first[i] === second[j]) {
+        fState.next = i;
+        sState.next = j;
+        stateResult.nextMatcher = potentialMatch;
+        return stateResult;
+      }
+    }
+  }
+
+  stateResult.nextMatcher = null;
+  return stateResult;
+};
+
+const potentialMatch: Matcher = (
+  first: ReadonlyArray<string>,
+  second: ReadonlyArray<string>,
+  state: MatchState
+) => {
+  const strs: string[] = [first[state.first.next]];
+  const stateResult: StateResult = StateResult.from(state);
+  stateResult.result = undefined;
+  stateResult.state.tentative = strs;
+  const fState: StringState = stateResult.state.first;
+  const sState: StringState = stateResult.state.second;
+  fState.next++;
+  sState.next++;
+
+  for (let i = fState.next, j = sState.next; i < first.length && j < second.length; i++, j++) {
+    if (first[i] !== second[j]) {
+      fState.next = state.first.next;
+      sState.next = state.second.next;
+      stateResult.nextMatcher = noMatch;
+      return stateResult;
+    }
+
+    strs.push(first[i]);
+
+    if (strs.length === state.minLength) {
+      stateResult.nextMatcher = match;
+      fState.next = i;
+      sState.next = j;
+      return stateResult;
+    }
+  }
+
+  stateResult.nextMatcher = null;
+  return stateResult;
+};
+
+const match: Matcher = (
+  first: ReadonlyArray<string>,
+  second: ReadonlyArray<string>,
+  state: MatchState
+) => {
+  const stateResult: StateResult = StateResult.from(state);
+  stateResult.result = (stateResult.state.tentative || []).join('');
+  stateResult.state.tentative = undefined;
+  const fState: StringState = stateResult.state.first;
+  const sState: StringState = stateResult.state.second;
+  fState.next++;
+  sState.next++;
+
+  for (let i = fState.next, j = sState.next; i < first.length && j < second.length; i++, j++) {
+    if (first[i] !== second[j]) {
+      fState.next = i;
+      sState.next = j;
+      stateResult.nextMatcher = noMatch;
+      return stateResult;
+    }
+
+    stateResult.result += first[i];
+  }
+
+  stateResult.nextMatcher = null;
+  return stateResult;
+};
+
 export default function stringDiff(
   first: string,
   second: string,
@@ -14,91 +158,32 @@ export default function stringDiff(
   }
 
   const [f, s] = [[...first], [...second]];
-  const result: Array<string | null> = [];
+  const match: Array<string | null> = [];
 
   if (f.length < minLength || s.length < minLength) {
-    return result;
+    return match;
   }
 
-  const firstEndIndex = f.length - minLength + 1;
+  let matcher: Matcher | null = initial;
+  let state: MatchState = {
+    first: {next: 0},
+    minLength,
+    second: {next: 0}
+  };
 
-  let jNext = 0;
-  let matchLength = 0;
-  let start = 0;
-  let finish = 0;
+  while (matcher) {
+    const matchResult: StateResult = matcher(f, s, state);
+    state = matchResult.state;
+    matcher = matchResult.nextMatcher;
 
-  // tslint:disable-next-line prefer-for-of
-  for (let i = 0; i < firstEndIndex; i++) {
-    let iNext = i;
-    for (let j = jNext; j < s.length; j++) {
-      const firstNext = f[iNext];
-      const foundFirst = !!matchLength;
-      const secondNext = s[j];
-      const secondNextIsFirst = j === 0;
-      const secondNextIsLast = j === s.length - 1;
-      const thisMatches = firstNext === secondNext;
-
-      if (thisMatches) {
-        matchLength++;
-      }
-
-      const inAMatch = matchLength >= minLength;
-
-      if (thisMatches && inAMatch && !secondNextIsLast) {
-        iNext++;
-        jNext = j;
-        continue;
-      }
-
-      const prependNull = !inAMatch && !thisMatches && !secondNextIsFirst && result.length === 0;
-
-      if (prependNull) {
-        result.push(null);
-      }
-
-      if (thisMatches && !foundFirst) {
-        // We've found the beginning.
-        start = i;
-      }
-
-      if (!thisMatches || secondNextIsLast) {
-        matchLength = 0;
-
-        if (inAMatch) {
-          // We've found the end.
-          if (secondNextIsLast && thisMatches) {
-            // i was not incremented
-            finish = iNext + 1;
-          } else {
-            finish = iNext;
-          }
-
-          // undo the increment to i with -1;
-          i = finish - 1;
-          const match = f.slice(start, finish).join('');
-          result.push(match);
-          jNext = j;
-
-          const appendNull = !thisMatches;
-
-          if (appendNull) {
-            result.push(null);
-          }
-
-          break;
-        } else {
-          // Reset the first string index & start checking again.
-          iNext = i;
-        }
-      } else {
-        iNext++;
-      }
+    if (matchResult.result !== undefined) {
+      match.push(matchResult.result);
     }
   }
 
-  if (result.length === 1 && result[0] === null) {
+  if (match.length === 1 && match[0] === null) {
     return [];
   }
 
-  return result;
+  return match;
 }

@@ -44,16 +44,16 @@ describe('DiffAndAtables', () => {
 
   describe('when it knows 2 strings once each', () => {
     const theString = 'snooty snoot snoot';
-    const theOtherString = 'abcdefghijklmnopqrstuvwxyz';
+    const theOtherString = 'abcdefghijklmnopqrsntuvwxyz';
 
     beforeEach(() => {
       daat = DiffAndAtables.emptyAtables();
       daat = DiffAndAtables.addStrings(daat, [theString, theOtherString]);
     });
 
-    it('has nonzero & non-1 confidence for each string', () => {
-      const theStringConfidence = DiffAndAtables.confidenceFor(daat, theString);
-      const theOtherStringConfidence = DiffAndAtables.confidenceFor(daat, theOtherString);
+    it('has nonzero & non-1 confidence for similar string', () => {
+      const theStringConfidence = DiffAndAtables.confidenceFor(daat, theString + 'a');
+      const theOtherStringConfidence = DiffAndAtables.confidenceFor(daat, theOtherString + 'a');
       expect(theStringConfidence)
         .to.be.greaterThan(0)
         .and.lessThan(1);
@@ -63,9 +63,9 @@ describe('DiffAndAtables', () => {
     });
 
     it('increases its confidence for the string if another similar string is added', () => {
-      const initialStringConfidence = DiffAndAtables.confidenceFor(daat, theString);
+      const initialStringConfidence = DiffAndAtables.confidenceFor(daat, theString + 'a');
       daat = DiffAndAtables.addStrings(daat, [theString]);
-      expect(DiffAndAtables.confidenceFor(daat, theString)).to.be.greaterThan(
+      expect(DiffAndAtables.confidenceFor(daat, theString + 'a')).to.be.greaterThan(
         initialStringConfidence
       );
     });
