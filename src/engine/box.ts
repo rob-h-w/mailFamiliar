@@ -56,6 +56,10 @@ export default class Box {
     }
   }
 
+  public static isInbox(fullyQualifiedName: string): boolean {
+    return !!fullyQualifiedName && fullyQualifiedName.toUpperCase() === 'INBOX';
+  }
+
   constructor({box, imapFolder, messages, name, pImap, qualifiedName, syncedTo}: IBox) {
     this.imapBox = box;
     this.imapFolder = imapFolder;
@@ -95,7 +99,7 @@ export default class Box {
   };
 
   get isInbox(): boolean {
-    return this.qualifiedName.toUpperCase() === 'INBOX';
+    return Box.isInbox(this.qualifiedName);
   }
 
   mergeFrom(box: Box) {

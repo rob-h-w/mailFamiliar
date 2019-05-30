@@ -72,6 +72,8 @@ describe('userConnection', () => {
       return box;
     });
 
+    Box.isInbox = sinon.spy(name => name === 'INBOX');
+
     imap = {};
     Imap = sinon.stub().returns(imap);
 

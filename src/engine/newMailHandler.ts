@@ -107,20 +107,21 @@ export default class NewMailHandler {
   private folderFor = (headers: string): string | null => {
     const scores = this.userConnection.predictor.folderScore(headers);
     let folderName = null;
-    let first = 0;
-    let second = 0;
+    let destination = 0;
+    let inbox = 0;
 
     for (const [fullyQualifiedName, score] of scores.entries()) {
-      if (score > first) {
-        second = first;
-        first = score;
+      if (Box.isInbox(fullyQualifiedName)) {
+        inbox = score;
+      }
+
+      if (score > destination) {
+        destination = score;
         folderName = fullyQualifiedName;
-      } else if (score > second) {
-        second = score;
       }
     }
 
-    if (first - second > this.userConnection.user.moveThreshold) {
+    if (destination - inbox > this.userConnection.user.moveThreshold) {
       return folderName;
     }
     return null;
