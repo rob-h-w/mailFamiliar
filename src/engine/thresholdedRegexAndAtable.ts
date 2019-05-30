@@ -1,7 +1,6 @@
 import {Map} from 'immutable';
 
 import Box from './box';
-import {canMoveTo} from '../imap/boxFeatures';
 import IPredictor, {UndeclaredBoxError} from './predictor';
 import ThresholdedDiffAndAtables from './thresholdedDiffAndAtables';
 
@@ -27,9 +26,7 @@ export default class ThresholdedRegexAndAtable implements IPredictor {
   };
 
   folderScore = (headers: string): Map<string, number> => {
-    return this.boxMap
-      .filter((_, qualifiedBoxName) => canMoveTo(qualifiedBoxName))
-      .map(tdaat => tdaat.confidenceFor(headers));
+    return this.boxMap.map(tdaat => tdaat.confidenceFor(headers));
   };
 
   name = (): string => 'thresholded regex';

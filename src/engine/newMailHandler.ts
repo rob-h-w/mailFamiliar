@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 
 import Box from './box';
+import {canMoveTo} from '../imap/boxFeatures';
 import Promisified from 'imap/promisified';
 import logger from '../logger';
 import {messageFromBody, IMessage} from './message';
@@ -115,7 +116,7 @@ export default class NewMailHandler {
         inbox = score;
       }
 
-      if (score > destination) {
+      if (canMoveTo(fullyQualifiedName) && score > destination) {
         destination = score;
         folderName = fullyQualifiedName;
       }
