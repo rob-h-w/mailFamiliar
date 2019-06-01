@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rm coverage/*.info coverage/*.json
+rm test/api/fixtures/standard/root/d4764d8f3c61cb5d81a5326916cac5a1c2f221acc5895c508fa3e0059d927f99/*.json
 yarn test:unit
 yarn test:api
 ./cc-test-reporter format-coverage -t lcov -o coverage/codeclimate.unit.json coverage/lcov.info
