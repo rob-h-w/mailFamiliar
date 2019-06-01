@@ -122,6 +122,12 @@ export default class NewMailHandler {
       }
     }
 
+    logger.info({
+      headers,
+      msg: 'scores',
+      scores: [{name: folderName, score: destination}, {name: 'inbox', score: inbox}]
+    });
+
     if (destination - inbox > this.userConnection.user.moveThreshold) {
       return folderName;
     }
