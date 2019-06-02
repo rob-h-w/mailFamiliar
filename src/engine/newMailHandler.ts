@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
-import Promisified from 'imap/promisified';
+import Promisified, {IMessageBody} from 'imap/promisified';
 import logger from '../logger';
 import {messageFromBody, IMessage} from './message';
 import UserConnection from './userConnection';
@@ -17,7 +17,7 @@ export default class NewMailHandler {
     this.userConnection = userConnection;
   }
 
-  private messageIdentifier(message: IMessage): string {
+  private static messageIdentifier(message: IMessage): string {
     const MAX_LENGTH = 20;
     const FROM = 'From: ';
     const SUBJECT = 'Subject: ';
@@ -25,6 +25,11 @@ export default class NewMailHandler {
     const from = hdrs.substr(hdrs.indexOf(FROM) + FROM.length, MAX_LENGTH);
     const subject = hdrs.substr(hdrs.indexOf(SUBJECT) + SUBJECT.length, MAX_LENGTH);
     return `{${message.uid} from ${from} subject ${subject}}`;
+  }
+
+  private static messageWasSeen(messageBody: IMessageBody): boolean {
+    const flags = messageBody.attrs.flags;
+    return _.isArray(flags) && flags.indexOf('\\Seen') !== -1;
   }
 
   private async handleMessage(message: IMessage, box: Box): Promise<boolean> {
@@ -40,7 +45,7 @@ export default class NewMailHandler {
       const recommendedBoxName = this.folderFor(message.headers);
       if (recommendedBoxName && recommendedBoxName !== box.qualifiedName) {
         if (user.dryRun || trial) {
-          const logMessage = `Would move ${this.messageIdentifier(
+          const logMessage = `Would move ${NewMailHandler.messageIdentifier(
             message
           )} to ${recommendedBoxName}`;
 
@@ -53,7 +58,9 @@ export default class NewMailHandler {
         } else {
           // Actually do the move.
           await this.pImap.move([String(message.uid)], recommendedBoxName);
-          logger.info(`Moved ${this.messageIdentifier(message)} to ${recommendedBoxName}`);
+          logger.info(
+            `Moved ${NewMailHandler.messageIdentifier(message)} to ${recommendedBoxName}`
+          );
         }
       } else {
         keep = true;
@@ -61,7 +68,7 @@ export default class NewMailHandler {
     }
 
     if (keep) {
-      const logMessage = `Keeping ${this.messageIdentifier(message)} in the inbox.`;
+      const logMessage = `Keeping ${NewMailHandler.messageIdentifier(message)} in the inbox.`;
       if (trial) {
         // tslint:disable-next-line:no-console
         console.log(logMessage);
@@ -88,7 +95,8 @@ export default class NewMailHandler {
     let update = false;
 
     for (const messageBody of messageBodies.filter(
-      messageBody => messageBody.attrs.date.getTime() > syncTo
+      messageBody =>
+        messageBody.attrs.date.getTime() > syncTo && !NewMailHandler.messageWasSeen(messageBody)
     )) {
       update = (await this.handleMessage(messageFromBody(messageBody), box)) || update;
     }

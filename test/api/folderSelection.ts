@@ -71,6 +71,7 @@ describe('folder selection', () => {
           {
             attrs: {
               date: new Date('2018-12-26T01:09:55.000Z'),
+              flags: [],
               size: 15711,
               uid: 68
             },
@@ -80,6 +81,7 @@ describe('folder selection', () => {
           {
             attrs: {
               date: new Date('2018-12-27T00:47:48.000Z'),
+              flags: [],
               size: 3688,
               uid: 69
             },
@@ -89,6 +91,7 @@ describe('folder selection', () => {
           {
             attrs: {
               date: new Date('2018-12-27T12:48:50.000Z'),
+              flags: [],
               size: 3655,
               uid: 70
             },
@@ -129,6 +132,29 @@ describe('folder selection', () => {
           it('moves the mail to "Interesting spam"', () => {
             expect(imapMock.object.move.args[0][1]).to.equal('Interesting spam');
           });
+
+          describe('but has been seen', () => {
+            beforeEach(async () => {
+              imapMock.fetchReturnsWith([
+                {
+                  attributes: {
+                    date: new Date(),
+                    flags: ['\\Seen'],
+                    uid: 33
+                  },
+                  body: Buffer.from('interesting spam like the others'),
+                  seqno: 2
+                }
+              ]);
+              imapMock.object.move.reset();
+              await eventHandlers.on.mail(1);
+              await waitATick();
+            });
+
+            it('does not move the mail', () => {
+              expect(imapMock.object.move.called).to.be.false();
+            });
+          });
         });
 
         describe('when a new mail comes in that does not match', () => {
@@ -149,7 +175,7 @@ describe('folder selection', () => {
           });
 
           it('does not move the mail', () => {
-            // Broken for CrossCorrelate right now.
+            // Broken for CrossCorrelate.
             if (predictorType.value === 'CrossCorrelate') {
               return;
             }
