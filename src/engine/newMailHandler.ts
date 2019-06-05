@@ -116,15 +116,23 @@ export default class NewMailHandler {
   private folderFor = (headers: string): string | null => {
     const scores = this.userConnection.predictor.folderScore(headers);
     let folderName = null;
+    let secondHighestFolderName = null;
     let destination = 0;
     let inbox = 0;
+    let secondHighest = 0;
 
     for (const [fullyQualifiedName, score] of scores.entries()) {
       if (Box.isInbox(fullyQualifiedName)) {
         inbox = score;
       }
 
-      if (canMoveTo(fullyQualifiedName) && score > destination) {
+      if (!canMoveTo(fullyQualifiedName)) {
+        continue;
+      }
+
+      if (score > destination) {
+        secondHighest = destination;
+        secondHighestFolderName = folderName;
         destination = score;
         folderName = fullyQualifiedName;
       }
@@ -133,10 +141,14 @@ export default class NewMailHandler {
     logger.info({
       headers,
       msg: 'scores',
-      scores: [{name: folderName, score: destination}, {name: 'inbox', score: inbox}]
+      scores: [
+        {name: folderName, score: destination},
+        {name: secondHighestFolderName, score: secondHighest},
+        {name: 'inbox', score: inbox}
+      ]
     });
 
-    if (destination - inbox > this.userConnection.user.moveThreshold) {
+    if (destination - secondHighest > this.userConnection.user.moveThreshold) {
       return folderName;
     }
     return null;
