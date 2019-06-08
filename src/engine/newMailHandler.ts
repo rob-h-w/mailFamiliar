@@ -148,9 +148,12 @@ export default class NewMailHandler {
       ]
     });
 
-    if (destination - secondHighest > this.userConnection.user.moveThreshold) {
+    const moveConfidence = destination - secondHighest * inbox;
+
+    if (moveConfidence > this.userConnection.user.moveThreshold) {
       return folderName;
     }
+
     return null;
   };
 }
