@@ -2,33 +2,83 @@
 
 import {expect} from 'code';
 import * as events from 'events';
-import * as Imap from 'imap';
+import {Box, ImapFetch} from 'imap';
 import * as sinon from 'sinon';
 import {Stream} from 'stream';
 
-type Folder = {[key in keyof Imap.Folder]: Imap.Folder[key] | null};
+import Mailboxes from './mailboxes';
+import MockMessage from './mockMessage';
+import MockResult from './mockResult';
+import ServerState from './serverState';
 
-interface Mailboxes {
-  [name: string]: Folder;
-}
+export {default as MockMessage} from './mockMessage';
+export {default as MockResult} from './mockResult';
 
-interface MockMessage {
-  attributes: {
-    date: Date;
-    flags: any[];
-    uid: number;
+function makeSetServerState(object: any): (state: ServerState) => void {
+  let currentlyOpenedBoxName: string | null = null;
+
+  return (state: ServerState) => {
+    object.closeBox.callsArg(0);
+    object.fetch.callsFake((fetchObject: number[]) => {
+      if (currentlyOpenedBoxName === null) {
+        throw new Error('A box must be opened.');
+      }
+
+      return makeFetchResultFor(
+        state.folders[currentlyOpenedBoxName].messages.filter(
+          msg => fetchObject.indexOf(msg.attributes.uid) !== -1
+        )
+      );
+    });
+    object.getBoxes.callsArgWith(
+      0,
+      null,
+      Object.keys(state.folders).reduce<Mailboxes>((mailBoxes, folderName) => {
+        const folderState = state.folders[folderName];
+        mailBoxes[folderName] = {
+          attribs: folderState.attribs,
+          children: folderState.children,
+          delimiter: folderState.delimiter,
+          parent: folderState.parent
+        };
+        return mailBoxes;
+      }, {})
+    );
+    object.openBox.callsFake((boxName: string, callback: (result: Error | null) => void) => {
+      if (Object.keys(state.folders).indexOf(boxName) === -1) {
+        return callback(new Error(`Folder ${boxName} isn't present.`));
+      }
+
+      currentlyOpenedBoxName = boxName;
+      callback(null);
+    });
+    object.search.callsFake(
+      (searchCriteria: any[], callback: (err: Error | null, uids: number[] | null) => void) => {
+        if (currentlyOpenedBoxName === null) {
+          return callback(new Error('A box must be opened.'), null);
+        }
+
+        if (searchCriteria.length === 0) {
+          return callback(null, []);
+        }
+
+        const filter =
+          searchCriteria[0][0] === 'SINCE'
+            ? (msg: MockMessage) => msg.attributes.date >= (searchCriteria[0][1] as Date)
+            : () => true;
+
+        return callback(
+          null,
+          state.folders[currentlyOpenedBoxName].messages
+            .filter(filter)
+            .map(msg => msg.attributes.uid)
+        );
+      }
+    );
   };
-  body: Buffer;
-  seqno: number;
 }
 
-export interface MockResult {
-  class: any;
-  fetchReturnsWith: (mails: MockMessage[]) => void;
-  object: any;
-}
-
-function mockFetchResult(object: any) {
+function makeFetchResultFor(mails: MockMessage[]): ImapFetch {
   const fetchListeners: any = {
     on: {},
     once: {}
@@ -57,7 +107,7 @@ function mockFetchResult(object: any) {
       setTimeout(callback, 0);
     }
   };
-  const mockFetchObject: Imap.ImapFetch = Object.assign(new events.EventEmitter(), {
+  const mockFetchObject: ImapFetch = Object.assign(new events.EventEmitter(), {
     on: sinon.spy((event: string, listener: Function) => {
       fetchListeners.on[event] = listener;
       checkFetchListeners();
@@ -71,7 +121,7 @@ function mockFetchResult(object: any) {
   });
   const callback = () => {
     expect((mockFetchObject.on as any).called || (mockFetchObject.once as any).called).to.be.true();
-    for (const mail of mailList) {
+    for (const mail of mails) {
       const fakeMessage = {
         on: sinon.stub()
       };
@@ -89,11 +139,14 @@ function mockFetchResult(object: any) {
 
     handlerFor('end')();
   };
-  let mailList: MockMessage[] = [];
-  object.fetch.returns(mockFetchObject);
-  object.seq.fetch.returns(mockFetchObject);
+  return mockFetchObject;
+}
+
+function mockFetchResult(object: any) {
   return (mails: MockMessage[]) => {
-    mailList = mails;
+    const mockFetchObject = makeFetchResultFor(mails);
+    object.fetch.returns(mockFetchObject);
+    object.seq.fetch.returns(mockFetchObject);
   };
 }
 
@@ -107,7 +160,7 @@ function replaceReset(stub: sinon.SinonStub, f: (stub: sinon.SinonStub) => void)
   stub.reset();
 }
 
-export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Imap.Box>): MockResult {
+export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Box>): MockResult {
   const seq = {
     fetch: sinon.stub()
   };
@@ -134,6 +187,7 @@ export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Imap.Box
   return {
     class: sinon.stub().returns(object),
     fetchReturnsWith: mockFetchResult(object),
-    object
+    object,
+    setServerState: makeSetServerState(object)
   };
 }

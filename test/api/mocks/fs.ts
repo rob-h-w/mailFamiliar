@@ -1,9 +1,10 @@
 import * as f from 'fs';
 import * as _ from 'lodash';
 import * as path from 'path';
-import {stub} from 'sinon';
+import {match, stub} from 'sinon';
 
 import User from '../../../src/persistence/user';
+import {hashOf} from '../../../src/persistence/json';
 
 const ROOT = process.cwd();
 export const LOGSFOLDER = path.join(ROOT, 'logs');
@@ -42,13 +43,14 @@ class Fluent {
 
   withConfig(
     config?: Partial<User>,
-    userName: string = 'user.json',
+    userName: string = 'user',
     useFakeConfig: boolean = true
   ): Fluent {
     const mockResult = this.mockResult.fs();
     const fileName = `${userName}.json`;
 
     if (useFakeConfig) {
+      const configPath = path.join(`${process.env.M_FAMILIAR_STORAGE}`, hashOf(userName));
       mockResult.readdir.callsFake(
         (path: string, callback: (err: Error | null, files: string[]) => void) => {
           if (path === process.env.M_FAMILIAR_STORAGE) {
@@ -63,6 +65,11 @@ class Fluent {
           }
         }
       );
+
+      mockResult.existsSync.withArgs(configPath).returns(true);
+      mockResult.writeFile
+        .withArgs(match(new RegExp(`${configPath}/.*`)), match.string)
+        .callsArg(3);
     }
 
     const folderPath = process.env.M_FAMILIAR_STORAGE || M_FAMILIAR_STORAGE;

@@ -11,6 +11,7 @@ import {useFixture} from './tools/fixture/standard/useFixture';
 import {EventHandlers, startServerInHealthyState} from './tools/server';
 
 import {PredictorTypeValues} from '../../src/engine/predictors';
+import fakeBox from './mocks/imap/fakeBox';
 
 let fsMock: FsMock;
 let imapMock: ImapMock;
@@ -186,4 +187,79 @@ describe('folder selection', () => {
       });
     })
   );
+
+  describe('when a mail is moved', () => {
+    const SORTED = {
+      folders: {
+        INBOX: fakeBox([]),
+        PIGGIES: fakeBox([
+          'this little piggy went to market',
+          'this little piggy stayed home',
+          'this little piggy had roast beef',
+          'and this little piggy had none',
+          'aaand this little piggy went wee wee wee all the way home'
+        ]),
+        SPAM: fakeBox(['shouty spamulation', 'more spam'])
+      }
+    };
+    const UNSORTED = {
+      folders: {
+        INBOX: fakeBox([
+          'shouty spamulation',
+          'more spam',
+          'this little piggy went to market',
+          'this little piggy stayed home',
+          'this little piggy had roast beef',
+          'and this little piggy had none',
+          'aaand this little piggy went wee wee wee all the way home'
+        ]),
+        PIGGIES: fakeBox([]),
+        SPAM: fakeBox([])
+      }
+    };
+
+    let storageEnv: string | undefined;
+
+    afterEach(async () => {
+      if (server) {
+        await server.stop();
+        server = null;
+      }
+
+      fsMock.teardown();
+
+      mockery.disable();
+      process.env.M_FAMILIAR_STORAGE = storageEnv;
+    });
+
+    beforeEach(async () => {
+      storageEnv = process.env.M_FAMILIAR_STORAGE;
+      process.env.M_FAMILIAR_STORAGE = '/storage';
+      mockery.enable({
+        useCleanCache: true,
+        warnOnReplace: false,
+        warnOnUnregistered: false
+      });
+
+      fsMock = fs();
+      fsMock
+        .setup()
+        .withLog()
+        .withConfig({predictorType: 'Traat'}, 'rob@example.com', true);
+
+      mockery.registerMock('fs', fsMock.fs());
+
+      imapMock = mockImap(mailBoxes, boxes);
+
+      imapMock.setServerState(UNSORTED);
+      mockery.registerMock('imap', imapMock.class);
+
+      ({eventHandlers, server} = await startServerInHealthyState(imapMock));
+      imapMock.setServerState(SORTED);
+    });
+
+    it('spins up', () => {
+      expect(server).to.exist();
+    });
+  });
 });

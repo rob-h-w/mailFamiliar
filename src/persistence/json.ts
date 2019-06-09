@@ -8,7 +8,7 @@ import {IInitializablePersistence} from './persistence';
 import User from './user';
 import {BadJsonException} from './exceptions';
 
-function hashOf(value: string): string {
+export function hashOf(value: string): string {
   return crypto
     .createHash('sha256')
     .update(value)
