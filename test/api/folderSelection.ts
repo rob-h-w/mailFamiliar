@@ -12,15 +12,10 @@ import {EventHandlers, startServerInHealthyState} from './tools/server';
 
 import {PredictorTypeValues} from '../../src/engine/predictors';
 import fakeBox from './mocks/imap/fakeBox';
+import waitATick from './tools/wait';
 
 let fsMock: FsMock;
 let imapMock: ImapMock;
-
-function waitATick() {
-  return new Promise(resolve => {
-    setTimeout(resolve, 0);
-  });
-}
 
 describe('folder selection', () => {
   let eventHandlers: EventHandlers;
@@ -136,20 +131,21 @@ describe('folder selection', () => {
 
           describe('but has been seen', () => {
             beforeEach(async () => {
-              imapMock.fetchReturnsWith([
-                {
-                  attributes: {
-                    date: new Date(),
-                    flags: ['\\Seen'],
-                    uid: 33
-                  },
-                  body: Buffer.from('interesting spam like the others'),
-                  seqno: 2
-                }
-              ]);
               imapMock.object.move.reset();
-              await eventHandlers.on.mail(1);
-              await waitATick();
+              await imapMock.simulateMailReceived(
+                [
+                  {
+                    attributes: {
+                      date: new Date(),
+                      flags: ['\\Seen'],
+                      uid: 33
+                    },
+                    body: Buffer.from('interesting spam like the others'),
+                    seqno: 2
+                  }
+                ],
+                eventHandlers
+              );
             });
 
             it('does not move the mail', () => {
@@ -260,6 +256,25 @@ describe('folder selection', () => {
 
     it('spins up', () => {
       expect(server).to.exist();
+    });
+
+    describe('when a new mail comes in that should be moved', () => {
+      beforeEach(async () => {
+        imapMock.simulateMailReceived(
+          [
+            {
+              attributes: {
+                date: new Date(),
+                flags: [],
+                uid: 32
+              },
+              body: Buffer.from('this little piggy had an existential crisis'),
+              seqno: 1
+            }
+          ],
+          eventHandlers
+        );
+      });
     });
   });
 });

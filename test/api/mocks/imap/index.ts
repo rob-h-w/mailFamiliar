@@ -10,6 +10,8 @@ import Mailboxes from './mailboxes';
 import MockMessage from './mockMessage';
 import MockResult from './mockResult';
 import ServerState from './serverState';
+import {EventHandlers} from '../../tools/server';
+import waitATick from '../../tools/wait';
 
 export {default as MockMessage} from './mockMessage';
 export {default as MockResult} from './mockResult';
@@ -75,6 +77,16 @@ function makeSetServerState(object: any): (state: ServerState) => void {
         );
       }
     );
+  };
+}
+
+function makeSimulateMailReceived(
+  fetchReturnsWith: (mails: MockMessage[]) => void
+): (mails: MockMessage[], eventHandlers: EventHandlers) => Promise<void> {
+  return async (mails: MockMessage[], eventHandlers: EventHandlers) => {
+    fetchReturnsWith(mails);
+    await eventHandlers.on.mail(mails.length);
+    await waitATick();
   };
 }
 
@@ -184,10 +196,13 @@ export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Box>): M
     }
   });
 
+  const fetchReturnsWith = mockFetchResult(object);
+
   return {
     class: sinon.stub().returns(object),
-    fetchReturnsWith: mockFetchResult(object),
+    fetchReturnsWith,
     object,
-    setServerState: makeSetServerState(object)
+    setServerState: makeSetServerState(object),
+    simulateMailReceived: makeSimulateMailReceived(fetchReturnsWith)
   };
 }
