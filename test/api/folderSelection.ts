@@ -40,7 +40,7 @@ describe('folder selection', () => {
         fsMock
           .setup()
           .withLog()
-          .withConfig({predictorType: predictorType.value}, 'rob.json', false);
+          .withConfig({predictorType: predictorType.value}, 'rob', false);
 
         mockery.registerMock('fs', fsMock.fs());
 

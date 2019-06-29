@@ -122,7 +122,7 @@ export default class Json implements IInitializablePersistence<string> {
 
         files.forEach(file => {
           const userPath = path.join(this.contentsFolder, file);
-          if (fs.statSync(userPath).isFile()) {
+          if (fs.statSync(userPath).isFile() && userPath.endsWith('.json')) {
             users.push(JSON.parse(fs.readFileSync(userPath).toString()));
           }
         });

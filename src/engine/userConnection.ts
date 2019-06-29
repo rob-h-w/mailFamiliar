@@ -44,14 +44,18 @@ export default class UserConnection implements IBoxListener {
   }
 
   private closeBox = async () => {
+    await this.newMailHander.finished();
     if (this.currentlyOpen) {
+      logger.debug({qualifiedName: this.currentlyOpen.qualifiedName, state: 'open'}, 'closeBox');
       try {
         await this.pImap.closeBox();
+        logger.debug(
+          {qualifiedName: this.currentlyOpen.qualifiedName, state: 'closed'},
+          'closeBox'
+        );
       } finally {
         this.currentlyOpen = undefined;
       }
-    } else {
-      this.currentlyOpen = undefined;
     }
   };
 
@@ -105,8 +109,8 @@ export default class UserConnection implements IBoxListener {
   };
 
   private handleNewMail = async () => {
-    if (this.currentlyOpen && this.currentlyOpen.isInbox) {
-      this.newMailHander.handleMail(this.currentlyOpen);
+    if (this.currentlyOpen) {
+      await this.newMailHander.handleMail(this.currentlyOpen);
     }
   };
 
@@ -188,6 +192,7 @@ export default class UserConnection implements IBoxListener {
   }
 
   onExpunge = async (seqNo: number) => {
+    logger.debug({seqNo}, 'onExpunge');
     if (!this.currentlyOpen) {
       // Shouldn't be possible - log it & move on.
       logger.warn(
@@ -210,11 +215,13 @@ export default class UserConnection implements IBoxListener {
     await this.shallowSyncSince(expungedMessage.date, [this.currentlyOpen.qualifiedName], true);
   };
 
-  onMail = async (/*count: number*/) => {
+  onMail = async (count: number) => {
+    logger.debug({count}, 'onMail');
     await this.handleNewMail();
   };
 
   onUidValidity = async (uidValidity: number) => {
+    logger.debug({uidValidity}, 'onUidValidity');
     const box = this.currentlyOpen;
     if (box && _.get(box, 'uidValidity') !== uidValidity) {
       // regenerate the entire box.
@@ -223,6 +230,14 @@ export default class UserConnection implements IBoxListener {
   };
 
   private openBox = async (box: Box) => {
+    logger.debug(
+      {
+        previousQualifiedName: this.currentlyOpen ? this.currentlyOpen.qualifiedName : 'null',
+        qualifiedName: box.qualifiedName
+      },
+      'openBox'
+    );
+    await this.newMailHander.finished();
     await this.closeBox();
     let resetBox = false;
 

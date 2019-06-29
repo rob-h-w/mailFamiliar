@@ -42,16 +42,17 @@ class Fluent {
 
   withConfig(
     config?: Partial<User>,
-    filename: string = 'user.json',
+    userName: string = 'user.json',
     useFakeConfig: boolean = true
   ): Fluent {
     const mockResult = this.mockResult.fs();
+    const fileName = `${userName}.json`;
 
     if (useFakeConfig) {
       mockResult.readdir.callsFake(
         (path: string, callback: (err: Error | null, files: string[]) => void) => {
           if (path === process.env.M_FAMILIAR_STORAGE) {
-            callback(null, [filename]);
+            callback(null, [fileName]);
           } else if (
             process.env.M_FAMILIAR_STORAGE &&
             path.startsWith(process.env.M_FAMILIAR_STORAGE)
@@ -65,7 +66,7 @@ class Fluent {
     }
 
     const folderPath = process.env.M_FAMILIAR_STORAGE || M_FAMILIAR_STORAGE;
-    const userPath = path.join(folderPath, filename);
+    const userPath = path.join(folderPath, fileName);
 
     mockResult.statSync.withArgs(userPath).returns({
       isFile: stub().returns(true)

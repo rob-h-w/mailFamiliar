@@ -78,6 +78,7 @@ describe('userConnection', () => {
     Imap = sinon.stub().returns(imap);
 
     logger = {
+      debug: sinon.stub(),
       error: sinon.stub(),
       info: sinon.stub(),
       warn: sinon.stub()
