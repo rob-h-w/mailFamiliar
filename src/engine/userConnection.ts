@@ -46,13 +46,11 @@ export default class UserConnection implements IBoxListener {
   private closeBox = async () => {
     await this.newMailHander.finished();
     if (this.currentlyOpen) {
-      logger.debug({qualifiedName: this.currentlyOpen.qualifiedName, state: 'open'}, 'closeBox');
+      const qualifiedName = this.currentlyOpen.qualifiedName;
+      logger.debug({qualifiedName, state: 'open'}, 'closeBox');
       try {
         await this.pImap.closeBox();
-        logger.debug(
-          {qualifiedName: this.currentlyOpen.qualifiedName, state: 'closed'},
-          'closeBox'
-        );
+        logger.debug({qualifiedName, state: 'closed'}, 'closeBox');
       } finally {
         this.currentlyOpen = undefined;
       }
