@@ -11,6 +11,8 @@ import {getSyncedTo} from '../tools/trialSettings';
 export default class NewMailHandler {
   private readonly pImap: Promisified;
   private readonly userConnection: UserConnection;
+  private readonly waitStack: (() => void)[] = [];
+  private workCount: number = 0;
 
   constructor(userConnection: UserConnection, pImap: Promisified) {
     this.pImap = pImap;
@@ -33,6 +35,10 @@ export default class NewMailHandler {
   }
 
   private async handleMessage(message: IMessage, box: Box): Promise<boolean> {
+    logger.debug(
+      {qualifiedName: box.qualifiedName, message: NewMailHandler.messageIdentifier(message)},
+      'handleMessage'
+    );
     let update = false;
     let keep = false;
 
@@ -83,34 +89,63 @@ export default class NewMailHandler {
     return update;
   }
 
+  private lock() {
+    this.workCount++;
+  }
+
+  private release() {
+    this.workCount--;
+    while (this.workCount === 0 && this.waitStack.length) {
+      (this.waitStack.pop() as () => void)();
+    }
+  }
+
   public async handleMail(box: Box) {
-    const defaultStartDate = this.userConnection.defaultStartDate();
-    const syncTo = Math.max(getSyncedTo(box), defaultStartDate.getTime());
-    const uids = await this.pImap.search([[`SINCE`, new Date(syncTo)]]);
-    if (_.isEmpty(uids)) {
-      return;
+    logger.debug({qualifiedName: box.qualifiedName}, 'handleMail');
+    this.lock();
+    try {
+      const defaultStartDate = this.userConnection.defaultStartDate();
+      const syncTo = Math.max(getSyncedTo(box), defaultStartDate.getTime());
+      const uids = await this.pImap.search([[`SINCE`, new Date(syncTo)]]);
+      if (_.isEmpty(uids)) {
+        return;
+      }
+
+      const messageBodies = await this.userConnection.fetch(uids);
+      let update = false;
+
+      if (box.isInbox) {
+        for (const messageBody of messageBodies.filter(
+          messageBody =>
+            messageBody.attrs.date.getTime() > syncTo && !NewMailHandler.messageWasSeen(messageBody)
+        )) {
+          update = (await this.handleMessage(messageFromBody(messageBody), box)) || update;
+        }
+      }
+
+      this.userConnection.predictor.considerBox(box);
+
+      if (update) {
+        await this.userConnection.persistence.updateBox(this.userConnection.user, box);
+      }
+
+      const trial = this.userConnection.user.trial;
+      if (trial && trial.newMailHandled) {
+        trial.newMailHandled();
+      }
+    } finally {
+      this.release();
     }
+  }
 
-    const messageBodies = await this.userConnection.fetch(uids);
-    let update = false;
-
-    for (const messageBody of messageBodies.filter(
-      messageBody =>
-        messageBody.attrs.date.getTime() > syncTo && !NewMailHandler.messageWasSeen(messageBody)
-    )) {
-      update = (await this.handleMessage(messageFromBody(messageBody), box)) || update;
-    }
-
-    this.userConnection.predictor.considerBox(box);
-
-    if (update) {
-      await this.userConnection.persistence.updateBox(this.userConnection.user, box);
-    }
-
-    const trial = this.userConnection.user.trial;
-    if (trial && trial.newMailHandled) {
-      trial.newMailHandled();
-    }
+  public async finished() {
+    return new Promise(resolve => {
+      if (this.workCount === 0) {
+        resolve();
+      } else {
+        this.waitStack.push(resolve);
+      }
+    });
   }
 
   private folderFor = (headers: string): string | null => {
