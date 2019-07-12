@@ -213,6 +213,7 @@ export default class Json implements IInitializablePersistence<string> {
 
       fs.writeFile(this.boxPath(user, box), stringify(boxPersisted), {flag: 'w'}, err => {
         if (err) {
+          err.stack = new Error().stack;
           return reject(err);
         }
 
