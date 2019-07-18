@@ -29,7 +29,7 @@ const USER_SETTINGS: User = {
 
 export interface MockResult {
   config: () => Fluent;
-  fs: () => any | null;
+  object: any;
   setup: () => Fluent;
   teardown: () => void;
 }
@@ -46,7 +46,7 @@ class Fluent {
     userName: string = 'user',
     useFakeConfig: boolean = true
   ): Fluent {
-    const mockResult = this.mockResult.fs();
+    const mockResult = this.mockResult.object;
     const fileName = `${userName}.json`;
 
     if (useFakeConfig) {
@@ -88,7 +88,7 @@ class Fluent {
   }
 
   withLog(): Fluent {
-    const f = this.mockResult.fs();
+    const f = this.mockResult.object;
     f.existsSync.withArgs(LOGSFOLDER).returns(true);
     const writeStream = {
       end: stub().returns(false),
@@ -109,9 +109,8 @@ class Fluent {
 }
 
 export default function fs(): MockResult {
-  let fsStub: any = null;
+  const fsStub: any = stub(f);
   const setup = (): Fluent => {
-    fsStub = stub(f);
     _.functions(fsStub).forEach(func => {
       const potentialStub = fsStub[func];
       if (potentialStub.callThrough) {
@@ -123,7 +122,7 @@ export default function fs(): MockResult {
   };
   const result = {
     config: (): Fluent => new Fluent(result),
-    fs: () => fsStub,
+    object: fsStub,
     setup,
     teardown: () => {
       _.functions(fsStub).forEach(f => {

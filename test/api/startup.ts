@@ -39,7 +39,7 @@ beforeEach(() => {
   fsMock = fs();
   fsMock.setup().withLog();
 
-  mockery.registerMock('fs', fsMock.fs());
+  mockery.registerMock('fs', fsMock.object);
 
   imapMock = mockImap({}, []);
   mockery.registerMock('imap', imapMock.class);
@@ -192,7 +192,7 @@ describe('startup', () => {
 describe('startup logging', () => {
   describe('log folder creation', () => {
     beforeEach(() => {
-      fsMock.fs().mkdirSync.resetBehavior();
+      fsMock.object.mkdirSync.resetBehavior();
     });
 
     describe('when logs exists', () => {
@@ -205,21 +205,18 @@ describe('startup logging', () => {
       });
 
       it('does not create a logs folder', () => {
-        expect(fsMock.fs().mkdirSync.called).to.be.false();
+        expect(fsMock.object.mkdirSync.called).to.be.false();
       });
     });
 
     describe('when logs does not exist', () => {
       beforeEach(async () => {
-        fsMock
-          .fs()
-          .existsSync.withArgs(LOGSFOLDER)
-          .returns(false);
+        fsMock.object.existsSync.withArgs(LOGSFOLDER).returns(false);
         ({startServer} = require(SERVER));
       });
 
       it('creates a logs folder', () => {
-        expect(fsMock.fs().mkdirSync.called).to.be.true();
+        expect(fsMock.object.mkdirSync.called).to.be.true();
       });
     });
   });

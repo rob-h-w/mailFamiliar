@@ -38,7 +38,7 @@ describe('folder selection', () => {
           .withLog()
           .withConfig({predictorType: predictorType.value}, 'rob', false);
 
-        mockery.registerMock('fs', fsMock.fs());
+        mockery.registerMock('fs', fsMock.object);
 
         imapMock = mockImap(mailBoxes, boxes);
 
@@ -243,7 +243,7 @@ describe('folder selection', () => {
         .withLog()
         .withConfig({predictorType: 'Traat'}, 'rob@example.com', true);
 
-      mockery.registerMock('fs', fsMock.fs());
+      mockery.registerMock('fs', fsMock.object);
 
       imapMock = mockImap(mailBoxes, boxes);
 

@@ -30,7 +30,7 @@ describe('periodic refresh', () => {
     fsMock = fs();
     fsMock.setup().withLog();
 
-    mockery.registerMock('fs', fsMock.fs());
+    mockery.registerMock('fs', fsMock.object);
 
     imapMock = mockImap(mailBoxes, boxes);
 
