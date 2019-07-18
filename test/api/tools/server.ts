@@ -45,8 +45,9 @@ export async function startServerInHealthyState(imapMock: MockResult): Promise<S
         });
         if (eventHandlers.once.ready) {
           resolve();
+        } else {
+          reject(new Error('eventHandlers.once.ready not set'));
         }
-        reject(new Error('eventHandlers.once.ready not set'));
       }, 10);
     }).catch(error => {
       if (attempt < 4) {
