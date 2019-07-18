@@ -11,7 +11,7 @@ import MockMessage from './mockMessage';
 import MockResult from './mockResult';
 import ServerState from './serverState';
 import {EventHandlers} from '../../tools/server';
-import waitATick from '../../tools/wait';
+import {waitATick} from '../../tools/wait';
 
 export {default as MockMessage} from './mockMessage';
 export {default as MockResult} from './mockResult';

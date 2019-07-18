@@ -12,7 +12,7 @@ import {EventHandlers, startServerInHealthyState} from './tools/server';
 
 import {PredictorTypeValues} from '../../src/engine/predictors';
 import fakeBox from './mocks/imap/fakeBox';
-import waitATick from './tools/wait';
+import {waitATick} from './tools/wait';
 
 let fsMock: FsMock;
 let imapMock: ImapMock;
