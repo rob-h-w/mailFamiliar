@@ -36,6 +36,7 @@ export interface MockResult {
 
 class Fluent {
   private mockResult: MockResult;
+  private configPath: string;
 
   constructor(mockResult: MockResult) {
     this.mockResult = mockResult;
@@ -50,7 +51,7 @@ class Fluent {
     const fileName = `${userName}.json`;
 
     if (useFakeConfig) {
-      const configPath = path.join(`${process.env.M_FAMILIAR_STORAGE}`, hashOf(userName));
+      this.configPath = path.join(`${process.env.M_FAMILIAR_STORAGE}`, hashOf(userName));
       mockResult.readdir.callsFake(
         (path: string, callback: (err: Error | null, files: string[]) => void) => {
           if (path === process.env.M_FAMILIAR_STORAGE) {
@@ -66,9 +67,9 @@ class Fluent {
         }
       );
 
-      mockResult.existsSync.withArgs(configPath).returns(true);
+      mockResult.existsSync.withArgs(this.configPath).returns(true);
       mockResult.writeFile
-        .withArgs(match(new RegExp(`${configPath}/.*`)), match.string)
+        .withArgs(match(new RegExp(`${this.configPath}/.*`)), match.string)
         .callsArg(3);
     }
 
@@ -113,8 +114,11 @@ export default function fs(): MockResult {
   const setup = (): Fluent => {
     _.functions(fsStub).forEach(func => {
       const potentialStub = fsStub[func];
+      if (potentialStub.reset) {
+        potentialStub.reset();
+      }
       if (potentialStub.callThrough) {
-        fsStub[func].callThrough();
+        potentialStub.callThrough();
       }
     });
 

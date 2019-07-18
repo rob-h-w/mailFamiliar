@@ -18,7 +18,8 @@ function mockMessage(message: string, index: number, now: number): MockMessage {
       uid: seed
     },
     body: new Buffer(message),
-    seqno: index
+    seqno: index,
+    synced: false
   };
 }
 

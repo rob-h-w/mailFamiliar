@@ -6,4 +6,5 @@ export default interface MockMessage {
   };
   body: Buffer;
   seqno: number;
+  synced: boolean;
 }

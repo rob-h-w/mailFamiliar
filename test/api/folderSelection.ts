@@ -12,7 +12,7 @@ import {EventHandlers, startServerInHealthyState} from './tools/server';
 
 import {PredictorTypeValues} from '../../src/engine/predictors';
 import fakeBox from './mocks/imap/fakeBox';
-import {waitATick} from './tools/wait';
+import {waitATick, until} from './tools/wait';
 
 let fsMock: FsMock;
 let imapMock: ImapMock;
@@ -114,7 +114,8 @@ describe('folder selection', () => {
                   uid: 32
                 },
                 body: Buffer.from('interesting spam like the others'),
-                seqno: 1
+                seqno: 1,
+                synced: false
               }
             ]);
             await eventHandlers.on.mail(1);
@@ -132,7 +133,7 @@ describe('folder selection', () => {
           describe('but has been seen', () => {
             beforeEach(async () => {
               imapMock.object.move.reset();
-              await imapMock.simulateMailReceived(
+              await imapMock.simulate.mailReceived(
                 [
                   {
                     attributes: {
@@ -141,7 +142,8 @@ describe('folder selection', () => {
                       uid: 33
                     },
                     body: Buffer.from('interesting spam like the others'),
-                    seqno: 2
+                    seqno: 2,
+                    synced: false
                   }
                 ],
                 eventHandlers
@@ -164,7 +166,8 @@ describe('folder selection', () => {
                   uid: 32
                 },
                 body: Buffer.from("what's this now?"),
-                seqno: 2
+                seqno: 2,
+                synced: false
               }
             ]);
             await eventHandlers.on.mail(1);
@@ -251,7 +254,12 @@ describe('folder selection', () => {
       mockery.registerMock('imap', imapMock.class);
 
       ({eventHandlers, server} = await startServerInHealthyState(imapMock));
-      imapMock.setServerState(SORTED);
+      await until(() => fsMock.object.writeFile.called);
+      imapMock.setServerState(SORTED, 'INBOX');
+      UNSORTED.folders.INBOX.messages.forEach(msg => imapMock.simulate.event.expunge(msg.seqno));
+      await until(
+        () => imapMock.object.openBox.called && imapMock.object.openBox.lastCall.args[0] === 'INBOX'
+      );
     });
 
     it('spins up', () => {
@@ -259,21 +267,37 @@ describe('folder selection', () => {
     });
 
     describe('when a new mail comes in that should be moved', () => {
+      const NEW_MAIL = {
+        folders: {
+          INBOX: fakeBox(['this little piggy had an existential crisis']),
+          PIGGIES: fakeBox([
+            'this little piggy went to market',
+            'this little piggy stayed home',
+            'this little piggy had roast beef',
+            'and this little piggy had none',
+            'aaand this little piggy went wee wee wee all the way home'
+          ]),
+          SPAM: fakeBox(['shouty spamulation', 'more spam'])
+        }
+      };
+      NEW_MAIL.folders.INBOX.messages[0].attributes.date = new Date();
       beforeEach(async () => {
-        imapMock.simulateMailReceived(
-          [
-            {
-              attributes: {
-                date: new Date(),
-                flags: [],
-                uid: 32
-              },
-              body: Buffer.from('this little piggy had an existential crisis'),
-              seqno: 1
-            }
-          ],
-          eventHandlers
+        await until(
+          () =>
+            imapMock.object.openBox.called && imapMock.object.openBox.lastCall.args[0] === 'INBOX'
         );
+        imapMock.object.move.reset();
+        imapMock.setServerState(NEW_MAIL, 'INBOX');
+        imapMock.simulate.event.mail(1);
+        await until(() => fsMock.object.writeFile.called);
+      });
+
+      it('moves the mail', () => {
+        expect(imapMock.object.move.called).to.be.true();
+      });
+
+      it('moves the mail to the Piggies folder', () => {
+        expect(imapMock.object.move.args[0]).to.equal([32, 'PIGGIES']);
       });
     });
   });
