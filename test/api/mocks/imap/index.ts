@@ -10,6 +10,7 @@ import Mailboxes from './mailboxes';
 import MockMessage from './mockMessage';
 import MockResult from './mockResult';
 import ServerState from './serverState';
+import replaceReset from '../../tools/replaceReset';
 import {EventHandlers} from '../../tools/server';
 import {waitATick} from '../../tools/wait';
 
@@ -160,16 +161,6 @@ function mockFetchResult(object: any) {
     object.fetch.returns(mockFetchObject);
     object.seq.fetch.returns(mockFetchObject);
   };
-}
-
-function replaceReset(stub: sinon.SinonStub, f: (stub: sinon.SinonStub) => void) {
-  const originalReset = stub.reset;
-  stub.reset = () => {
-    originalReset.apply(stub);
-    f(stub);
-  };
-
-  stub.reset();
 }
 
 export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Box>): MockResult {
