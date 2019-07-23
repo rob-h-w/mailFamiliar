@@ -5,6 +5,7 @@ import {match, stub} from 'sinon';
 
 import User from '../../../src/persistence/user';
 import {hashOf} from '../../../src/persistence/json';
+import replaceReset from '../tools/replaceReset';
 
 const ROOT = process.cwd();
 export const LOGSFOLDER = path.join(ROOT, 'logs');
@@ -29,7 +30,7 @@ const USER_SETTINGS: User = {
 
 export interface MockResult {
   config: () => Fluent;
-  object: any;
+  object: {[name: string]: sinon.SinonStub};
   setup: () => Fluent;
   teardown: () => void;
 }
@@ -66,12 +67,23 @@ class Fluent {
           }
         }
       );
-
-      mockResult.existsSync.withArgs(this.configPath).returns(true);
-      mockResult.writeFile
-        .withArgs(match(new RegExp(`${this.configPath}/.*`)), match.string)
-        .callsArg(3);
     }
+
+    const store: any = {};
+    replaceReset(mockResult.existsSync, existsSync =>
+      existsSync.withArgs(this.configPath).returns(true)
+    );
+    mockResult.existsSync.withArgs(this.configPath).returns(true);
+    mockResult.writeFile.reset();
+    mockResult.writeFile
+      // .withArgs(match(new RegExp(`${this.configPath}/.*`)), match.string, match.object, match.func)
+      .callsFake((dest: string, content: string, _: any, callback: () => void) => {
+        store[dest] = content;
+        callback();
+      });
+    mockResult.readFileSync
+      .withArgs(match(new RegExp(`${this.configPath}/.*`)))
+      .callsFake((src: string) => store[src]);
 
     const folderPath = process.env.M_FAMILIAR_STORAGE || M_FAMILIAR_STORAGE;
     const userPath = path.join(folderPath, fileName);
@@ -90,7 +102,7 @@ class Fluent {
 
   withLog(): Fluent {
     const f = this.mockResult.object;
-    f.existsSync.withArgs(LOGSFOLDER).returns(true);
+    replaceReset(f.existsSync, existsSync => existsSync.withArgs(LOGSFOLDER).returns(true));
     const writeStream = {
       end: stub().returns(false),
       write: stub().callsFake((...args) => {

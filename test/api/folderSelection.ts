@@ -13,7 +13,9 @@ import {EventHandlers, startServerInHealthyState} from './tools/server';
 import {PredictorTypeValues} from '../../src/engine/predictors';
 import fakeBox from './mocks/imap/fakeBox';
 import {waitATick, until} from './tools/wait';
+import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
 
+let bunyanMock: BunyanMock;
 let fsMock: FsMock;
 let imapMock: ImapMock;
 
@@ -240,6 +242,9 @@ describe('folder selection', () => {
         warnOnUnregistered: false
       });
 
+      bunyanMock = bunyan();
+      mockery.registerMock('bunyan', bunyanMock.object);
+
       fsMock = fs();
       fsMock
         .setup()
@@ -254,12 +259,13 @@ describe('folder selection', () => {
       mockery.registerMock('imap', imapMock.class);
 
       ({eventHandlers, server} = await startServerInHealthyState(imapMock));
-      await until(() => fsMock.object.writeFile.called);
-      imapMock.setServerState(SORTED, 'INBOX');
+      await until(() => bunyanMock.logger.info.calledWith('shallow sync complete'));
+      bunyanMock.logger.info.reset();
+
       UNSORTED.folders.INBOX.messages.forEach(msg => imapMock.simulate.event.expunge(msg.seqno));
-      await until(
-        () => imapMock.object.openBox.called && imapMock.object.openBox.lastCall.args[0] === 'INBOX'
-      );
+      imapMock.setServerState(SORTED, 'INBOX');
+      await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
+      bunyanMock.logger.debug.reset();
     });
 
     it('spins up', () => {
@@ -282,14 +288,11 @@ describe('folder selection', () => {
       };
       NEW_MAIL.folders.INBOX.messages[0].attributes.date = new Date();
       beforeEach(async () => {
-        await until(
-          () =>
-            imapMock.object.openBox.called && imapMock.object.openBox.lastCall.args[0] === 'INBOX'
-        );
-        imapMock.object.move.reset();
         imapMock.setServerState(NEW_MAIL, 'INBOX');
         imapMock.simulate.event.mail(1);
-        await until(() => fsMock.object.writeFile.called);
+
+        await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
+        bunyanMock.logger.debug.reset();
       });
 
       it('moves the mail', () => {

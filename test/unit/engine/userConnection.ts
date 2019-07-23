@@ -42,6 +42,7 @@ function mockBox(params: BoxParams) {
     qualifiedName: params.qualifiedName,
     removeMessage: sinon.stub(),
     reset: sinon.stub(),
+    setSyncedToNow: sinon.stub(),
     subscribe: sinon.stub().resolves(),
     syncedTo: params.syncedTo
   };

@@ -125,6 +125,8 @@ export default class NewMailHandler {
 
       this.userConnection.predictor.considerBox(box);
 
+      box.setSyncedToNow();
+
       if (update) {
         await this.userConnection.persistence.updateBox(this.userConnection.user, box);
       }

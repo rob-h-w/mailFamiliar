@@ -129,9 +129,7 @@ export default class Box {
 
       if (this.imapBox && this.imapBox.uidvalidity !== box.uidvalidity) {
         logger.warn(
-          `The validity of ${this.qualifiedName} has expired from ${this.imapBox.uidvalidity} to ${
-            box.uidvalidity
-          }`
+          `The validity of ${this.qualifiedName} has expired from ${this.imapBox.uidvalidity} to ${box.uidvalidity}`
         );
 
         boxState = 'UIDS_INVALID';
@@ -171,6 +169,10 @@ export default class Box {
 
   set syncedTo(value: number) {
     this.syncedToEpoch = value;
+  }
+
+  public setSyncedToNow() {
+    this.syncedTo = Date.now();
   }
 
   get uidValidity(): number | undefined {
