@@ -51,6 +51,13 @@ export default class UserConnection implements IBoxListener {
       try {
         await this.pImap.closeBox();
         logger.debug({qualifiedName, state: 'closed'}, 'closeBox');
+      } catch (e) {
+        if (e.message && e.message === 'No mailbox is currently selected') {
+          logger.error(e);
+          return;
+        } else {
+          throw e;
+        }
       } finally {
         this.currentlyOpen = undefined;
       }

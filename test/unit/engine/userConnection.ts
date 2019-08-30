@@ -229,6 +229,17 @@ describe('userConnection', () => {
         expect(userConnection.boxes.length).to.equal(1);
         expect(userConnection.boxes[0].name).to.equal('INBOX');
       });
+
+      describe('when closeBox throws because a mailbox is not selected', () => {
+        beforeEach(() => {
+          promisified.closeBox.rejects(new Error('No mailbox is currently selected'));
+        });
+
+        it('does not throw', async () => {
+          // tslint:disable-next-line:no-string-literal
+          expect(async () => userConnection['closeBox']()).not.to.throw();
+        });
+      });
     });
 
     describe('created with a prior box & a matching online box', () => {
