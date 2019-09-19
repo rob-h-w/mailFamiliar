@@ -102,6 +102,12 @@ export default class UserConnection implements IBoxListener {
 
   defaultStartDate = () => new Date(Date.now() - 24 * 60 * 60 * 1000 * this.user.syncWindowDays);
 
+  disconnect = async () => {
+    try {
+      await this.pImap.closeBox();
+    } catch {}
+  };
+
   fetch = (source: any, seq = false) => {
     const fetchObj = seq ? this.pImap.imap.seq : this.pImap.imap;
     return this.pImap.fetch(
