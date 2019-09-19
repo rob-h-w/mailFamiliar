@@ -4,6 +4,23 @@ import Synchronizer from './engine/synchronizer';
 import {IInitializablePersistence} from './persistence/persistence';
 import Json from './persistence/json';
 
+function canFixByReconnecting(reason: any): boolean {
+  if (!reason) {
+    return false;
+  }
+
+  if (reason.source) {
+    switch (reason.source) {
+      case 'timeout-auth':
+      case 'socket-timeout':
+      case 'timeout':
+        return true;
+    }
+  }
+
+  return false;
+}
+
 class Glue {
   readonly persistence: IInitializablePersistence<string>;
   readonly synchronizer: Synchronizer;
@@ -21,6 +38,15 @@ class Glue {
         .asString()
     );
     await this.synchronizer.init();
+  }
+
+  handleError(reason: Error): boolean {
+    if (canFixByReconnecting(reason)) {
+      setTimeout(() => this.synchronizer.reconnect(), 10_000);
+      return true;
+    }
+
+    return false;
   }
 }
 

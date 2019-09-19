@@ -22,7 +22,7 @@ function ignore(reason: any): boolean {
 function handleError(reason: Error) {
   logger.error(reason);
 
-  if (ignore(reason)) {
+  if (ignore(reason) || glue.handleError(reason)) {
     return;
   }
 
