@@ -16,6 +16,6 @@ export default interface MockResult {
   class: any;
   fetchReturnsWith: (mails: MockMessage[]) => void;
   object: any;
-  setServerState: (state: ServerState, openBox?: string) => void;
+  setServerState: (state: ServerState) => void;
   simulate: Simulate;
 }

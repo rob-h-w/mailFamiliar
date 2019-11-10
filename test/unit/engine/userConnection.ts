@@ -100,7 +100,7 @@ describe('userConnection', () => {
       on: sinon.stub(),
       once: sinon.stub(),
       openBox: sinon.stub(),
-      search: sinon.stub(),
+      search: sinon.stub().resolves([]),
       subscribeBox: sinon.stub(),
       waitForConnection: sinon.stub().resolves()
     };
@@ -195,7 +195,7 @@ describe('userConnection', () => {
       });
 
       it('searches for mail', () => {
-        expect(promisified.search.calledOnce).to.be.true();
+        expect(promisified.search.called).to.be.true();
       });
     });
 
@@ -374,14 +374,14 @@ describe('userConnection', () => {
         });
 
         it('searches since the last synced date', () => {
-          expect(promisified.search.calledOnce).to.be.true();
+          expect(promisified.search.called).to.be.true();
           expect(promisified.search.firstCall.args).to.equal([
             [['SINCE', new Date(inbox.syncedTo)]]
           ]);
         });
 
         it('adds the newly found message', () => {
-          expect(mockedBoxen.INBOX.box.addMessage.calledOnce).to.be.true();
+          expect(mockedBoxen.INBOX.box.addMessage.called).to.be.true();
           const params = mockedBoxen.INBOX.box.addMessage.firstCall.args;
           expect(params).to.be.an.array();
           expect(params.length).to.equal(1);

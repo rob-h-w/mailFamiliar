@@ -275,6 +275,8 @@ export default class UserConnection implements IBoxListener {
     if (resetBox) {
       await this.resetBox();
     }
+
+    logger.debug(`Opened ${this.currentlyOpen.qualifiedName}`);
   };
 
   private async openInbox() {
@@ -363,10 +365,6 @@ export default class UserConnection implements IBoxListener {
     for (const box of this.boxes
       .filter(box => canLearnFrom(box.qualifiedName))
       .filter(box => excluding.indexOf(box.qualifiedName) === -1)) {
-      if (box.isInbox) {
-        continue;
-      }
-
       if (resetSyncedTo) {
         box.syncedTo = date.getTime();
       }

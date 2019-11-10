@@ -2,7 +2,8 @@
 
 import {expect} from 'code';
 import * as events from 'events';
-import {Box, ImapFetch} from 'imap';
+import {ImapFetch} from 'imap';
+import * as _ from 'lodash';
 import * as sinon from 'sinon';
 import {Stream} from 'stream';
 
@@ -10,100 +11,43 @@ import Mailboxes from './mailboxes';
 import MockMessage from './mockMessage';
 import MockResult, {Simulate} from './mockResult';
 import ServerState from './serverState';
-import replaceReset from '../../tools/replaceReset';
 import {EventHandlers} from '../../tools/server';
 import {waitATick} from '../../tools/wait';
+import replaceReset from '../../tools/replaceReset';
 
 export {default as MockMessage} from './mockMessage';
 export {default as MockResult} from './mockResult';
+
+let newMails: MockMessage[] = [];
+
+function getAllMails(object: any) {
+  return object._state.folders[object._currentlyOpened].messages.concat(
+    object._currentlyOpened === 'INBOX' ? newMails : []
+  );
+}
 
 function makeSetServerState(
   object: any,
   simulate: Simulate
 ): (state: ServerState, openBox?: string) => void {
-  let currentlyOpenedBoxName: string | null = null;
-
-  return (state: ServerState, openBox?: string) => {
-    currentlyOpenedBoxName = openBox || null;
+  return (state: ServerState) => {
+    object._currentlyOpened = state.currentlyOpenBox || null;
+    object._simulate = simulate;
+    object._state = state;
     object.closeBox.reset();
-    object.closeBox.callsArg(0);
     object.fetch.reset();
-    object.fetch.callsFake((fetchObject: number[]) => {
-      if (currentlyOpenedBoxName === null) {
-        throw new Error('A box must be opened.');
-      }
-
-      return makeFetchResultFor(
-        state.folders[currentlyOpenedBoxName].messages.filter(
-          msg => fetchObject.indexOf(msg.attributes.uid) !== -1
-        )
-      );
-    });
     object.getBoxes.reset();
-    object.getBoxes.callsArgWith(
-      0,
-      null,
-      Object.keys(state.folders).reduce<Mailboxes>((mailBoxes, folderName) => {
-        const folderState = state.folders[folderName];
-        mailBoxes[folderName] = {
-          attribs: folderState.attribs,
-          children: folderState.children,
-          delimiter: folderState.delimiter,
-          parent: folderState.parent
-        };
-        return mailBoxes;
-      }, {})
-    );
     object.openBox.reset();
-    object.openBox.callsFake((boxName: string, callback: (result: Error | null) => void) => {
-      if (Object.keys(state.folders).indexOf(boxName) === -1) {
-        return callback(new Error(`Folder ${boxName} isn't present.`));
-      }
-
-      currentlyOpenedBoxName = boxName;
-      callback(null);
-      const msgCount = state.folders[currentlyOpenedBoxName].messages.filter(msg => !msg.synced)
-        .length;
-      if (msgCount) {
-        simulate.event.mail(msgCount);
-      }
-    });
     object.search.reset();
-    object.search.callsFake(
-      (searchCriteria: any[], callback: (err: Error | null, uids: number[] | null) => void) => {
-        if (currentlyOpenedBoxName === null) {
-          return callback(new Error('A box must be opened.'), null);
-        }
-
-        if (searchCriteria.length === 0) {
-          return callback(null, []);
-        }
-
-        const filter =
-          searchCriteria[0][0] === 'SINCE'
-            ? (msg: MockMessage) => msg.attributes.date >= (searchCriteria[0][1] as Date)
-            : () => true;
-
-        return callback(
-          null,
-          state.folders[currentlyOpenedBoxName].messages
-            .filter(filter)
-            .map(msg => msg.attributes.uid)
-        );
-      }
-    );
-
-    if (openBox) {
-      simulate.event.mail(state.folders[openBox].messages.filter(msg => !msg.synced).length);
-    }
   };
 }
 
-function makeSimulateMailReceived(
-  fetchReturnsWith: (mails: MockMessage[]) => void
-): (mails: MockMessage[], eventHandlers: EventHandlers) => Promise<void> {
+function makeSimulateMailReceived(): (
+  mails: MockMessage[],
+  eventHandlers: EventHandlers
+) => Promise<void> {
   return async (mails: MockMessage[], eventHandlers: EventHandlers) => {
-    fetchReturnsWith(mails);
+    newMails = mails;
     await eventHandlers.on.mail(mails.length);
     await waitATick();
   };
@@ -198,15 +142,18 @@ function mockFetchResult(object: any) {
   };
 }
 
-export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Box>): MockResult {
+export default function imap(): MockResult {
   const seq = {
     fetch: sinon.stub()
   };
   const object = {
+    _currentlyOpened: null as null | string,
+    _simulate: null as any,
+    _state: null as any,
     closeBox: sinon.stub().callsArg(0),
     connect: sinon.stub(),
     fetch: sinon.stub(),
-    getBoxes: sinon.stub().callsArgWith(0, null, mailBoxes),
+    getBoxes: sinon.stub(),
     move: sinon.stub().callsArgWith(2, null),
     on: sinon.stub(),
     once: sinon.stub(),
@@ -216,10 +163,95 @@ export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Box>): M
     subscribeBox: sinon.stub().callsArg(1)
   };
 
-  replaceReset(object.openBox, openBox => {
-    for (const box of boxes) {
-      openBox.withArgs(box.name).callsArgWith(1, null, box);
-    }
+  replaceReset(object.closeBox, () => {
+    object.closeBox.callsFake((callback: (result: Error | null) => void) => {
+      object._currentlyOpened = null;
+      callback(null);
+    });
+  });
+
+  replaceReset(object.fetch, () => {
+    object.fetch.callsFake(
+      (fetchObject: number[]): ImapFetch => {
+        if (object._currentlyOpened === null) {
+          throw new Error('A box must be opened.');
+        }
+
+        const allMessages = getAllMails(object);
+
+        return makeFetchResultFor(
+          allMessages.filter((msg: any) => fetchObject.indexOf(msg.attributes.uid) !== -1)
+        );
+      }
+    );
+  });
+
+  replaceReset(object.getBoxes, () => {
+    object.getBoxes.callsFake(
+      (callback: (result: Error | null, boxes: Mailboxes | null) => void) => {
+        if (object._state === null) {
+          return callback(null, {});
+        }
+
+        callback(
+          null,
+          Object.keys(object._state.folders).reduce<Mailboxes>((mailBoxes, folderName) => {
+            const folderState = object._state.folders[folderName];
+            mailBoxes[folderName] = {
+              attribs: folderState.attribs,
+              children: folderState.children,
+              delimiter: folderState.delimiter,
+              parent: folderState.parent
+            };
+            return mailBoxes;
+          }, {})
+        );
+      }
+    );
+  });
+
+  replaceReset(object.openBox, () => {
+    object.openBox.callsFake((boxName: string, callback: (result: Error | null) => void) => {
+      if (Object.keys(object._state.folders).indexOf(boxName) === -1) {
+        return callback(new Error(`Folder ${boxName} isn't present.`));
+      }
+
+      object._currentlyOpened = boxName;
+      callback(null);
+      const msgCount = object._state.folders[object._currentlyOpened].messages.filter(
+        (msg: any) => !msg.synced
+      ).length;
+      if (msgCount) {
+        object._simulate.event.mail(msgCount);
+      }
+    });
+  });
+
+  replaceReset(object.search, () => {
+    newMails = [];
+    object.search.callsFake(
+      (searchCriteria: any[], callback: (err: Error | null, uids: number[] | null) => void) => {
+        if (object._currentlyOpened === null) {
+          return callback(new Error('A box must be opened.'), null);
+        }
+
+        if (searchCriteria.length === 0) {
+          return callback(null, []);
+        }
+
+        const allMessages = getAllMails(object);
+
+        const filter =
+          searchCriteria[0][0] === 'SINCE'
+            ? (msg: MockMessage) => msg.attributes.date >= (searchCriteria[0][1] as Date)
+            : () => true;
+
+        return callback(
+          null,
+          allMessages.filter(filter).map((msg: any) => msg.attributes.uid)
+        );
+      }
+    );
   });
 
   const fetchReturnsWith = mockFetchResult(object);
@@ -230,14 +262,15 @@ export default function imap(mailBoxes: Mailboxes, boxes: ReadonlyArray<Box>): M
       mail: makeEvent('mail', object),
       uidValidity: makeEvent('uidvalidity', object)
     },
-    mailReceived: makeSimulateMailReceived(fetchReturnsWith)
+    mailReceived: makeSimulateMailReceived()
   };
+  const setServerState = makeSetServerState(object, simulate);
 
   return {
     class: sinon.stub().returns(object),
     fetchReturnsWith,
     object,
-    setServerState: makeSetServerState(object, simulate),
+    setServerState,
     simulate
   };
 }

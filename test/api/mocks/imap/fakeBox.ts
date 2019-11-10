@@ -29,6 +29,11 @@ export default function fakeBox(messages: ReadonlyArray<string>): FolderState {
     attribs: [] as string[],
     children: null,
     delimiter: '/',
+    messageState: {
+      new: 0,
+      total: messages.length,
+      unseen: 0
+    },
     messages: messages.map((message, index) => mockMessage(message, index, now)),
     parent: null
   };

@@ -3,14 +3,13 @@ const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').scri
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 
-import fs, {MockResult as FsMock} from './mocks/fs';
 import mockImap, {MockResult as ImapMock} from './mocks/imap';
 import boxes from './tools/fixture/standard/boxes';
-import mailBoxes from './tools/fixture/standard/mailBoxes';
 import {useFixture} from './tools/fixture/standard/useFixture';
 import {EventHandlers, startServerInHealthyState} from './tools/server';
+import {fromBoxes} from './mocks/imap/serverState';
+import {mockStorageAndSetEnvironment} from './mocks/mailFamiliarStorage';
 
-let fsMock: FsMock;
 let imapMock: ImapMock;
 
 describe('mail movement', () => {
@@ -26,12 +25,10 @@ describe('mail movement', () => {
       warnOnUnregistered: false
     });
 
-    fsMock = fs();
-    fsMock.setup().withLog();
+    mockStorageAndSetEnvironment();
 
-    mockery.registerMock('fs', fsMock.object);
-
-    imapMock = mockImap(mailBoxes, boxes);
+    imapMock = mockImap();
+    imapMock.setServerState(fromBoxes(boxes));
 
     mockery.registerMock('imap', imapMock.class);
 
@@ -43,8 +40,6 @@ describe('mail movement', () => {
       await server.stop();
       server = null;
     }
-
-    fsMock.teardown();
 
     mockery.disable();
   });

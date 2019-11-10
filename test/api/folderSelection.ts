@@ -3,10 +3,8 @@ const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').scri
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 
-import fs, {MockResult as FsMock} from './mocks/fs';
 import mockImap, {MockResult as ImapMock} from './mocks/imap';
 import boxes from './tools/fixture/standard/boxes';
-import mailBoxes from './tools/fixture/standard/mailBoxes';
 import {useFixture} from './tools/fixture/standard/useFixture';
 import {EventHandlers, startServerInHealthyState} from './tools/server';
 
@@ -14,39 +12,103 @@ import {PredictorTypeValues} from '../../src/engine/predictors';
 import fakeBox from './mocks/imap/fakeBox';
 import {waitATick, until} from './tools/wait';
 import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
+import ServerState, {fromBoxes} from './mocks/imap/serverState';
+import {mockStorageAndSetEnvironment} from './mocks/mailFamiliarStorage';
 
 let bunyanMock: BunyanMock;
-let fsMock: FsMock;
 let imapMock: ImapMock;
 
 describe('folder selection', () => {
+  const inbox = [
+    {
+      attributes: {
+        date: new Date('2018-12-25T12:21:37.000Z'),
+        flags: [],
+        size: 1234,
+        uid: 41
+      },
+      body: Buffer.from('whut up?'),
+      seqno: 41,
+      synced: true
+    }
+  ];
+  const interestingSpam = [
+    {
+      attributes: {
+        date: new Date('2018-12-26T01:09:55.000Z'),
+        flags: [],
+        size: 15711,
+        uid: 68
+      },
+      body: Buffer.from('interesting spam like this'),
+      seqno: 68,
+      synced: true
+    },
+    {
+      attributes: {
+        date: new Date('2018-12-27T00:47:48.000Z'),
+        flags: [],
+        size: 3688,
+        uid: 69
+      },
+      body: Buffer.from('interesting spam like that'),
+      seqno: 69,
+      synced: true
+    },
+    {
+      attributes: {
+        date: new Date('2018-12-27T12:48:50.000Z'),
+        flags: [],
+        size: 3655,
+        uid: 70
+      },
+      body: Buffer.from('interesting spam like this'),
+      seqno: 70,
+      synced: true
+    }
+  ];
+
   let eventHandlers: EventHandlers;
   let server: any;
+  let serverState: ServerState;
+
+  beforeEach(() => {
+    mockery.enable({
+      useCleanCache: true,
+      warnOnReplace: false,
+      warnOnUnregistered: false
+    });
+
+    bunyanMock = bunyan();
+    mockery.registerMock('bunyan', bunyanMock.object);
+  });
+
+  afterEach(() => {
+    mockery.disable();
+  });
 
   PredictorTypeValues.alternatives.forEach(predictorType =>
     describe(`with predictor ${predictorType.value}`, () => {
       beforeEach(async () => {
         await useFixture();
 
-        mockery.enable({
-          useCleanCache: true,
-          warnOnReplace: false,
-          warnOnUnregistered: false
-        });
+        mockStorageAndSetEnvironment({predictorType: predictorType.value}, 'rob');
 
-        fsMock = fs();
-        fsMock
-          .setup()
-          .withLog()
-          .withConfig({predictorType: predictorType.value}, 'rob', false);
+        imapMock = mockImap();
+        serverState = fromBoxes(boxes);
+        const inboxState = serverState.folders.INBOX;
+        inboxState.messages = inbox;
+        inboxState.messageState.total = inbox.length;
+        const interestingSpamState = serverState.folders['Interesting spam'];
+        interestingSpamState.messages = interestingSpam;
+        interestingSpamState.messageState.total = interestingSpam.length;
 
-        mockery.registerMock('fs', fsMock.object);
-
-        imapMock = mockImap(mailBoxes, boxes);
+        imapMock.setServerState(serverState);
 
         mockery.registerMock('imap', imapMock.class);
 
         ({eventHandlers, server} = await startServerInHealthyState(imapMock));
+        await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
       });
 
       afterEach(async () => {
@@ -54,10 +116,6 @@ describe('folder selection', () => {
           await server.stop();
           server = null;
         }
-
-        fsMock.teardown();
-
-        mockery.disable();
       });
 
       it('spins up', () => {
@@ -65,63 +123,29 @@ describe('folder selection', () => {
       });
 
       describe("when there's already mail", () => {
-        const mail = [
-          {
-            attrs: {
-              date: new Date('2018-12-26T01:09:55.000Z'),
-              flags: [],
-              size: 15711,
-              uid: 68
-            },
-            body: 'interesting spam like this',
-            seqno: 68
-          },
-          {
-            attrs: {
-              date: new Date('2018-12-27T00:47:48.000Z'),
-              flags: [],
-              size: 3688,
-              uid: 69
-            },
-            body: 'interesting spam like that',
-            seqno: 69
-          },
-          {
-            attrs: {
-              date: new Date('2018-12-27T12:48:50.000Z'),
-              flags: [],
-              size: 3655,
-              uid: 70
-            },
-            body: 'interesting spam like this',
-            seqno: 70
-          }
-        ];
-
-        beforeEach(() => {
-          imapMock.object.search.callsArgWith(1, null, mail.map(msg => msg.attrs.uid));
-        });
-
         it('spins up', () => {
           expect(server).to.exist();
         });
 
         describe('when a new mail comes in that matches', () => {
           beforeEach(async () => {
-            imapMock.fetchReturnsWith([
-              {
-                attributes: {
-                  date: new Date(),
-                  flags: [],
-                  uid: 32
-                },
-                body: Buffer.from('interesting spam like the others'),
-                seqno: 1,
-                synced: false
-              }
-            ]);
-            await eventHandlers.on.mail(1);
-            await waitATick();
+            bunyanMock.logger.debug.reset();
+            await imapMock.simulate.mailReceived(
+              [
+                {
+                  attributes: {
+                    date: new Date(),
+                    flags: [],
+                    uid: 32
+                  },
+                  body: Buffer.from('interesting spam like the others'),
+                  seqno: 1,
+                  synced: false
+                }
+              ],
+              eventHandlers
+            );
+            await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
           });
 
           it('moves the mail', () => {
@@ -204,6 +228,7 @@ describe('folder selection', () => {
       }
     };
     const UNSORTED = {
+      currentlyOpenBox: null,
       folders: {
         INBOX: fakeBox([
           'shouty spamulation',
@@ -219,41 +244,23 @@ describe('folder selection', () => {
       }
     };
 
-    let storageEnv: string | undefined;
-
     afterEach(async () => {
       if (server) {
         await server.stop();
         server = null;
       }
-
-      fsMock.teardown();
-
-      mockery.disable();
-      process.env.M_FAMILIAR_STORAGE = storageEnv;
     });
 
     beforeEach(async () => {
-      storageEnv = process.env.M_FAMILIAR_STORAGE;
-      process.env.M_FAMILIAR_STORAGE = '/storage';
       mockery.enable({
         useCleanCache: true,
         warnOnReplace: false,
         warnOnUnregistered: false
       });
 
-      bunyanMock = bunyan();
-      mockery.registerMock('bunyan', bunyanMock.object);
+      mockStorageAndSetEnvironment({predictorType: 'Traat'}, 'rob@example.com');
 
-      fsMock = fs();
-      fsMock
-        .setup()
-        .withLog()
-        .withConfig({predictorType: 'Traat'}, 'rob@example.com', true);
-
-      mockery.registerMock('fs', fsMock.object);
-
-      imapMock = mockImap(mailBoxes, boxes);
+      imapMock = mockImap();
 
       imapMock.setServerState(UNSORTED);
       mockery.registerMock('imap', imapMock.class);
@@ -261,10 +268,14 @@ describe('folder selection', () => {
       ({eventHandlers, server} = await startServerInHealthyState(imapMock));
       await until(() => bunyanMock.logger.info.calledWith('shallow sync complete'));
       bunyanMock.logger.info.reset();
+      bunyanMock.logger.debug.reset();
 
+      // Why does the INBOX folder in the userconnection not have any messages?
+      // We fail to inject Imap.openBox.
       UNSORTED.folders.INBOX.messages.forEach(msg => imapMock.simulate.event.expunge(msg.seqno));
-      imapMock.setServerState(SORTED, 'INBOX');
+      imapMock.setServerState({...SORTED, currentlyOpenBox: 'INBOX'});
       await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
+      await until(() => bunyanMock.logger.debug.calledWith('Opened INBOX'));
       bunyanMock.logger.debug.reset();
     });
 
@@ -288,7 +299,7 @@ describe('folder selection', () => {
       };
       NEW_MAIL.folders.INBOX.messages[0].attributes.date = new Date();
       beforeEach(async () => {
-        imapMock.setServerState(NEW_MAIL, 'INBOX');
+        imapMock.setServerState({...NEW_MAIL, currentlyOpenBox: 'INBOX'});
         imapMock.simulate.event.mail(1);
 
         await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));

@@ -1,30 +1,21 @@
-import {SinonFakeTimers} from 'sinon';
-
 export function waitATick() {
   return new Promise(resolve => {
     setTimeout(resolve, 0);
   });
 }
 
-export async function until(
-  predicate: () => boolean,
-  clock?: SinonFakeTimers,
-  max: number = 30,
-  backoff: number = 2
-) {
+export async function until(predicate: () => boolean, max: number = 14, backoff: number = 2) {
   const err = new Error(`Waited ${max} times for the predicate to become true.`);
+  let currentBackoff = 1;
   return new Promise((resolve, reject) => {
-    let count = 0;
+    let count = 1;
     const check = () => {
       if (count < max) {
-        const nextBackoff = (1 + count) * backoff;
+        currentBackoff *= backoff;
         count++;
-        setTimeout(check, nextBackoff);
+        setTimeout(check, currentBackoff);
         if (predicate()) {
           resolve();
-        }
-        if (clock) {
-          clock.tick(nextBackoff);
         }
       } else {
         reject(err);

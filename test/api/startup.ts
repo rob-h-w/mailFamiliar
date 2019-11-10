@@ -1,19 +1,20 @@
 import {expect} from 'code';
+import * as fs from 'fs';
 const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as path from 'path';
 import {stub, SinonStub} from 'sinon';
 
-import fs, {LOGSFOLDER, M_FAMILIAR_STORAGE, MockResult as FsMock} from './mocks/fs';
 import mockImap, {MockResult as ImapMock} from './mocks/imap';
+import {mockStorageAndSetEnvironment, MockResult as StorageMock} from './mocks/mailFamiliarStorage';
 
 const ROOT = process.cwd();
 const SERVER = path.join(ROOT, 'src', 'index');
 
-let fsMock: FsMock;
 let imapMock: ImapMock;
 let startServer: sinon.SinonStub;
+let storageMock: StorageMock;
 
 let server: any;
 
@@ -29,19 +30,15 @@ class BadProtocol extends Error {
 }
 
 beforeEach(() => {
-  process.env.M_FAMILIAR_STORAGE = M_FAMILIAR_STORAGE;
   mockery.enable({
     useCleanCache: true,
     warnOnReplace: false,
     warnOnUnregistered: false
   });
 
-  fsMock = fs();
-  fsMock.setup().withLog();
+  storageMock = mockStorageAndSetEnvironment();
 
-  mockery.registerMock('fs', fsMock.object);
-
-  imapMock = mockImap({}, []);
+  imapMock = mockImap();
   mockery.registerMock('imap', imapMock.class);
 
   stub(process, 'on');
@@ -52,8 +49,6 @@ afterEach(async () => {
     await server.stop();
     server = null;
   }
-
-  fsMock.teardown();
 
   mockery.disable();
 
@@ -69,7 +64,6 @@ describe('startup', () => {
 
     beforeEach(async () => {
       ({startServer} = require(SERVER));
-      fsMock.config().withConfig();
 
       eventHandlers = {};
 
@@ -191,10 +185,6 @@ describe('startup', () => {
 
 describe('startup logging', () => {
   describe('log folder creation', () => {
-    beforeEach(() => {
-      fsMock.object.mkdirSync.resetBehavior();
-    });
-
     describe('when logs exists', () => {
       beforeEach(async () => {
         ({startServer} = require(SERVER));
@@ -203,20 +193,21 @@ describe('startup logging', () => {
       it('exposes a function', () => {
         expect(startServer).to.be.a.function();
       });
-
-      it('does not create a logs folder', () => {
-        expect(fsMock.object.mkdirSync.called).to.be.false();
-      });
     });
 
     describe('when logs does not exist', () => {
+      let logsPath: string;
+
       beforeEach(async () => {
-        fsMock.object.existsSync.withArgs(LOGSFOLDER).returns(false);
+        logsPath = path.join(storageMock.root, 'logs');
+        if (fs.existsSync(logsPath)) {
+          fs.rmdirSync(logsPath);
+        }
         ({startServer} = require(SERVER));
       });
 
       it('creates a logs folder', () => {
-        expect(fsMock.object.mkdirSync.called).to.be.true();
+        expect(fs.existsSync(logsPath)).to.be.true();
       });
     });
   });
