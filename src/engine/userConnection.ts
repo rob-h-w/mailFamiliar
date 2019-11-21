@@ -15,6 +15,10 @@ import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
 import NewMailHandler from './newMailHandler';
 import {create as createPredictors, PredictorType} from './predictors';
 
+const SECOND_IN_MS = 1000;
+const DAY_IN_MS = 24 * 60 * 60 * SECOND_IN_MS;
+const OPERATION_PAUSE_MS = 100;
+
 export default class UserConnection implements IBoxListener {
   private attempts: number;
   private currentlyOpen?: Box;
@@ -96,7 +100,7 @@ export default class UserConnection implements IBoxListener {
     return this.attempts;
   }
 
-  defaultStartDate = () => new Date(Date.now() - 24 * 60 * 60 * 1000 * this.user.syncWindowDays);
+  defaultStartDate = () => new Date(Date.now() - DAY_IN_MS * this.user.syncWindowDays);
 
   disconnect = async () => {
     try {
@@ -124,6 +128,7 @@ export default class UserConnection implements IBoxListener {
   public async init() {
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
     await this.pImap.waitForConnection(() => {
+      this.currentlyOpen = undefined;
       if (this.disconnectCallback) {
         this.disconnectCallback();
       }
@@ -367,6 +372,7 @@ export default class UserConnection implements IBoxListener {
       const startDate = new Date(Math.max(date.getTime(), box.syncedTo));
       await this.openBox(box);
       await this.populateBox(startDate);
+      await new Promise(resolve => setTimeout(resolve, OPERATION_PAUSE_MS));
     }
 
     await this.openInbox();
