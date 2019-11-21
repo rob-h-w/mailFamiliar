@@ -21,7 +21,7 @@
     "clean": "find . -regextype posix-egrep -regex '\\./(src|test)/.*\\.(js|js\\.map)' -type f -delete",
     "debug": "node --inspect-brk src/index.js",
     "lint": "tslint -c tslint.json src/**/*.ts",
-    "start": "node src/index.js",
+    "start": "node --max-old-space-size=4096 src/index.js",
     "test:api": "lab -c --sourcemaps --transform node_modules/lab-transform-typescript -r lcov -o coverage/api.lcov.info -r console -o stdout test/api/*.ts",
     "test:api:debug": "lab --inspect --sourcemaps --transform node_modules/lab-transform-typescript test/api/*.ts",
     "test:unit": "lab -c -t 75 --sourcemaps --transform node_modules/lab-transform-typescript -r lcov -o coverage/lcov.info -r console -o stdout test/unit/**/*.ts",
