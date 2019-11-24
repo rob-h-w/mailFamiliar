@@ -306,6 +306,8 @@ export default class UserConnection implements IBoxListener {
         const message = messageFromBody(messageBody);
         this.currentlyOpen.addMessage(message);
       }
+    } else {
+      this.currentlyOpen.syncedTo = startDate.getTime();
     }
 
     await this.persistence.updateBox(this.user, this.currentlyOpen);
