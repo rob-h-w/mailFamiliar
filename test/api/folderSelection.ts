@@ -183,6 +183,7 @@ describe('folder selection', () => {
                   ],
                   eventHandlers
                 );
+                await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
               });
 
               it('does not move the mail', () => {
@@ -223,36 +224,9 @@ describe('folder selection', () => {
     })
   );
 
-  describe('when a mail is moved', () => {
-    const SORTED = {
-      folders: {
-        INBOX: fakeBox([]),
-        PIGGIES: fakeBox([
-          'this little piggy went to market',
-          'this little piggy stayed home',
-          'this little piggy had roast beef',
-          'and this little piggy had none',
-          'aaand this little piggy went wee wee wee all the way home'
-        ]),
-        SPAM: fakeBox(['shouty spamulation', 'more spam'])
-      }
-    };
-    const UNSORTED = {
-      currentlyOpenBox: null,
-      folders: {
-        INBOX: fakeBox([
-          'shouty spamulation',
-          'more spam',
-          'this little piggy went to market',
-          'this little piggy stayed home',
-          'this little piggy had roast beef',
-          'and this little piggy had none',
-          'aaand this little piggy went wee wee wee all the way home'
-        ]),
-        PIGGIES: fakeBox([]),
-        SPAM: fakeBox([])
-      }
-    };
+  describe('when mail is moved', () => {
+    let SORTED;
+    let UNSORTED;
 
     afterEach(async () => {
       if (server) {
@@ -262,13 +236,37 @@ describe('folder selection', () => {
     });
 
     beforeEach(async () => {
-      mockery.enable({
-        useCleanCache: true,
-        warnOnReplace: false,
-        warnOnUnregistered: false
-      });
+      SORTED = {
+        folders: {
+          INBOX: fakeBox([]),
+          PIGGIES: fakeBox([
+            'this little piggy went to market',
+            'this little piggy stayed home',
+            'this little piggy had roast beef',
+            'and this little piggy had none',
+            'aaand this little piggy went wee wee wee all the way home'
+          ]),
+          SPAM: fakeBox(['shouty spamulation', 'more spam'])
+        }
+      };
+      UNSORTED = {
+        currentlyOpenBox: null,
+        folders: {
+          INBOX: fakeBox([
+            'shouty spamulation',
+            'more spam',
+            'this little piggy went to market',
+            'this little piggy stayed home',
+            'this little piggy had roast beef',
+            'and this little piggy had none',
+            'aaand this little piggy went wee wee wee all the way home'
+          ]),
+          PIGGIES: fakeBox([]),
+          SPAM: fakeBox([])
+        }
+      };
 
-      mockStorageAndSetEnvironment({predictorType: 'Traat'}, 'rob@example.com');
+      mockStorageAndSetEnvironment({predictorType: 'Traat'}, 'rob');
 
       imapMock = mockImap();
 
@@ -280,12 +278,10 @@ describe('folder selection', () => {
       bunyanMock.logger.info.reset();
       bunyanMock.logger.debug.reset();
 
-      // Why does the INBOX folder in the userconnection not have any messages?
-      // We fail to inject Imap.openBox.
       UNSORTED.folders.INBOX.messages.forEach(msg => imapMock.simulate.event.expunge(msg.seqno));
       imapMock.setServerState({...SORTED, currentlyOpenBox: 'INBOX'});
-      await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
       await until(() => bunyanMock.logger.debug.calledWith('Opened INBOX'));
+      bunyanMock.logger.info.reset();
       bunyanMock.logger.debug.reset();
     });
 
@@ -294,23 +290,23 @@ describe('folder selection', () => {
     });
 
     describe('when a new mail comes in that should be moved', () => {
-      const NEW_MAIL = {
-        folders: {
-          INBOX: fakeBox(['this little piggy had an existential crisis']),
-          PIGGIES: fakeBox([
-            'this little piggy went to market',
-            'this little piggy stayed home',
-            'this little piggy had roast beef',
-            'and this little piggy had none',
-            'aaand this little piggy went wee wee wee all the way home'
-          ]),
-          SPAM: fakeBox(['shouty spamulation', 'more spam'])
-        }
-      };
-      NEW_MAIL.folders.INBOX.messages[0].attributes.date = new Date();
       beforeEach(async () => {
-        imapMock.setServerState({...NEW_MAIL, currentlyOpenBox: 'INBOX'});
-        imapMock.simulate.event.mail(1);
+        imapMock.object.move.reset();
+        await imapMock.simulate.mailReceived(
+          [
+            {
+              attributes: {
+                date: new Date(),
+                flags: [],
+                uid: 32
+              },
+              body: Buffer.from('this little piggy had an existential crisis'),
+              seqno: 1,
+              synced: false
+            }
+          ],
+          eventHandlers
+        );
 
         await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
         bunyanMock.logger.debug.reset();
@@ -321,7 +317,7 @@ describe('folder selection', () => {
       });
 
       it('moves the mail to the Piggies folder', () => {
-        expect(imapMock.object.move.args[0]).to.equal([32, 'PIGGIES']);
+        expect(imapMock.object.move.args[0]).to.contain([['32'], 'PIGGIES']);
       });
     });
   });
