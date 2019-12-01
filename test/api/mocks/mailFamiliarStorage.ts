@@ -13,7 +13,7 @@ const TEMP_AFFIXES = {
 };
 
 const USER_SETTINGS: User = {
-  dryRun: true,
+  dryRun: false,
   host: 'imap.example.com',
   moveThreshold: 0.1,
   password: '123',
