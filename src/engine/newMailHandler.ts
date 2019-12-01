@@ -117,7 +117,8 @@ export default class NewMailHandler {
       if (box.isInbox) {
         for (const messageBody of messageBodies.filter(
           messageBody =>
-            messageBody.attrs.date.getTime() > syncTo && !NewMailHandler.messageWasSeen(messageBody)
+            messageBody.attrs.date.getTime() >= syncTo &&
+            !NewMailHandler.messageWasSeen(messageBody)
         )) {
           update = (await this.handleMessage(messageFromBody(messageBody), box)) || update;
         }
