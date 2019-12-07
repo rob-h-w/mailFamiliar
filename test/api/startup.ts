@@ -8,6 +8,7 @@ import {stub, SinonStub} from 'sinon';
 
 import mockImap, {MockResult as ImapMock} from './mocks/imap';
 import {mockStorageAndSetEnvironment, MockResult as StorageMock} from './mocks/mailFamiliarStorage';
+import {waitATick} from './tools/wait';
 
 const ROOT = process.cwd();
 const SERVER = path.join(ROOT, 'src', 'index');
@@ -185,6 +186,17 @@ describe('startup', () => {
 
 describe('startup logging', () => {
   describe('log folder creation', () => {
+    let oldLogFile: string | undefined;
+
+    beforeEach(() => {
+      oldLogFile = process.env.LOG_FILE;
+      process.env.LOG_FILE = path.join(storageMock.root, 'logs', 'my.log');
+    });
+
+    afterEach(() => {
+      process.env.LOG_FILE = oldLogFile;
+    });
+
     describe('when logs exists', () => {
       beforeEach(async () => {
         ({startServer} = require(SERVER));
@@ -204,6 +216,7 @@ describe('startup logging', () => {
           fs.rmdirSync(logsPath);
         }
         ({startServer} = require(SERVER));
+        await waitATick();
       });
 
       it('creates a logs folder', () => {
