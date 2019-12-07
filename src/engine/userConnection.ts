@@ -353,8 +353,6 @@ export default class UserConnection implements IBoxListener {
 
   private async shallowSync() {
     await this.shallowSyncSince(this.defaultStartDate());
-
-    logger.info(`shallow sync complete`);
   }
 
   private async shallowSyncSince(
@@ -377,6 +375,8 @@ export default class UserConnection implements IBoxListener {
 
     await this.openInbox();
     await this.handleNewMail();
+
+    logger.info(`shallow sync complete`);
   }
 
   get user(): User {
