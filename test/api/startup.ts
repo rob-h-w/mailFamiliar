@@ -8,7 +8,7 @@ import {stub, SinonStub} from 'sinon';
 
 import mockImap, {MockResult as ImapMock} from './mocks/imap';
 import {mockStorageAndSetEnvironment, MockResult as StorageMock} from './mocks/mailFamiliarStorage';
-import {waitATick} from './tools/wait';
+import {until, waitATick} from './tools/wait';
 
 const ROOT = process.cwd();
 const SERVER = path.join(ROOT, 'src', 'index');
@@ -110,6 +110,7 @@ describe('startup', () => {
 
     describe('success', () => {
       beforeEach(async () => {
+        await until(() => _.isFunction(eventHandlers.ready));
         eventHandlers.ready();
         server = await serverPromise;
       });
