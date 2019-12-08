@@ -8,9 +8,9 @@
   "license": "GPL-3.0-only",
   "private": false,
   "dependencies": {
+    "@hapi/hapi": "^18.4.0",
     "bunyan": "^1.8.12",
     "env-var": "^5.0.0",
-    "hapi": "^18.1.0",
     "imap": "^0.8.19",
     "immutable": "^4.0.0-rc.12",
     "lodash": "^4.17.11",
@@ -30,10 +30,12 @@
     "try:debug": "node --inspect-brk test/trial/index.js"
   },
   "devDependencies": {
+    "@hapi/code": "^7.0.0",
+    "@hapi/lab": "^21.0.0",
     "@types/bunyan": "^1.8.6",
     "@types/cli": "^0.11.19",
     "@types/code": "^4.0.5",
-    "@types/hapi": "^18.0.2",
+    "@types/hapi__hapi": "^18.2.6",
     "@types/imap": "^0.8.29",
     "@types/immutable": "^3.8.7",
     "@types/lab": "^11.1.0",
@@ -45,8 +47,6 @@
     "@types/sinon": "^7.0.11",
     "@types/temp": "^0.8.34",
     "cli": "^1.0.1",
-    "code": "^5.2.0",
-    "lab": "^18.0.2",
     "lab-transform-typescript": "^3.0.1",
     "mockery": "^2.1.0",
     "promise-retry": "^1.1.1",

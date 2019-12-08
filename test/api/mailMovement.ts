@@ -1,5 +1,5 @@
-import {expect} from 'code';
-const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
+import {expect} from '@hapi/code';
+const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';

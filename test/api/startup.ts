@@ -1,6 +1,6 @@
-import {expect} from 'code';
+import {expect} from '@hapi/code';
 import * as fs from 'fs';
-const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
+const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as path from 'path';

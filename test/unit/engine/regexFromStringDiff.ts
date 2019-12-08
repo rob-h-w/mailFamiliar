@@ -1,5 +1,5 @@
-import {expect} from 'code';
-const {describe, it} = (exports.lab = require('lab').script());
+import {expect} from '@hapi/code';
+const {describe, it} = (exports.lab = require('@hapi/lab').script());
 
 import regexFromStringDiff from '../../../src/engine/regexFromStringDiff';
 

@@ -1,6 +1,6 @@
 // tslint:disable: ban-types no-string-literal
 
-import {expect} from 'code';
+import {expect} from '@hapi/code';
 import * as events from 'events';
 import {ImapFetch} from 'imap';
 import * as _ from 'lodash';
