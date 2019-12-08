@@ -32,6 +32,7 @@ export default class UserConnection implements IBoxListener {
   private readonly currentPredictor: IPredictor;
   private refreshTimer: NodeJS.Timer;
   private readonly userReference: User;
+  private isPopulatingBox: boolean = false;
 
   public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
@@ -290,33 +291,39 @@ export default class UserConnection implements IBoxListener {
   }
 
   private async populateBox(startDate?: Date) {
-    if (!this.currentlyOpen) {
+    if (!this.currentlyOpen || this.isPopulatingBox) {
       return;
     }
 
-    if (_.isUndefined(startDate) || this.user.trial) {
-      startDate = new Date(
-        Math.max(this.defaultStartDate().getTime(), getSyncedTo(this.currentlyOpen))
-      );
-    }
+    this.isPopulatingBox = true;
 
-    const search = await this.pImap.search([['SINCE', startDate]]);
-    if (search.length) {
-      const messages = await this.fetch(search);
-
-      for (const messageBody of messages) {
-        const message = messageFromBody(messageBody);
-        this.currentlyOpen.addMessage(message);
+    try {
+      if (_.isUndefined(startDate) || this.user.trial) {
+        startDate = new Date(
+          Math.max(this.defaultStartDate().getTime(), getSyncedTo(this.currentlyOpen))
+        );
       }
-    } else {
-      this.currentlyOpen.syncedTo = startDate.getTime();
-    }
 
-    await this.persistence.updateBox(this.user, this.currentlyOpen);
+      const search = await this.pImap.search([['SINCE', startDate]]);
+      if (search.length) {
+        const messages = await this.fetch(search);
 
-    // Update box may have the consequence of making this.currentlyOpen undefined.
-    if (this.currentlyOpen) {
-      this.currentPredictor.considerBox(this.currentlyOpen);
+        for (const messageBody of messages) {
+          const message = messageFromBody(messageBody);
+          this.currentlyOpen.addMessage(message);
+        }
+      } else {
+        this.currentlyOpen.syncedTo = startDate.getTime();
+      }
+
+      await this.persistence.updateBox(this.user, this.currentlyOpen);
+
+      // Update box may have the consequence of making this.currentlyOpen undefined.
+      if (this.currentlyOpen) {
+        this.currentPredictor.considerBox(this.currentlyOpen);
+      }
+    } finally {
+      this.isPopulatingBox = false;
     }
   }
 

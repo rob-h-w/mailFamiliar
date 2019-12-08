@@ -60,7 +60,10 @@ function mockBox(params: BoxParams) {
 
 describe('userConnection', () => {
   beforeEach(() => {
-    clock = sinon.useFakeTimers(1547375767863);
+    clock = sinon.useFakeTimers({
+      now: 1547375767863,
+      shouldAdvanceTime: true
+    });
     mockedBoxen = {};
     mockery.enable({
       useCleanCache: true,
@@ -89,7 +92,7 @@ describe('userConnection', () => {
       closeBox: sinon.stub(),
       connect: sinon.stub(),
       fetch: sinon.stub().resolves([]),
-      getBoxes: sinon.stub().resolves([]),
+      getBoxes: sinon.stub().resolves({}),
       imap: {
         delimiter: '/',
         fetch: sinon.stub(),
@@ -126,8 +129,8 @@ describe('userConnection', () => {
   });
 
   afterEach(() => {
-    mockery.disable();
     clock.restore();
+    mockery.disable();
   });
 
   it('is a class', () => {
