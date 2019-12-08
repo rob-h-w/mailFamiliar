@@ -15,6 +15,10 @@ import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
 import NewMailHandler from './newMailHandler';
 import {create as createPredictors, PredictorType} from './predictors';
 
+const SECOND_IN_MS = 1000;
+const DAY_IN_MS = 24 * 60 * 60 * SECOND_IN_MS;
+const OPERATION_PAUSE_MS = 100;
+
 export default class UserConnection implements IBoxListener {
   private attempts: number;
   private currentlyOpen?: Box;
@@ -28,6 +32,7 @@ export default class UserConnection implements IBoxListener {
   private readonly currentPredictor: IPredictor;
   private refreshTimer: NodeJS.Timer;
   private readonly userReference: User;
+  private isPopulatingBox: boolean = false;
 
   public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
@@ -43,7 +48,7 @@ export default class UserConnection implements IBoxListener {
     return this.mailBoxes;
   }
 
-  private closeBox = async () => {
+  private async closeBox() {
     await this.newMailHander.finished();
     if (this.currentlyOpen) {
       const qualifiedName = this.currentlyOpen.qualifiedName;
@@ -62,13 +67,9 @@ export default class UserConnection implements IBoxListener {
         this.currentlyOpen = undefined;
       }
     }
-  };
+  }
 
-  private collectMailboxes = (
-    boxRoot: Imap.MailBoxes = {},
-    delimiter?: string,
-    parent?: Box
-  ): Box[] => {
+  private collectMailboxes(boxRoot: Imap.MailBoxes = {}, delimiter?: string, parent?: Box): Box[] {
     let boxes: Box[] = [];
     const rootDelimiter = delimiter || parent ? this.pImap.imap.delimiter : '';
 
@@ -94,13 +95,13 @@ export default class UserConnection implements IBoxListener {
     }
 
     return boxes;
-  };
+  }
 
   get connectionAttempts() {
     return this.attempts;
   }
 
-  defaultStartDate = () => new Date(Date.now() - 24 * 60 * 60 * 1000 * this.user.syncWindowDays);
+  defaultStartDate = () => new Date(Date.now() - DAY_IN_MS * this.user.syncWindowDays);
 
   disconnect = async () => {
     try {
@@ -119,15 +120,17 @@ export default class UserConnection implements IBoxListener {
     );
   };
 
-  private handleNewMail = async () => {
+  async handleNewMail() {
     if (this.currentlyOpen) {
       await this.newMailHander.handleMail(this.currentlyOpen);
     }
-  };
+  }
 
   public async init() {
+    logger.debug('starting connection init');
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
     await this.pImap.waitForConnection(() => {
+      this.currentlyOpen = undefined;
       if (this.disconnectCallback) {
         this.disconnectCallback();
       }
@@ -187,12 +190,12 @@ export default class UserConnection implements IBoxListener {
     logger.info('init complete');
   }
 
-  onClose = (hadError: boolean) => {
+  public onClose(hadError: boolean) {
     logger.warn(`Connection for ${this.user.user} closed${hadError ? ' with error.' : '.'}`);
     if (this.onDisconnect) {
       this.onDisconnect();
     }
-  };
+  }
 
   get onDisconnect() {
     return this.disconnectCallback;
@@ -202,7 +205,7 @@ export default class UserConnection implements IBoxListener {
     this.disconnectCallback = callback;
   }
 
-  onExpunge = async (seqNo: number) => {
+  public onExpunge = async (seqNo: number) => {
     logger.debug({seqNo}, 'onExpunge');
     if (!this.currentlyOpen) {
       // Shouldn't be possible - log it & move on.
@@ -226,12 +229,13 @@ export default class UserConnection implements IBoxListener {
     await this.shallowSyncSince(expungedMessage.date, [this.currentlyOpen.qualifiedName], true);
   };
 
-  onMail = async (count: number) => {
+  public onMail = async (count: number) => {
     logger.debug({count}, 'onMail');
     await this.handleNewMail();
+    logger.debug('New mails handled');
   };
 
-  onUidValidity = async (uidValidity: number) => {
+  public onUidValidity = async (uidValidity: number) => {
     logger.debug({uidValidity}, 'onUidValidity');
     const box = this.currentlyOpen;
     if (box && _.get(box, 'uidValidity') !== uidValidity) {
@@ -239,6 +243,8 @@ export default class UserConnection implements IBoxListener {
       await this.resetBox();
     }
   };
+
+  public async shutdown() {}
 
   private openBox = async (box: Box) => {
     logger.debug(
@@ -271,9 +277,11 @@ export default class UserConnection implements IBoxListener {
     if (resetBox) {
       await this.resetBox();
     }
+
+    logger.debug(`Opened ${this.currentlyOpen.qualifiedName}`);
   };
 
-  private openInbox = async () => {
+  private async openInbox() {
     await this.closeBox();
 
     if (!this.inbox) {
@@ -281,36 +289,44 @@ export default class UserConnection implements IBoxListener {
     }
 
     await this.openBox(this.inbox);
-  };
+  }
 
-  private populateBox = async (startDate?: Date) => {
-    if (!this.currentlyOpen) {
+  private async populateBox(startDate?: Date) {
+    if (!this.currentlyOpen || this.isPopulatingBox) {
       return;
     }
 
-    if (_.isUndefined(startDate) || this.user.trial) {
-      startDate = new Date(
-        Math.max(this.defaultStartDate().getTime(), getSyncedTo(this.currentlyOpen))
-      );
-    }
+    this.isPopulatingBox = true;
 
-    const search = await this.pImap.search([['SINCE', startDate]]);
-    if (search.length) {
-      const messages = await this.fetch(search);
-
-      for (const messageBody of messages) {
-        const message = messageFromBody(messageBody);
-        this.currentlyOpen.addMessage(message);
+    try {
+      if (_.isUndefined(startDate) || this.user.trial) {
+        startDate = new Date(
+          Math.max(this.defaultStartDate().getTime(), getSyncedTo(this.currentlyOpen))
+        );
       }
-    }
 
-    await this.persistence.updateBox(this.user, this.currentlyOpen);
+      const search = await this.pImap.search([['SINCE', startDate]]);
+      if (search.length) {
+        const messages = await this.fetch(search);
 
-    // Update box may have the consequence of making this.currentlyOpen undefined.
-    if (this.currentlyOpen) {
-      this.currentPredictor.considerBox(this.currentlyOpen);
+        for (const messageBody of messages) {
+          const message = messageFromBody(messageBody);
+          this.currentlyOpen.addMessage(message);
+        }
+      } else {
+        this.currentlyOpen.syncedTo = startDate.getTime();
+      }
+
+      await this.persistence.updateBox(this.user, this.currentlyOpen);
+
+      // Update box may have the consequence of making this.currentlyOpen undefined.
+      if (this.currentlyOpen) {
+        this.currentPredictor.considerBox(this.currentlyOpen);
+      }
+    } finally {
+      this.isPopulatingBox = false;
     }
-  };
+  }
 
   get persistence(): IPersistence {
     return this.persistenceReference;
@@ -334,33 +350,27 @@ export default class UserConnection implements IBoxListener {
     return this.shallowSync();
   }
 
-  private resetBox = async () => {
+  private async resetBox() {
     if (!this.currentlyOpen) {
       return;
     }
 
     this.currentlyOpen.reset();
     await this.populateBox();
-  };
+  }
 
-  private shallowSync = async () => {
+  private async shallowSync() {
     await this.shallowSyncSince(this.defaultStartDate());
+  }
 
-    logger.info(`shallow sync complete`);
-  };
-
-  private shallowSyncSince = async (
+  private async shallowSyncSince(
     date: Date,
     excluding: string[] = [],
     resetSyncedTo: boolean = false
-  ) => {
+  ) {
     for (const box of this.boxes
       .filter(box => canLearnFrom(box.qualifiedName))
       .filter(box => excluding.indexOf(box.qualifiedName) === -1)) {
-      if (box.isInbox) {
-        continue;
-      }
-
       if (resetSyncedTo) {
         box.syncedTo = date.getTime();
       }
@@ -368,11 +378,14 @@ export default class UserConnection implements IBoxListener {
       const startDate = new Date(Math.max(date.getTime(), box.syncedTo));
       await this.openBox(box);
       await this.populateBox(startDate);
+      await new Promise(resolve => setTimeout(resolve, OPERATION_PAUSE_MS));
     }
 
     await this.openInbox();
     await this.handleNewMail();
-  };
+
+    logger.info(`shallow sync complete`);
+  }
 
   get user(): User {
     return this.userReference;

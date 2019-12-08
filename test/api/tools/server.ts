@@ -1,4 +1,4 @@
-import {expect} from 'code';
+import {expect} from '@hapi/code';
 import * as _ from 'lodash';
 import * as path from 'path';
 // tslint:disable-next-line: no-var-requires
@@ -45,8 +45,9 @@ export async function startServerInHealthyState(imapMock: MockResult): Promise<S
         });
         if (eventHandlers.once.ready) {
           resolve();
+        } else {
+          reject(new Error('eventHandlers.once.ready not set'));
         }
-        reject(new Error('eventHandlers.once.ready not set'));
       }, 10);
     }).catch(error => {
       if (attempt < 4) {

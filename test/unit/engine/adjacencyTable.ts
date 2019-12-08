@@ -1,5 +1,5 @@
-import {expect} from 'code';
-const {beforeEach, describe, it} = (exports.lab = require('lab').script());
+import {expect} from '@hapi/code';
+const {beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
 
 import AdjacencyTable from '../../../src/engine/adjacencyTable';
 

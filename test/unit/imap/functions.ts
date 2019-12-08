@@ -1,5 +1,5 @@
-import {expect} from 'code';
-const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
+import {expect} from '@hapi/code';
+const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
@@ -94,8 +94,7 @@ describe('functions', () => {
       });
 
       it('logs the event', () => {
-        expect(logger.debug.calledOnce).to.be.true();
-        expect(logger.debug.firstCall.args).to.equal(['ready']);
+        expect(logger.debug.calledWith('ready')).to.be.true();
       });
 
       it('warns if we call the error callback again', () => {

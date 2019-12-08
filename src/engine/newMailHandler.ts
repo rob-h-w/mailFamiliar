@@ -11,7 +11,8 @@ import {getSyncedTo} from '../tools/trialSettings';
 export default class NewMailHandler {
   private readonly pImap: Promisified;
   private readonly userConnection: UserConnection;
-  private readonly waitStack: (() => void)[] = [];
+  private waitPromise: Promise<void> | null = null;
+  private waitResolve: (() => void) | null = null;
   private workCount: number = 0;
 
   constructor(userConnection: UserConnection, pImap: Promisified) {
@@ -95,8 +96,10 @@ export default class NewMailHandler {
 
   private release() {
     this.workCount--;
-    while (this.workCount === 0 && this.waitStack.length) {
-      (this.waitStack.pop() as () => void)();
+    if (this.workCount === 0 && this.waitResolve) {
+      this.waitResolve();
+      this.waitPromise = null;
+      this.waitResolve = null;
     }
   }
 
@@ -117,13 +120,16 @@ export default class NewMailHandler {
       if (box.isInbox) {
         for (const messageBody of messageBodies.filter(
           messageBody =>
-            messageBody.attrs.date.getTime() > syncTo && !NewMailHandler.messageWasSeen(messageBody)
+            messageBody.attrs.date.getTime() >= syncTo &&
+            !NewMailHandler.messageWasSeen(messageBody)
         )) {
           update = (await this.handleMessage(messageFromBody(messageBody), box)) || update;
         }
       }
 
       this.userConnection.predictor.considerBox(box);
+
+      box.setSyncedToNow();
 
       if (update) {
         await this.userConnection.persistence.updateBox(this.userConnection.user, box);
@@ -139,13 +145,14 @@ export default class NewMailHandler {
   }
 
   public async finished() {
-    return new Promise(resolve => {
-      if (this.workCount === 0) {
-        resolve();
-      } else {
-        this.waitStack.push(resolve);
-      }
-    });
+    if (this.workCount === 0) {
+      return Promise.resolve();
+    } else {
+      this.waitPromise = this.waitPromise
+        ? this.waitPromise
+        : new Promise(resolve => (this.waitResolve = resolve));
+      return this.waitPromise;
+    }
   }
 
   private folderFor = (headers: string): string | null => {

@@ -1,5 +1,5 @@
-import {expect} from 'code';
-const {afterEach, beforeEach, describe, it} = (exports.lab = require('lab').script());
+import {expect} from '@hapi/code';
+const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
@@ -42,6 +42,7 @@ function mockBox(params: BoxParams) {
     qualifiedName: params.qualifiedName,
     removeMessage: sinon.stub(),
     reset: sinon.stub(),
+    setSyncedToNow: sinon.stub(),
     subscribe: sinon.stub().resolves(),
     syncedTo: params.syncedTo
   };
@@ -59,7 +60,10 @@ function mockBox(params: BoxParams) {
 
 describe('userConnection', () => {
   beforeEach(() => {
-    clock = sinon.useFakeTimers(1547375767863);
+    clock = sinon.useFakeTimers({
+      now: 1547375767863,
+      shouldAdvanceTime: true
+    });
     mockedBoxen = {};
     mockery.enable({
       useCleanCache: true,
@@ -88,7 +92,7 @@ describe('userConnection', () => {
       closeBox: sinon.stub(),
       connect: sinon.stub(),
       fetch: sinon.stub().resolves([]),
-      getBoxes: sinon.stub().resolves([]),
+      getBoxes: sinon.stub().resolves({}),
       imap: {
         delimiter: '/',
         fetch: sinon.stub(),
@@ -99,7 +103,7 @@ describe('userConnection', () => {
       on: sinon.stub(),
       once: sinon.stub(),
       openBox: sinon.stub(),
-      search: sinon.stub(),
+      search: sinon.stub().resolves([]),
       subscribeBox: sinon.stub(),
       waitForConnection: sinon.stub().resolves()
     };
@@ -125,8 +129,8 @@ describe('userConnection', () => {
   });
 
   afterEach(() => {
-    mockery.disable();
     clock.restore();
+    mockery.disable();
   });
 
   it('is a class', () => {
@@ -194,7 +198,7 @@ describe('userConnection', () => {
       });
 
       it('searches for mail', () => {
-        expect(promisified.search.calledOnce).to.be.true();
+        expect(promisified.search.called).to.be.true();
       });
     });
 
@@ -373,14 +377,14 @@ describe('userConnection', () => {
         });
 
         it('searches since the last synced date', () => {
-          expect(promisified.search.calledOnce).to.be.true();
+          expect(promisified.search.called).to.be.true();
           expect(promisified.search.firstCall.args).to.equal([
             [['SINCE', new Date(inbox.syncedTo)]]
           ]);
         });
 
         it('adds the newly found message', () => {
-          expect(mockedBoxen.INBOX.box.addMessage.calledOnce).to.be.true();
+          expect(mockedBoxen.INBOX.box.addMessage.called).to.be.true();
           const params = mockedBoxen.INBOX.box.addMessage.firstCall.args;
           expect(params).to.be.an.array();
           expect(params.length).to.equal(1);

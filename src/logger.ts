@@ -16,7 +16,7 @@ const LOG_ROTATE_PERIOD = process.env.LOG_ROTATE_PERIOD || '1d';
 const LOG_RETENTION_COUNT = process.env.LOG_RETENTION_COUNT || 3;
 
 if (!existsSync(LOG_FOLDER)) {
-  mkdirSync(LOG_DIR);
+  mkdirSync(LOG_FOLDER);
 }
 
 const logger = createLogger({

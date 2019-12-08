@@ -8,7 +8,7 @@ import {IInitializablePersistence} from './persistence';
 import User from './user';
 import {BadJsonException} from './exceptions';
 
-function hashOf(value: string): string {
+export function hashOf(value: string): string {
   return crypto
     .createHash('sha256')
     .update(value)
@@ -213,6 +213,7 @@ export default class Json implements IInitializablePersistence<string> {
 
       fs.writeFile(this.boxPath(user, box), stringify(boxPersisted), {flag: 'w'}, err => {
         if (err) {
+          err.stack = new Error().stack;
           return reject(err);
         }
 
