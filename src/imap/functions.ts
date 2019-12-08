@@ -44,6 +44,8 @@ export function waitForConnection(imap: Imap, callback?: OnDisconnect): Promise<
     reject = null;
   });
 
+  logger.debug('connection once handlers created');
+
   imap.connect();
 
   return connectionPromise;

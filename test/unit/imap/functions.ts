@@ -94,8 +94,7 @@ describe('functions', () => {
       });
 
       it('logs the event', () => {
-        expect(logger.debug.calledOnce).to.be.true();
-        expect(logger.debug.firstCall.args).to.equal(['ready']);
+        expect(logger.debug.calledWith('ready')).to.be.true();
       });
 
       it('warns if we call the error callback again', () => {

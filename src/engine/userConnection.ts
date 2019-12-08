@@ -127,6 +127,7 @@ export default class UserConnection implements IBoxListener {
   }
 
   public async init() {
+    logger.debug('starting connection init');
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
