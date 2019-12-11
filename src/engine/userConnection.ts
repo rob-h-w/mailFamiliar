@@ -191,7 +191,11 @@ export default class UserConnection implements IBoxListener {
   }
 
   public onClose(hadError: boolean) {
-    logger.warn(`Connection for ${this.user.user} closed${hadError ? ' with error.' : '.'}`);
+    logger.warn(
+      `Connection for ${_.get(this, 'userReference.user', 'unknown user')} closed${
+        hadError ? ' with error.' : '.'
+      }`
+    );
     if (this.onDisconnect) {
       this.onDisconnect();
     }
