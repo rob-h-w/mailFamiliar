@@ -282,7 +282,11 @@ export default class UserConnection implements IBoxListener {
       await this.resetBox();
     }
 
-    logger.debug(`Opened ${this.currentlyOpen.qualifiedName}`);
+    if (!this.currentlyOpen) {
+      await this.openBox(box);
+    } else {
+      logger.debug(`Opened ${this.currentlyOpen.qualifiedName}`);
+    }
   };
 
   private async openInbox() {
