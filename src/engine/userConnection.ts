@@ -18,6 +18,7 @@ import {create as createPredictors, PredictorType} from './predictors';
 const SECOND_IN_MS = 1000;
 const DAY_IN_MS = 24 * 60 * 60 * SECOND_IN_MS;
 const OPERATION_PAUSE_MS = 100;
+const INTER_MAILBOX_PAUSE = 1 * SECOND_IN_MS;
 
 export default class UserConnection implements IBoxListener {
   private attempts: number;
@@ -300,8 +301,8 @@ export default class UserConnection implements IBoxListener {
     await this.openBox(this.inbox);
   }
 
-  private async pause() {
-    return new Promise(resolve => setTimeout(resolve, OPERATION_PAUSE_MS));
+  private async pause(timeMs: number = OPERATION_PAUSE_MS) {
+    return new Promise(resolve => setTimeout(resolve, timeMs));
   }
 
   private async populateBox(startDate?: Date) {
@@ -398,7 +399,7 @@ export default class UserConnection implements IBoxListener {
         const startDate = new Date(Math.max(date.getTime(), box.syncedTo));
         await this.openBox(box);
         await this.populateBox(startDate);
-        await this.pause();
+        await this.pause(INTER_MAILBOX_PAUSE);
       }
 
       await this.openInbox();
