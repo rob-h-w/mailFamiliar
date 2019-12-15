@@ -260,6 +260,11 @@ export default class UserConnection implements IBoxListener {
       },
       'openBox'
     );
+
+    if (this.currentlyOpen === box) {
+      return;
+    }
+
     await this.newMailHander.finished();
     await this.closeBox();
     let resetBox = false;
