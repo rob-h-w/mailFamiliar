@@ -33,6 +33,7 @@ export default class UserConnection implements IBoxListener {
   private refreshTimer: NodeJS.Timer;
   private readonly userReference: User;
   private isPopulatingBox: boolean = false;
+  private isShallowSyncing: boolean = false;
 
   public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
@@ -299,6 +300,10 @@ export default class UserConnection implements IBoxListener {
     await this.openBox(this.inbox);
   }
 
+  private async pause() {
+    return new Promise(resolve => setTimeout(resolve, OPERATION_PAUSE_MS));
+  }
+
   private async populateBox(startDate?: Date) {
     if (!this.currentlyOpen || this.isPopulatingBox) {
       return;
@@ -320,6 +325,7 @@ export default class UserConnection implements IBoxListener {
         for (const messageBody of messages) {
           const message = messageFromBody(messageBody);
           this.currentlyOpen.addMessage(message);
+          await this.pause();
         }
       } else {
         this.currentlyOpen.syncedTo = startDate.getTime();
@@ -376,23 +382,32 @@ export default class UserConnection implements IBoxListener {
     excluding: string[] = [],
     resetSyncedTo: boolean = false
   ) {
-    for (const box of this.boxes
-      .filter(box => canLearnFrom(box.qualifiedName))
-      .filter(box => excluding.indexOf(box.qualifiedName) === -1)) {
-      if (resetSyncedTo) {
-        box.syncedTo = date.getTime();
-      }
-
-      const startDate = new Date(Math.max(date.getTime(), box.syncedTo));
-      await this.openBox(box);
-      await this.populateBox(startDate);
-      await new Promise(resolve => setTimeout(resolve, OPERATION_PAUSE_MS));
+    if (this.isShallowSyncing) {
+      return;
     }
 
-    await this.openInbox();
-    await this.handleNewMail();
+    try {
+      this.isShallowSyncing = true;
+      for (const box of this.boxes
+        .filter(box => canLearnFrom(box.qualifiedName))
+        .filter(box => excluding.indexOf(box.qualifiedName) === -1)) {
+        if (resetSyncedTo) {
+          box.syncedTo = date.getTime();
+        }
 
-    logger.info(`shallow sync complete`);
+        const startDate = new Date(Math.max(date.getTime(), box.syncedTo));
+        await this.openBox(box);
+        await this.populateBox(startDate);
+        await this.pause();
+      }
+
+      await this.openInbox();
+      await this.handleNewMail();
+
+      logger.info(`shallow sync complete`);
+    } finally {
+      this.isShallowSyncing = false;
+    }
   }
 
   get user(): User {
