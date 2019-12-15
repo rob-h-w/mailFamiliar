@@ -297,6 +297,10 @@ export default class UserConnection implements IBoxListener {
   };
 
   private async openInbox() {
+    if (this.currentlyOpen && this.currentlyOpen.isInbox) {
+      return;
+    }
+
     await this.closeBox();
 
     if (!this.inbox) {
