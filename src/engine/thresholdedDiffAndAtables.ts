@@ -10,6 +10,7 @@ interface ThresholdedDiffCollection {
 }
 
 const MAX_REDUCER = (max: number, candidate: number) => (candidate > max ? candidate : max);
+const MIN_CONFIDENCE = 0.1;
 const MIN_EQUALITY = 0.01;
 
 export default class ThresholdedDiffAndAtables {
@@ -46,16 +47,32 @@ export default class ThresholdedDiffAndAtables {
   ): List<DiffAndAtables> {
     let newVal: DiffAndAtables | null = null;
     let replacementIndex = 0;
+    let replacementCandidateFound = false;
 
-    diffAndAtablesList.find((diffAndAtable, index) => {
-      if (this.isWithinThreshold(diffAndAtable, strVal, segLength)) {
-        newVal = DiffAndAtables.addStrings(diffAndAtable, [strVal], segLength);
+    let highestConfidence = 0;
+
+    diffAndAtablesList.forEach((diffAndAtable, index) => {
+      const confidence = DiffAndAtables.confidenceFor(diffAndAtable, strVal);
+      if (confidence > highestConfidence) {
+        highestConfidence = confidence;
         replacementIndex = index;
-        return true;
+        replacementCandidateFound = true;
       }
-
-      return false;
     });
+
+    if (highestConfidence < MIN_CONFIDENCE) {
+      replacementCandidateFound = false;
+    }
+
+    if (replacementCandidateFound) {
+      const candidateDiffAndAtable = diffAndAtablesList.get(replacementIndex);
+      if (
+        candidateDiffAndAtable &&
+        this.isWithinThreshold(candidateDiffAndAtable, strVal, segLength)
+      ) {
+        newVal = DiffAndAtables.addStrings(candidateDiffAndAtable, [strVal], segLength);
+      }
+    }
 
     return newVal
       ? diffAndAtablesList.update(replacementIndex, () => newVal as DiffAndAtables)

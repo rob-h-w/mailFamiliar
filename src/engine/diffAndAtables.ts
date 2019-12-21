@@ -92,7 +92,24 @@ function diffInfo(aTables: DiffAndAtables): DiffInfo {
 }
 
 function confidenceFromStringList(aTables: DiffAndAtables, str: string) {
-  return aTables.strings.indexOf(str) === -1 ? 0 : 1;
+  if (_.isEmpty(aTables.strings)) {
+    return 0;
+  }
+
+  let highest = 0;
+  aTables.strings.forEach(aTableString => {
+    const diff = stringDiff(str, aTableString, DEFAULT_MIN_LENGTH);
+    highest = Math.max(confidenceFromStringDiff(diff, str), highest);
+  });
+
+  return highest;
+}
+
+function confidenceFromStringDiff(diff: ReadonlyArray<string | null>, str: string): number {
+  const diffCharacterCount = diff
+    .map(value => (value === null ? 0 : value.length))
+    .reduce((previous, current) => current + previous, 0);
+  return diffCharacterCount / str.length;
 }
 
 export const DiffAndAtables = {
