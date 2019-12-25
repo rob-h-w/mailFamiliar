@@ -98,7 +98,7 @@ function confidenceFromStringList(aTables: DiffAndAtables, str: string) {
 
   let highest = 0;
   aTables.strings.forEach(aTableString => {
-    const diff = stringDiff(str, aTableString, DEFAULT_MIN_LENGTH);
+    const diff = stringDiff(str, aTableString);
     highest = Math.max(confidenceFromStringDiff(diff, str), highest);
   });
 
