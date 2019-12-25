@@ -31,7 +31,11 @@ describe('stringDiff', () => {
   });
 
   it('finds diffs at the end of the 2nd string', () => {
-    expect<ReadonlyArray<string | null>>(stringDiff('Eabc1abc2', '__abc')).to.equal([null, 'abc']);
+    expect<ReadonlyArray<string | null>>(stringDiff('Eabc1abc2', '__abc')).to.equal([
+      null,
+      'abc',
+      null
+    ]);
   });
 
   it('copes with escaped characters', () => {

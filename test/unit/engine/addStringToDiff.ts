@@ -37,6 +37,6 @@ describe('addStringToDiff', () => {
   });
 
   it('creates a new diff, loses non-matching characters', () => {
-    expectAddStringToDiff(['abcd'], 'abc').to.equal(['abc']);
+    expectAddStringToDiff(['abcd'], 'abc').to.equal(['abc', null]);
   });
 });
