@@ -1,12 +1,10 @@
-import {List} from 'immutable';
-
 import {DiffAndAtables} from './diffAndAtables';
 import MIN_SEGMENT_LENGTHS from './segmentLengths';
 import addStringToDiff from './addStringToDiff';
 import stringDiff from './stringDiff';
 
 interface ThresholdedDiffCollection {
-  [index: number]: List<DiffAndAtables>;
+  [index: number]: DiffAndAtables[];
 }
 
 const MAX_REDUCER = (max: number, candidate: number) => Math.max(max, candidate);
@@ -18,9 +16,7 @@ export default class ThresholdedDiffAndAtables {
 
   constructor(strings: string[]) {
     this.diffs = {};
-    MIN_SEGMENT_LENGTHS.map(
-      segLength => (this.diffs[segLength] = List.of(DiffAndAtables.emptyAtables()))
-    );
+    MIN_SEGMENT_LENGTHS.map(segLength => (this.diffs[segLength] = [DiffAndAtables.emptyAtables()]));
     this.addStrings(strings);
   }
 
@@ -41,10 +37,10 @@ export default class ThresholdedDiffAndAtables {
   }
 
   private withString(
-    diffAndAtablesList: List<DiffAndAtables>,
+    diffAndAtablesList: DiffAndAtables[],
     segLength: number,
     strVal: string
-  ): List<DiffAndAtables> {
+  ): DiffAndAtables[] {
     let newVal: DiffAndAtables | null = null;
     let replacementIndex = 0;
     let replacementCandidateFound = false;
@@ -65,7 +61,7 @@ export default class ThresholdedDiffAndAtables {
     }
 
     if (replacementCandidateFound) {
-      const candidateDiffAndAtable = diffAndAtablesList.get(replacementIndex);
+      const candidateDiffAndAtable = diffAndAtablesList[replacementIndex];
       if (
         candidateDiffAndAtable &&
         this.isWithinThreshold(candidateDiffAndAtable, strVal, segLength)
@@ -74,9 +70,10 @@ export default class ThresholdedDiffAndAtables {
       }
     }
 
-    return newVal
-      ? diffAndAtablesList.update(replacementIndex, () => newVal as DiffAndAtables)
+    newVal
+      ? (diffAndAtablesList[replacementIndex] = newVal as DiffAndAtables)
       : diffAndAtablesList.push(DiffAndAtables.fromStrings([strVal], segLength));
+    return diffAndAtablesList;
   }
 
   confidenceFor(strVal: string): number {
@@ -131,12 +128,10 @@ export default class ThresholdedDiffAndAtables {
 
     // Remove empty diff and adjacency tables except the first one. There must be at least one.
     if (removeFrom.diff.length === 1 && removalIndex !== 0) {
-      this.diffs[segLength] = diffAndAtablesList.delete(removalIndex);
+      diffAndAtablesList.splice(removalIndex, 1);
     } else {
       const newDiffs = removeFrom.strings.filter(s => s !== strVal);
-      this.diffs[segLength] = diffAndAtablesList.update(removalIndex, () =>
-        DiffAndAtables.fromStrings(newDiffs)
-      );
+      diffAndAtablesList[removalIndex] = DiffAndAtables.fromStrings(newDiffs);
     }
   }
 
