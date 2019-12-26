@@ -9,7 +9,7 @@ interface ThresholdedDiffCollection {
   [index: number]: List<DiffAndAtables>;
 }
 
-const MAX_REDUCER = (max: number, candidate: number) => (candidate > max ? candidate : max);
+const MAX_REDUCER = (max: number, candidate: number) => Math.max(max, candidate);
 const MIN_CONFIDENCE = 0.1;
 const MIN_EQUALITY = 0.01;
 
