@@ -39,4 +39,14 @@ describe('addStringToDiff', () => {
   it('creates a new diff, loses non-matching characters', () => {
     expectAddStringToDiff(['abcd'], 'abc').to.equal(['abc', null]);
   });
+
+  it('does not lose existing null patterns if a match is added', () => {
+    expectAddStringToDiff(['ab', null, 'cd', null, 'ef'], 'abcdef').to.equal([
+      'ab',
+      null,
+      'cd',
+      null,
+      'ef'
+    ]);
+  });
 });
