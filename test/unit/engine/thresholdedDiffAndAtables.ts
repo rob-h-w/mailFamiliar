@@ -24,7 +24,7 @@ describe('ThresholdedDiffAndAtables', () => {
       });
 
       strings.forEach(str =>
-        it(`matches ${str}`, () => expect(tdaat.confidenceFor(str)).to.equal(1))
+        it(`matches ${str}`, () => expect(tdaat.confidenceFor(str)).to.be.greaterThan(0.9))
       );
 
       it('partly matches a string not shown to it', () => {

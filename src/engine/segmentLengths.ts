@@ -1,2 +1,2 @@
-const MIN_SEGMENT_LENGTHS: ReadonlyArray<number> = [2, 5, 7, 17, 23, 31];
+const MIN_SEGMENT_LENGTHS: ReadonlyArray<number> = [2];
 export default MIN_SEGMENT_LENGTHS;
