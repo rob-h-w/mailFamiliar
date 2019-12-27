@@ -1,4 +1,5 @@
 import Diff from './diff';
+
 interface MatchResult {
   isComplete: boolean;
   remainder: string;
