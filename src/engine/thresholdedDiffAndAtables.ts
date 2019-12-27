@@ -1,16 +1,17 @@
 import Diff from '../string/diff';
 import {DiffAndAtables} from './diffAndAtables';
 import MIN_SEGMENT_LENGTHS from './segmentLengths';
-import match from '../string/match';
+import {matches} from '../string/match';
 import stringDiff from '../string/stringDiff';
 
 interface ThresholdedDiffCollection {
   [index: number]: DiffAndAtables[];
 }
 
+const BUCKET_SIZE = 50;
 const MAX_REDUCER = (max: number, candidate: number) => Math.max(max, candidate);
-const MIN_CONFIDENCE = 0.1;
-const MIN_EQUALITY = 0.01;
+const MIN_CONFIDENCE = 0.5;
+const MIN_EQUALITY = 0.02;
 
 export default class ThresholdedDiffAndAtables {
   private readonly diffs: ThresholdedDiffCollection;
@@ -44,20 +45,24 @@ export default class ThresholdedDiffAndAtables {
   ): DiffAndAtables[] {
     let newVal: DiffAndAtables | null = null;
     let index = 0;
-    let replacementIndex = 0;
-    let replacementCandidateFound = false;
+    let replacementIndex = -1;
 
     let highestConfidence = 0;
 
     for (const diffAndAtable of diffAndAtablesList) {
       const length = diffAndAtable.strings.length;
 
-      if (length < 2 || match(diffAndAtable.diff, strVal)) {
+      if (length < BUCKET_SIZE) {
+        highestConfidence = 1;
+        replacementIndex = index;
+        break;
+      }
+
+      if (matches(diffAndAtable.diff, strVal)) {
         const confidence = DiffAndAtables.confidenceFor(diffAndAtable, strVal);
         if (confidence > highestConfidence) {
           highestConfidence = confidence;
           replacementIndex = index;
-          replacementCandidateFound = true;
         }
       }
 
@@ -65,10 +70,10 @@ export default class ThresholdedDiffAndAtables {
     }
 
     if (highestConfidence < MIN_CONFIDENCE) {
-      replacementCandidateFound = false;
+      replacementIndex = -1;
     }
 
-    if (replacementCandidateFound) {
+    if (replacementIndex !== -1) {
       const candidateDiffAndAtable = diffAndAtablesList[replacementIndex];
       if (candidateDiffAndAtable) {
         newVal = DiffAndAtables.addStrings(candidateDiffAndAtable, [strVal], segLength);
