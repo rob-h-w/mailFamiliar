@@ -1,9 +1,9 @@
 import * as _ from 'lodash';
 
-import addStringToDiff from './addStringToDiff';
+import addStringToDiff from '../string/addStringToDiff';
 import AdjacencyTable from './adjacencyTable';
 import regexFromStringDiff from './regexFromStringDiff';
-import stringDiff, {DEFAULT_MIN_LENGTH} from './stringDiff';
+import stringDiff, {DEFAULT_MIN_LENGTH} from '../string/stringDiff';
 
 export interface DiffAndAtables {
   START: AdjacencyTable | null;

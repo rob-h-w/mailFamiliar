@@ -1,7 +1,7 @@
 import {DiffAndAtables} from './diffAndAtables';
 import MIN_SEGMENT_LENGTHS from './segmentLengths';
-import addStringToDiff from './addStringToDiff';
-import stringDiff from './stringDiff';
+import addStringToDiff from '../string/addStringToDiff';
+import stringDiff from '../string/stringDiff';
 
 interface ThresholdedDiffCollection {
   [index: number]: DiffAndAtables[];

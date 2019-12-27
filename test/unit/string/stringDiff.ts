@@ -1,7 +1,7 @@
 import {expect} from '@hapi/code';
 const {describe, it} = (exports.lab = require('@hapi/lab').script());
 
-import stringDiff from '../../../src/engine/stringDiff';
+import stringDiff from '../../../src/string/stringDiff';
 
 describe('stringDiff', () => {
   it('guards against insane minimum lengths', () => {

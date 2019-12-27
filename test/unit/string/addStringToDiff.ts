@@ -1,7 +1,7 @@
 import {expect} from '@hapi/code';
 const {describe, it} = (exports.lab = require('@hapi/lab').script());
 
-import addStringToDiff from '../../../src/engine/addStringToDiff';
+import addStringToDiff from '../../../src/string/addStringToDiff';
 
 function expectAddStringToDiff(diff: ReadonlyArray<string | null>, str: string) {
   return expect<ReadonlyArray<string | null>>(addStringToDiff(diff, str));
