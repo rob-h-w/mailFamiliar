@@ -1,10 +1,11 @@
+import Diff from './diff';
 import stringDiff, {DEFAULT_MIN_LENGTH} from './stringDiff';
 
 export default function addStringToDiff(
-  diff: ReadonlyArray<string | null>,
+  diff: Diff,
   str: string,
   minLength: number = DEFAULT_MIN_LENGTH
-): ReadonlyArray<string | null> {
+): Diff {
   if (str.length === 0) {
     return diff;
   }

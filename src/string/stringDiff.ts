@@ -1,5 +1,7 @@
 import {diff_match_patch} from 'diff-match-patch';
 
+import Diff from './diff';
+
 const dmp = new diff_match_patch();
 
 export const DEFAULT_MIN_LENGTH = 2;
@@ -8,7 +10,7 @@ export default function stringDiff(
   first: string,
   second: string,
   minLength: number = DEFAULT_MIN_LENGTH
-): ReadonlyArray<string | null> {
+): Diff {
   if (minLength < 2) {
     throw new Error(`Minlength must be greater than 1, but was ${minLength}`);
   }

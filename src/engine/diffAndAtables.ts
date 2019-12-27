@@ -2,13 +2,14 @@ import * as _ from 'lodash';
 
 import addStringToDiff from '../string/addStringToDiff';
 import AdjacencyTable from './adjacencyTable';
+import Diff from '../string/diff';
 import regexFromStringDiff from './regexFromStringDiff';
 import stringDiff, {DEFAULT_MIN_LENGTH} from '../string/stringDiff';
 
 export interface DiffAndAtables {
   START: AdjacencyTable | null;
   FINISH: AdjacencyTable | null;
-  diff: ReadonlyArray<string | null>;
+  diff: Diff;
   otherAtables: ReadonlyArray<AdjacencyTable>;
   regex: RegExp | null;
   strings: ReadonlyArray<string>;
@@ -105,7 +106,7 @@ function confidenceFromStringList(aTables: DiffAndAtables, str: string) {
   return highest;
 }
 
-function confidenceFromStringDiff(diff: ReadonlyArray<string | null>, str: string): number {
+function confidenceFromStringDiff(diff: Diff, str: string): number {
   const diffCharacterCount = diff
     .map(value => (value === null ? 0 : value.length))
     .reduce((previous, current) => current + previous, 0);

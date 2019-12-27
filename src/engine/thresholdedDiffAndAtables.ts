@@ -1,3 +1,4 @@
+import Diff from '../string/diff';
 import {DiffAndAtables} from './diffAndAtables';
 import MIN_SEGMENT_LENGTHS from './segmentLengths';
 import addStringToDiff from '../string/addStringToDiff';
@@ -158,11 +159,11 @@ export default class ThresholdedDiffAndAtables {
     return this.diffIsWithinThreshold(newDiff, candidate);
   }
 
-  private diffIsWithinThreshold(diff: ReadonlyArray<string | null>, candidate: string): boolean {
+  private diffIsWithinThreshold(diff: Diff, candidate: string): boolean {
     return this.countCharacters(diff) / candidate.length > MIN_EQUALITY;
   }
 
-  private countCharacters(diff: ReadonlyArray<string | null>) {
+  private countCharacters(diff: Diff) {
     return diff.map(val => (val ? val.length : 0)).reduce((sum, val) => sum + val, 0);
   }
 }

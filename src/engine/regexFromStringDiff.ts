@@ -1,4 +1,6 @@
-export default function regexFromStringDiff(stringDiff: ReadonlyArray<string | null>): RegExp {
+import Diff from '../string/diff';
+
+export default function regexFromStringDiff(stringDiff: Diff): RegExp {
   return RegExp(
     stringDiff.reduce(
       (previous: string, current: string | null) =>
