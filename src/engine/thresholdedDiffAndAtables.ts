@@ -1,7 +1,7 @@
 import Diff from '../string/diff';
 import {DiffAndAtables} from './diffAndAtables';
 import MIN_SEGMENT_LENGTHS from './segmentLengths';
-import addStringToDiff from '../string/addStringToDiff';
+import match from '../string/match';
 import stringDiff from '../string/stringDiff';
 
 interface ThresholdedDiffCollection {
@@ -17,7 +17,7 @@ export default class ThresholdedDiffAndAtables {
 
   constructor(strings: string[]) {
     this.diffs = {};
-    MIN_SEGMENT_LENGTHS.map(segLength => (this.diffs[segLength] = [DiffAndAtables.emptyAtables()]));
+    MIN_SEGMENT_LENGTHS.map(segLength => (this.diffs[segLength] = []));
     this.addStrings(strings);
   }
 
@@ -43,19 +43,26 @@ export default class ThresholdedDiffAndAtables {
     strVal: string
   ): DiffAndAtables[] {
     let newVal: DiffAndAtables | null = null;
+    let index = 0;
     let replacementIndex = 0;
     let replacementCandidateFound = false;
 
     let highestConfidence = 0;
 
-    diffAndAtablesList.forEach((diffAndAtable, index) => {
-      const confidence = DiffAndAtables.confidenceFor(diffAndAtable, strVal);
-      if (confidence > highestConfidence) {
-        highestConfidence = confidence;
-        replacementIndex = index;
-        replacementCandidateFound = true;
+    for (const diffAndAtable of diffAndAtablesList) {
+      const length = diffAndAtable.strings.length;
+
+      if (length < 2 || match(diffAndAtable.diff, strVal)) {
+        const confidence = DiffAndAtables.confidenceFor(diffAndAtable, strVal);
+        if (confidence > highestConfidence) {
+          highestConfidence = confidence;
+          replacementIndex = index;
+          replacementCandidateFound = true;
+        }
       }
-    });
+
+      index++;
+    }
 
     if (highestConfidence < MIN_CONFIDENCE) {
       replacementCandidateFound = false;
@@ -63,17 +70,18 @@ export default class ThresholdedDiffAndAtables {
 
     if (replacementCandidateFound) {
       const candidateDiffAndAtable = diffAndAtablesList[replacementIndex];
-      if (
-        candidateDiffAndAtable &&
-        this.isWithinThreshold(candidateDiffAndAtable, strVal, segLength)
-      ) {
+      if (candidateDiffAndAtable) {
         newVal = DiffAndAtables.addStrings(candidateDiffAndAtable, [strVal], segLength);
+        newVal = this.isWithinThreshold(newVal, strVal) ? newVal : null;
       }
     }
 
-    newVal
-      ? (diffAndAtablesList[replacementIndex] = newVal as DiffAndAtables)
-      : diffAndAtablesList.push(DiffAndAtables.fromStrings([strVal], segLength));
+    if (newVal) {
+      diffAndAtablesList[replacementIndex] = newVal as DiffAndAtables;
+    } else {
+      diffAndAtablesList.push(DiffAndAtables.fromStrings([strVal], segLength));
+    }
+
     return diffAndAtablesList;
   }
 
@@ -142,7 +150,7 @@ export default class ThresholdedDiffAndAtables {
     );
   }
 
-  private isWithinThreshold(daa: DiffAndAtables, candidate: string, segLength: number): boolean {
+  private isWithinThreshold(daa: DiffAndAtables, candidate: string): boolean {
     if (candidate.length === 0 || daa.strings.length === 0) {
       return true;
     }
@@ -151,7 +159,7 @@ export default class ThresholdedDiffAndAtables {
       return this.diffIsWithinThreshold(stringDiff(daa.strings[0], candidate), candidate);
     }
 
-    const newDiff = addStringToDiff(daa.diff, candidate, segLength);
+    const newDiff = daa.diff;
     if (newDiff.length === 0 || (newDiff.length === 1 && newDiff[0] === null)) {
       return false;
     }

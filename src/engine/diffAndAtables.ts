@@ -64,6 +64,8 @@ function addStringsToAtables(
       otherAtablesIndex++;
     }
   });
+
+  aTables.strings = [str, ...aTables.strings];
 }
 
 function diffInfo(aTables: DiffAndAtables): DiffInfo {
