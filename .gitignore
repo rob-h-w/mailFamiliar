@@ -67,3 +67,8 @@ typings/
 
 # temporary bits
 tmp/
+
+# Performance measurements
+perf*
+flamegraph.htm
+*.0x/

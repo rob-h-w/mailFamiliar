@@ -1,10 +1,11 @@
 import {expect} from '@hapi/code';
 const {describe, it} = (exports.lab = require('@hapi/lab').script());
 
-import addStringToDiff from '../../../src/engine/addStringToDiff';
+import addStringToDiff from '../../../src/string/addStringToDiff';
+import Diff from '../../../src/string/diff';
 
-function expectAddStringToDiff(diff: ReadonlyArray<string | null>, str: string) {
-  return expect<ReadonlyArray<string | null>>(addStringToDiff(diff, str));
+function expectAddStringToDiff(diff: Diff, str: string) {
+  return expect<Diff>(addStringToDiff(diff, str));
 }
 
 describe('addStringToDiff', () => {
@@ -37,6 +38,16 @@ describe('addStringToDiff', () => {
   });
 
   it('creates a new diff, loses non-matching characters', () => {
-    expectAddStringToDiff(['abcd'], 'abc').to.equal(['abc']);
+    expectAddStringToDiff(['abcd'], 'abc').to.equal(['abc', null]);
+  });
+
+  it('does not lose existing null patterns if a match is added', () => {
+    expectAddStringToDiff(['ab', null, 'cd', null, 'ef'], 'abcdef').to.equal([
+      'ab',
+      null,
+      'cd',
+      null,
+      'ef'
+    ]);
   });
 });

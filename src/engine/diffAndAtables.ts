@@ -1,16 +1,17 @@
 import * as _ from 'lodash';
 
-import addStringToDiff from './addStringToDiff';
+import addStringToDiff from '../string/addStringToDiff';
 import AdjacencyTable from './adjacencyTable';
-import regexFromStringDiff from './regexFromStringDiff';
-import stringDiff, {DEFAULT_MIN_LENGTH} from './stringDiff';
+import Diff from '../string/diff';
+import stringDiff, {DEFAULT_MIN_LENGTH} from '../string/stringDiff';
+import match from '../string/match';
+import {matches} from '../string/match';
 
 export interface DiffAndAtables {
   START: AdjacencyTable | null;
   FINISH: AdjacencyTable | null;
-  diff: ReadonlyArray<string | null>;
+  diff: Diff;
   otherAtables: ReadonlyArray<AdjacencyTable>;
-  regex: RegExp | null;
   strings: ReadonlyArray<string>;
 }
 
@@ -37,32 +38,21 @@ function addStringToAtable(aTables: DiffAndAtables, selector: string, str: strin
 function addStringsToAtables(
   aTables: DiffAndAtables,
   str: string,
-  regex: RegExp,
   hasFinish: boolean,
   hasStart: boolean
 ) {
-  if (regex.source === '(?:)') {
-    // The regex matches everything. Add this string to the start.
-    addStringToAtable(aTables, AdjacencyTable.START, str);
+  const matchResult = match(aTables.diff, str);
+
+  if (!matchResult || !matchResult.isComplete) {
     return;
   }
 
-  const matches = regex.exec(str);
-
-  if (!matches) {
-    return;
-  }
-
-  const end = matches.length - 1;
+  const end = matchResult.wildcardMatches.length - 1;
 
   let otherAtablesIndex = 0;
 
-  matches.forEach((match, index) => {
-    if (index === 0) {
-      return;
-    }
-
-    if (index === 1 && hasStart) {
+  matchResult.wildcardMatches.forEach((match, index) => {
+    if (index === 0 && hasStart) {
       addStringToAtable(aTables, AdjacencyTable.START, match);
       return;
     }
@@ -74,6 +64,8 @@ function addStringsToAtables(
       otherAtablesIndex++;
     }
   });
+
+  aTables.strings = [str, ...aTables.strings];
 }
 
 function diffInfo(aTables: DiffAndAtables): DiffInfo {
@@ -92,7 +84,24 @@ function diffInfo(aTables: DiffAndAtables): DiffInfo {
 }
 
 function confidenceFromStringList(aTables: DiffAndAtables, str: string) {
-  return aTables.strings.indexOf(str) === -1 ? 0 : 1;
+  if (_.isEmpty(aTables.strings)) {
+    return 0;
+  }
+
+  let highest = 0;
+  aTables.strings.forEach(aTableString => {
+    const diff = stringDiff(str, aTableString);
+    highest = Math.max(confidenceFromStringDiff(diff, str), highest);
+  });
+
+  return highest;
+}
+
+function confidenceFromStringDiff(diff: Diff, str: string): number {
+  const diffCharacterCount = diff
+    .map(value => (value === null ? 0 : value.length))
+    .reduce((previous, current) => current + previous, 0);
+  return diffCharacterCount / str.length;
 }
 
 export const DiffAndAtables = {
@@ -108,9 +117,7 @@ export const DiffAndAtables = {
       aTables = DiffAndAtables.fromStrings([...strings, ...aTables.strings], minLength);
     } else {
       const {hasFinish, hasStart} = diffInfo(aTables);
-      strings.forEach(str =>
-        addStringsToAtables(aTables, str, aTables.regex || new RegExp(''), hasFinish, hasStart)
-      );
+      strings.forEach(str => addStringsToAtables(aTables, str, hasFinish, hasStart));
     }
 
     return aTables;
@@ -121,30 +128,23 @@ export const DiffAndAtables = {
       return confidenceFromStringList(aTables, str);
     }
 
-    const regex = aTables.regex;
-    const matches = (regex && regex.exec(str)) || null;
+    const matchResult = match(aTables.diff, str);
 
-    if (!matches) {
+    if (!matchResult || !matchResult.isComplete) {
       return 0;
     }
 
-    if (matches.length === 1 && matches[0].length > 0) {
-      // There is only 1 match, so the regex has no parentheses.
+    if (matchResult.wildcardMatches.length === 0) {
       return 1;
     }
 
-    const end = matches.length - 1;
-    const measurements = end; // Skip the first match because it's the whole string.
+    const end = matchResult.wildcardMatches.length - 1;
 
     let cumulativeProbability = 0;
     let otherAtablesIndex = 0;
 
-    matches.forEach((match, index) => {
-      if (index === 0) {
-        return;
-      }
-
-      if (index === 1 && aTables.START) {
+    matchResult.wildcardMatches.forEach((match, index) => {
+      if (index === 0 && aTables.START) {
         cumulativeProbability += aTables.START.confidenceFor(match);
         return;
       }
@@ -159,7 +159,7 @@ export const DiffAndAtables = {
       }
     });
 
-    return cumulativeProbability / measurements;
+    return cumulativeProbability / matchResult.wildcardMatches.length;
   },
 
   emptyAtables: (): DiffAndAtables => {
@@ -168,7 +168,6 @@ export const DiffAndAtables = {
       START: null,
       diff: [],
       otherAtables: [],
-      regex: null,
       strings: []
     };
   },
@@ -197,13 +196,10 @@ export const DiffAndAtables = {
     }
 
     const {hasFinish, hasStart} = diffInfo(aTables);
-    const regex = regexFromStringDiff(aTables.diff);
 
     strings.forEach(str => {
-      addStringsToAtables(aTables, str, regex, hasFinish, hasStart);
+      addStringsToAtables(aTables, str, hasFinish, hasStart);
     });
-
-    aTables.regex = strings.length > 1 ? regex : null;
 
     return aTables;
   },
@@ -227,5 +223,5 @@ export const DiffAndAtables = {
   },
 
   test: (aTables: DiffAndAtables, str: string): boolean =>
-    aTables.strings.length <= 1 || (aTables.regex ? aTables.regex.test(str) : false)
+    aTables.strings.length <= 1 || matches(aTables.diff, str)
 };
