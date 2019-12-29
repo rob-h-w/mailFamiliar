@@ -115,7 +115,7 @@ export default class NewMailHandler {
       }
 
       const messageBodies = await this.userConnection.fetch(uids);
-      let update = false;
+      let messagesWereKept = false;
 
       if (box.isInbox) {
         for (const messageBody of messageBodies.filter(
@@ -123,15 +123,22 @@ export default class NewMailHandler {
             messageBody.attrs.date.getTime() >= syncTo &&
             !NewMailHandler.messageWasSeen(messageBody)
         )) {
-          update = (await this.handleMessage(messageFromBody(messageBody), box)) || update;
+          const keepThisMessage = await this.handleMessage(messageFromBody(messageBody), box);
+
+          if (keepThisMessage) {
+            this.userConnection.predictor.addHeaders(
+              messageFromBody(messageBody).headers,
+              box.qualifiedName
+            );
+          }
+
+          messagesWereKept = messagesWereKept || keepThisMessage;
         }
       }
 
-      this.userConnection.predictor.considerBox(box);
-
       box.setSyncedToNow();
 
-      if (update) {
+      if (messagesWereKept) {
         await this.userConnection.persistence.updateBox(this.userConnection.user, box);
       }
 
