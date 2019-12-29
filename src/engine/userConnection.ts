@@ -7,7 +7,7 @@ import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
-import {messageFromBody} from './message';
+import {messageFromBody, IMessage} from './message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
@@ -187,6 +187,7 @@ export default class UserConnection implements IBoxListener {
     this.mailBoxes = resultingBoxes;
     await this.openInbox();
     this.attempts = 0;
+    this.mailBoxes.forEach(this.currentPredictor.considerBox);
     await this.refresh();
 
     logger.info('init complete');
@@ -229,7 +230,7 @@ export default class UserConnection implements IBoxListener {
     }
 
     this.currentlyOpen.removeMessage(expungedMessage);
-    this.currentPredictor.considerBox(this.currentlyOpen);
+    this.currentPredictor.removeHeaders(expungedMessage.headers, this.currentlyOpen.qualifiedName);
 
     // Trigger check of all other boxen in case the message moved there.
     await this.shallowSyncSince(expungedMessage.date, [this.currentlyOpen.qualifiedName], true);
@@ -314,12 +315,15 @@ export default class UserConnection implements IBoxListener {
     return new Promise(resolve => setTimeout(resolve, timeMs));
   }
 
-  private async populateBox(startDate?: Date) {
+  private async populateBox(startDate?: Date): Promise<IMessage[]> {
     if (!this.currentlyOpen || this.isPopulatingBox) {
-      return;
+      return [];
     }
 
     this.isPopulatingBox = true;
+
+    const newMessages = [];
+    const shouldBeOpen = this.currentlyOpen;
 
     try {
       if (_.isUndefined(startDate) || this.user.trial) {
@@ -332,9 +336,13 @@ export default class UserConnection implements IBoxListener {
       if (search.length) {
         const messages = await this.fetch(search);
 
+        // Ensure the same box is still open.
+        await this.openBox(shouldBeOpen);
+
         for (const messageBody of messages) {
           const message = messageFromBody(messageBody);
           this.currentlyOpen.addMessage(message);
+          newMessages.push(message);
           await this.pause();
         }
       } else {
@@ -343,10 +351,9 @@ export default class UserConnection implements IBoxListener {
 
       await this.persistence.updateBox(this.user, this.currentlyOpen);
 
-      // Update box may have the consequence of making this.currentlyOpen undefined.
-      if (this.currentlyOpen) {
-        this.currentPredictor.considerBox(this.currentlyOpen);
-      }
+      // Ensure the same box is still open.
+      await this.openBox(shouldBeOpen);
+      return newMessages;
     } finally {
       this.isPopulatingBox = false;
     }
@@ -379,8 +386,18 @@ export default class UserConnection implements IBoxListener {
       return;
     }
 
-    this.currentlyOpen.reset();
-    await this.populateBox();
+    const predictor = this.currentPredictor;
+    const shouldBeOpen = this.currentlyOpen;
+    shouldBeOpen.reset();
+    this.addToPredictor(predictor, await this.populateBox(), shouldBeOpen.qualifiedName);
+  }
+
+  private addToPredictor(
+    predictor: IPredictor,
+    messages: ReadonlyArray<IMessage>,
+    qualifiedName: string
+  ) {
+    messages.forEach(message => predictor.addHeaders(message.headers, qualifiedName));
   }
 
   private async shallowSync() {
@@ -407,6 +424,11 @@ export default class UserConnection implements IBoxListener {
 
         const startDate = new Date(Math.max(date.getTime(), box.syncedTo));
         await this.openBox(box);
+        this.addToPredictor(
+          this.currentPredictor,
+          await this.populateBox(startDate),
+          box.qualifiedName
+        );
         await this.populateBox(startDate);
         await this.pause(INTER_MAILBOX_PAUSE);
       }
