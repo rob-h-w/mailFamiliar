@@ -41,7 +41,6 @@
       "type": "node",
       "request": "launch",
       "name": "test:unit",
-      "preLaunchTask": "npm: build",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run-script", "test:unit:debug"],
       "port": 9229
