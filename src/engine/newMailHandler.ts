@@ -2,9 +2,9 @@ import * as _ from 'lodash';
 
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
-import Promisified, {IMessageBody} from 'imap/promisified';
+import Promisified, {MessageBody} from 'imap/promisified';
 import logger from '../logger';
-import {messageFromBody, IMessage} from './message';
+import {messageFromBody, Message} from '../types/message';
 import UserConnection from './userConnection';
 import {getSyncedTo} from '../tools/trialSettings';
 
@@ -20,7 +20,7 @@ export default class NewMailHandler {
     this.userConnection = userConnection;
   }
 
-  private static messageIdentifier(message: IMessage): string {
+  private static messageIdentifier(message: Message): string {
     const MAX_LENGTH = 20;
     const FROM = 'From: ';
     const SUBJECT = 'Subject: ';
@@ -30,12 +30,12 @@ export default class NewMailHandler {
     return `{${message.uid} from ${from} subject ${subject}}`;
   }
 
-  private static messageWasSeen(messageBody: IMessageBody): boolean {
+  private static messageWasSeen(messageBody: MessageBody): boolean {
     const flags = messageBody.attrs.flags;
     return _.isArray(flags) && flags.indexOf('\\Seen') !== -1;
   }
 
-  private async handleMessage(message: IMessage, box: Box): Promise<boolean> {
+  private async handleMessage(message: Message, box: Box): Promise<boolean> {
     logger.debug(
       {qualifiedName: box.qualifiedName, message: NewMailHandler.messageIdentifier(message)},
       'handleMessage'

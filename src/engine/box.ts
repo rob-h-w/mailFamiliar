@@ -4,7 +4,7 @@ import {Literal, Static, Union} from 'runtypes';
 
 import Promisified from '../imap/promisified';
 import logger from '../logger';
-import {IMessage} from './message';
+import {Message} from '../types/message';
 
 interface IBoxRequired {
   name: string;
@@ -14,7 +14,7 @@ interface IBoxRequired {
 
 export interface IBoxPersisted extends IBoxRequired {
   box?: Imap.Box;
-  messages?: ReadonlyArray<IMessage>;
+  messages?: ReadonlyArray<Message>;
 }
 
 interface IBox extends IBoxPersisted {
@@ -30,7 +30,7 @@ const BoxStateValues = Union(
 );
 export type BoxState = Static<typeof BoxStateValues>;
 
-function msgHashString(message: IMessage): string {
+function msgHashString(message: Message): string {
   return `${message.date}${message.seq}${message.uid}`;
 }
 
@@ -38,7 +38,7 @@ export default class Box {
   private imapBox?: Imap.Box;
   private imapFolder?: Imap.Folder;
   private msgHashes: {
-    [key: string]: IMessage;
+    [key: string]: Message;
   };
   private pImap?: Promisified;
   private syncedToEpoch: number;
@@ -76,7 +76,7 @@ export default class Box {
     }
   }
 
-  addMessage = (message: IMessage) => {
+  addMessage = (message: Message) => {
     if (this.hasMessage(message)) {
       return;
     }
@@ -85,7 +85,7 @@ export default class Box {
     this.syncedToEpoch = Math.max(this.syncedToEpoch, message.date.getTime());
   };
 
-  private addMessageHash = (message: IMessage) => {
+  private addMessageHash = (message: Message) => {
     this.msgHashes[msgHashString(message)] = message;
   };
 
@@ -93,7 +93,7 @@ export default class Box {
     return this.imapBox;
   }
 
-  private hasMessage = (message: IMessage): boolean => {
+  private hasMessage = (message: Message): boolean => {
     const hashString = msgHashString(message);
     return !!this.msgHashes[hashString];
   };
@@ -115,7 +115,7 @@ export default class Box {
     Box.check(this);
   }
 
-  get messages(): ReadonlyArray<IMessage> {
+  get messages(): ReadonlyArray<Message> {
     return Object.values(this.msgHashes);
   }
 
@@ -143,7 +143,7 @@ export default class Box {
     return 'UNREADY';
   };
 
-  removeMessage = (message: IMessage) => {
+  removeMessage = (message: Message) => {
     if (!this.hasMessage(message)) {
       return;
     }

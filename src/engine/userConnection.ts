@@ -7,7 +7,7 @@ import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
-import {messageFromBody, IMessage} from './message';
+import {messageFromBody, Message} from '../types/message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
@@ -315,7 +315,7 @@ export default class UserConnection implements IBoxListener {
     return new Promise(resolve => setTimeout(resolve, timeMs));
   }
 
-  private async populateBox(startDate?: Date): Promise<IMessage[]> {
+  private async populateBox(startDate?: Date): Promise<Message[]> {
     if (!this.currentlyOpen || this.isPopulatingBox) {
       return [];
     }
@@ -394,7 +394,7 @@ export default class UserConnection implements IBoxListener {
 
   private addToPredictor(
     predictor: IPredictor,
-    messages: ReadonlyArray<IMessage>,
+    messages: ReadonlyArray<Message>,
     qualifiedName: string
   ) {
     messages.forEach(message => predictor.addHeaders(message.headers, qualifiedName));
