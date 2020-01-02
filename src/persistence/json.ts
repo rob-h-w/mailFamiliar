@@ -4,9 +4,10 @@ import * as _ from 'lodash';
 import * as path from 'path';
 
 import Box, {IBoxPersisted} from '../engine/box';
-import {IInitializablePersistence} from './persistence';
-import User from './user';
 import {BadJsonException} from './exceptions';
+import {IInitializablePersistence} from './persistence';
+import Move, {createMovesFromJson} from '../types/move';
+import User from './user';
 
 export function hashOf(value: string): string {
   return crypto
@@ -220,5 +221,33 @@ export default class Json implements IInitializablePersistence<string> {
         resolve();
       });
     });
+  };
+
+  listMoves = async (user: User): Promise<Move[]> => {
+    return new Promise<Move[]>(resolve => {
+      const movePath = this.movePath(user);
+      if (fs.existsSync(movePath)) {
+        resolve(createMovesFromJson(JSON.parse(fs.readFileSync(movePath).toString())));
+      } else {
+        resolve([]);
+      }
+    });
+  };
+
+  recordMoves = async (user: User, moves: ReadonlyArray<Move>): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      fs.writeFile(this.movePath(user), JSON.stringify(moves), {flag: 'w'}, err => {
+        if (err) {
+          err.stack = new Error().stack;
+          return reject(err);
+        }
+
+        resolve();
+      });
+    });
+  };
+
+  movePath = (user: User): string => {
+    return path.join(this.userDataRoot(user), 'moveList.json');
   };
 }

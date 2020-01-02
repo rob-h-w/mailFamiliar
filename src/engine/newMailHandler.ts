@@ -2,11 +2,12 @@ import * as _ from 'lodash';
 
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
-import Promisified, {MessageBody} from 'imap/promisified';
+import Promisified, {MessageBody} from '../imap/promisified';
 import logger from '../logger';
-import {messageFromBody, Message} from '../types/message';
-import UserConnection from './userConnection';
 import {getSyncedTo} from '../tools/trialSettings';
+import {messageFromBody, Message} from '../types/message';
+import {createMoveNow} from '../types/move';
+import UserConnection from './userConnection';
 
 export default class NewMailHandler {
   private readonly pImap: Promisified;
@@ -65,6 +66,8 @@ export default class NewMailHandler {
         } else {
           // Actually do the move.
           await this.pImap.move([String(message.uid)], recommendedBoxName);
+          this.userConnection.moves.push(createMoveNow(recommendedBoxName, message));
+          await this.userConnection.persistence.recordMoves(user, this.userConnection.moves);
           logger.info(
             `Moved ${NewMailHandler.messageIdentifier(message)} to ${recommendedBoxName}`
           );

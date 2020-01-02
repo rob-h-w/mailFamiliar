@@ -7,13 +7,14 @@ import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
-import {messageFromBody, Message} from '../types/message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
+import {create as createPredictors, PredictorType} from './predictors';
 import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
 import NewMailHandler from './newMailHandler';
-import {create as createPredictors, PredictorType} from './predictors';
+import {messageFromBody, Message} from '../types/message';
+import Move, {createMovesFromJson} from '../types/move';
 
 const SECOND_IN_MS = 1000;
 const DAY_IN_MS = 24 * 60 * 60 * SECOND_IN_MS;
@@ -35,6 +36,7 @@ export default class UserConnection implements IBoxListener {
   private readonly userReference: User;
   private isPopulatingBox: boolean = false;
   private isShallowSyncing: boolean = false;
+  private movesList: Move[];
 
   public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
@@ -131,6 +133,7 @@ export default class UserConnection implements IBoxListener {
   public async init() {
     logger.debug('starting connection init');
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
+    this.movesList = createMovesFromJson(await this.persistence.listMoves(this.user));
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
       if (this.disconnectCallback) {
@@ -191,6 +194,10 @@ export default class UserConnection implements IBoxListener {
     await this.refresh();
 
     logger.info('init complete');
+  }
+
+  get moves() {
+    return this.movesList;
   }
 
   public onClose(hadError: boolean) {

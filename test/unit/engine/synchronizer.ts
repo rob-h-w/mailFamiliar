@@ -43,7 +43,9 @@ describe('Synchronizer', () => {
       createUser: sinon.stub(),
       deleteBox: sinon.stub().resolves(),
       listBoxes: sinon.stub().resolves([]),
+      listMoves: sinon.stub().resolves([]),
       listUsers: sinon.stub().resolves([user]),
+      recordMoves: sinon.stub().resolves(),
       updateBox: sinon.stub().resolves()
     };
 

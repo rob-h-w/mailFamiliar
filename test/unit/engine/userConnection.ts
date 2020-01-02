@@ -143,13 +143,14 @@ describe('userConnection', () => {
         createBox: sinon.stub(),
         deleteBox: sinon.stub(),
         listBoxes: sinon.stub(),
+        listMoves: sinon.stub().resolves([]),
         updateBox: sinon.stub()
       };
     });
 
     describe('created with no prior boxes & no online boxes', () => {
       beforeEach(async () => {
-        persistence.listBoxes.returns([]);
+        persistence.listBoxes.resolves([]);
         userConnection = new UserConnection(persistence, user);
         await userConnection.init();
       });
