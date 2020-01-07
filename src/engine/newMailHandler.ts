@@ -66,8 +66,7 @@ export default class NewMailHandler {
         } else {
           // Actually do the move.
           await this.pImap.move([String(message.uid)], recommendedBoxName);
-          this.userConnection.moves.push(createMoveNow(recommendedBoxName, message));
-          await this.userConnection.persistence.recordMoves(user, this.userConnection.moves);
+          await this.userConnection.recordMove(createMoveNow(recommendedBoxName, message));
           logger.info(
             `Moved ${NewMailHandler.messageIdentifier(message)} to ${recommendedBoxName}`
           );

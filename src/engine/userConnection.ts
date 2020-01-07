@@ -37,6 +37,7 @@ export default class UserConnection implements IBoxListener {
   private isPopulatingBox: boolean = false;
   private isShallowSyncing: boolean = false;
   private movesList: Move[];
+  private movesMap: {[index: string]: Move};
 
   public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
@@ -134,6 +135,8 @@ export default class UserConnection implements IBoxListener {
     logger.debug('starting connection init');
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
     this.movesList = createMovesFromJson(await this.persistence.listMoves(this.user));
+    this.movesMap = {};
+    this.movesList.forEach(move => (this.movesMap[move.message.headers] = move));
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
       if (this.disconnectCallback) {
@@ -196,8 +199,27 @@ export default class UserConnection implements IBoxListener {
     logger.info('init complete');
   }
 
-  get moves() {
-    return this.movesList;
+  public hasMove(headers: string): boolean {
+    return this.movesMap[headers] !== undefined;
+  }
+
+  public moveByHeaders(headers: string): Move {
+    const move = this.movesMap[headers];
+    if (move === undefined) {
+      throw new Error(`${headers} was not moved.`);
+    }
+    return move;
+  }
+
+  public async recordMove(move: Move) {
+    const headers = move.message.headers;
+
+    if (!this.hasMove(headers)) {
+      this.movesList.push(move);
+      this.movesMap[headers] = move;
+    }
+
+    await this.persistence.recordMoves(this.user, this.movesList);
   }
 
   public onClose(hadError: boolean) {
@@ -233,6 +255,11 @@ export default class UserConnection implements IBoxListener {
 
     if (!expungedMessage) {
       // We never knew about the expunged message. All good.
+      return;
+    }
+
+    if (this.currentlyOpen.isInbox && this.hasMove(expungedMessage.headers)) {
+      // We moved the message. All good.
       return;
     }
 
