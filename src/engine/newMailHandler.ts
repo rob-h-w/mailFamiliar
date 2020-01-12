@@ -2,11 +2,12 @@ import * as _ from 'lodash';
 
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
-import Promisified, {IMessageBody} from 'imap/promisified';
+import Promisified, {MessageBody} from '../imap/promisified';
 import logger from '../logger';
-import {messageFromBody, IMessage} from './message';
-import UserConnection from './userConnection';
 import {getSyncedTo} from '../tools/trialSettings';
+import {messageFromBody, Message} from '../types/message';
+import {createMoveNow} from '../types/move';
+import UserConnection from './userConnection';
 
 export default class NewMailHandler {
   private readonly pImap: Promisified;
@@ -20,7 +21,7 @@ export default class NewMailHandler {
     this.userConnection = userConnection;
   }
 
-  private static messageIdentifier(message: IMessage): string {
+  private static messageIdentifier(message: Message): string {
     const MAX_LENGTH = 20;
     const FROM = 'From: ';
     const SUBJECT = 'Subject: ';
@@ -30,12 +31,12 @@ export default class NewMailHandler {
     return `{${message.uid} from ${from} subject ${subject}}`;
   }
 
-  private static messageWasSeen(messageBody: IMessageBody): boolean {
+  private static messageWasSeen(messageBody: MessageBody): boolean {
     const flags = messageBody.attrs.flags;
     return _.isArray(flags) && flags.indexOf('\\Seen') !== -1;
   }
 
-  private async handleMessage(message: IMessage, box: Box): Promise<boolean> {
+  private async handleMessage(message: Message, box: Box): Promise<boolean> {
     logger.debug(
       {qualifiedName: box.qualifiedName, message: NewMailHandler.messageIdentifier(message)},
       'handleMessage'
@@ -65,6 +66,7 @@ export default class NewMailHandler {
         } else {
           // Actually do the move.
           await this.pImap.move([String(message.uid)], recommendedBoxName);
+          await this.userConnection.recordMove(createMoveNow(recommendedBoxName, message));
           logger.info(
             `Moved ${NewMailHandler.messageIdentifier(message)} to ${recommendedBoxName}`
           );

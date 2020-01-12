@@ -1,8 +1,8 @@
 import * as _ from 'lodash';
 
-import {IMessageBody} from '../imap/promisified';
+import {MessageBody} from '../imap/promisified';
 
-export interface IMessage {
+export interface Message {
   headers: string;
   date: Date;
   seq: number;
@@ -10,7 +10,7 @@ export interface IMessage {
   uid: number;
 }
 
-export function headersFromBody(message: IMessageBody): string {
+export function headersFromBody(message: MessageBody): string {
   if (!_.isString(message.body) || _.isEmpty(message.body)) {
     throw new Error('message body must be a non-empty string.');
   }
@@ -18,7 +18,7 @@ export function headersFromBody(message: IMessageBody): string {
   return String(message.body);
 }
 
-export function messageFromBody(message: IMessageBody): IMessage {
+export function messageFromBody(message: MessageBody): Message {
   const headers = headersFromBody(message);
 
   return {

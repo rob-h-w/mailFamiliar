@@ -7,13 +7,14 @@ import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
-import {messageFromBody, IMessage} from './message';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
+import {create as createPredictors, PredictorType} from './predictors';
 import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
 import NewMailHandler from './newMailHandler';
-import {create as createPredictors, PredictorType} from './predictors';
+import {messageFromBody, Message} from '../types/message';
+import Move, {createMovesFromJson} from '../types/move';
 
 const SECOND_IN_MS = 1000;
 const DAY_IN_MS = 24 * 60 * 60 * SECOND_IN_MS;
@@ -35,6 +36,8 @@ export default class UserConnection implements IBoxListener {
   private readonly userReference: User;
   private isPopulatingBox: boolean = false;
   private isShallowSyncing: boolean = false;
+  private movesList: Move[];
+  private movesMap: {[index: string]: Move};
 
   public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
@@ -131,6 +134,9 @@ export default class UserConnection implements IBoxListener {
   public async init() {
     logger.debug('starting connection init');
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
+    this.movesList = createMovesFromJson(await this.persistence.listMoves(this.user));
+    this.movesMap = {};
+    this.movesList.forEach(move => (this.movesMap[move.message.headers] = move));
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
       if (this.disconnectCallback) {
@@ -193,6 +199,29 @@ export default class UserConnection implements IBoxListener {
     logger.info('init complete');
   }
 
+  public hasMove(headers: string): boolean {
+    return this.movesMap[headers] !== undefined;
+  }
+
+  public moveByHeaders(headers: string): Move {
+    const move = this.movesMap[headers];
+    if (move === undefined) {
+      throw new Error(`${headers} was not moved.`);
+    }
+    return move;
+  }
+
+  public async recordMove(move: Move) {
+    const headers = move.message.headers;
+
+    if (!this.hasMove(headers)) {
+      this.movesList.push(move);
+      this.movesMap[headers] = move;
+    }
+
+    await this.persistence.recordMoves(this.user, this.movesList);
+  }
+
   public onClose(hadError: boolean) {
     logger.warn(
       `Connection for ${_.get(this, 'userReference.user', 'unknown user')} closed${
@@ -226,6 +255,11 @@ export default class UserConnection implements IBoxListener {
 
     if (!expungedMessage) {
       // We never knew about the expunged message. All good.
+      return;
+    }
+
+    if (this.currentlyOpen.isInbox && this.hasMove(expungedMessage.headers)) {
+      // We moved the message. All good.
       return;
     }
 
@@ -315,7 +349,7 @@ export default class UserConnection implements IBoxListener {
     return new Promise(resolve => setTimeout(resolve, timeMs));
   }
 
-  private async populateBox(startDate?: Date): Promise<IMessage[]> {
+  private async populateBox(startDate?: Date): Promise<Message[]> {
     if (!this.currentlyOpen || this.isPopulatingBox) {
       return [];
     }
@@ -394,7 +428,7 @@ export default class UserConnection implements IBoxListener {
 
   private addToPredictor(
     predictor: IPredictor,
-    messages: ReadonlyArray<IMessage>,
+    messages: ReadonlyArray<Message>,
     qualifiedName: string
   ) {
     messages.forEach(message => predictor.addHeaders(message.headers, qualifiedName));

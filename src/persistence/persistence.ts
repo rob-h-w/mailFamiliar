@@ -1,4 +1,5 @@
 import Box from '../engine/box';
+import Move from '../types/move';
 import User from './user';
 
 export interface IInitializablePersistence<InitParams> extends IPersistence {
@@ -13,4 +14,7 @@ export default interface IPersistence {
   deleteBox(user: User, box: Box): Promise<void>;
   listBoxes(user: User): Promise<Array<Box>>;
   updateBox(user: User, box: Box): Promise<void>;
+
+  listMoves(user: User): Promise<Move[]>;
+  recordMoves(user: User, moves: ReadonlyArray<Move>): Promise<void>;
 }

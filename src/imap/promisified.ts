@@ -11,7 +11,7 @@ export interface IBoxListener {
   onUidValidity: (validity: number) => void;
 }
 
-export interface IMessageBody {
+export interface MessageBody {
   attrs: Imap.ImapMessageAttributes;
   body?: any;
   bodyInfo?: Imap.ImapMessageBodyInfo;
@@ -40,11 +40,11 @@ export default class Promisified {
     this.subscribeBox = promisify<string, void>(imap.subscribeBox.bind(imap));
   }
 
-  fetch = (fetch: Imap.ImapFetch): Promise<ReadonlyArray<IMessageBody>> => {
-    return new Promise<ReadonlyArray<IMessageBody>>((resolve, reject) => {
-      const messages: IMessageBody[] = [];
+  fetch = (fetch: Imap.ImapFetch): Promise<ReadonlyArray<MessageBody>> => {
+    return new Promise<ReadonlyArray<MessageBody>>((resolve, reject) => {
+      const messages: MessageBody[] = [];
       fetch.on('message', (message, seqno) => {
-        const msg: IMessageBody = {
+        const msg: MessageBody = {
           attrs: {
             date: new Date(),
             flags: [],
