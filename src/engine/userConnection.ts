@@ -191,9 +191,9 @@ export default class UserConnection implements IBoxListener {
     }
 
     this.mailBoxes = resultingBoxes;
+    this.mailBoxes.forEach(this.currentPredictor.considerBox);
     await this.openInbox();
     this.attempts = 0;
-    this.mailBoxes.forEach(this.currentPredictor.considerBox);
     await this.refresh();
 
     logger.info('init complete');

@@ -1,7 +1,12 @@
 import {expect} from '@hapi/code';
 const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
+import {Map} from 'immutable';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
+
+import IPredictor from '../../../src/engine/predictor';
+import {PredictorTypeValues} from '../../../src/engine/predictors';
+import {until} from '../../api/tools/wait';
 
 let Box: any;
 let clock: sinon.SinonFakeTimers;
@@ -9,6 +14,7 @@ let Imap: any;
 let imap: any;
 let logger: any;
 let persistence: any;
+let predictor: IPredictor;
 let Promisified: any;
 let promisified: any;
 let UserConnection: any;
@@ -88,6 +94,14 @@ describe('userConnection', () => {
       warn: sinon.stub()
     };
 
+    predictor = {
+      addHeaders: sinon.stub(),
+      considerBox: sinon.stub(),
+      folderScore: sinon.stub(),
+      name: sinon.stub().returns('name'),
+      removeHeaders: sinon.stub()
+    };
+
     promisified = {
       closeBox: sinon.stub(),
       connect: sinon.stub(),
@@ -116,6 +130,9 @@ describe('userConnection', () => {
     mockery.registerMock('imap', Imap);
     mockery.registerMock('../imap/promisified', {default: Promisified});
     mockery.registerMock('../logger', {default: logger});
+    mockery.registerMock('./predictors', {
+      create: sinon.stub().returns(Map.of(PredictorTypeValues.alternatives[2].value, predictor))
+    });
 
     mockery.registerAllowable('../../../src/engine/userConnection');
 
@@ -131,6 +148,7 @@ describe('userConnection', () => {
   afterEach(() => {
     clock.restore();
     mockery.disable();
+    mockery.deregisterAll();
   });
 
   it('is a class', () => {
@@ -179,6 +197,13 @@ describe('userConnection', () => {
         persistence.listBoxes.returns([]);
         userConnection = new UserConnection(persistence, user);
         await userConnection.init();
+      });
+
+      it('considers boxes before opening the inbox', async () => {
+        await until(() => logger.info.calledWith('init complete'));
+        expect(
+          (predictor.considerBox as sinon.SinonSpy).calledBefore(mockedBoxen.INBOX.box.open)
+        ).to.be.true();
       });
 
       it('does not delete boxes', () => {
@@ -275,6 +300,9 @@ describe('userConnection', () => {
           }
         });
         persistence.listBoxes.returns([inbox]);
+        mockery.deregisterMock('./predictors');
+        mockery.resetCache();
+        UserConnection = require('../../../src/engine/userConnection').default;
         userConnection = new UserConnection(persistence, user);
         await userConnection.init();
       });
