@@ -9,6 +9,8 @@ import {IInitializablePersistence} from './persistence';
 import Move, {createMovesFromJson} from '../types/move';
 import User from './user';
 
+const MOVELIST_FILENAME = 'moveList.json';
+
 export function hashOf(value: string): string {
   return crypto
     .createHash('sha256')
@@ -173,6 +175,7 @@ export default class Json implements IInitializablePersistence<string> {
 
         files
           .filter(file => file.endsWith('.json'))
+          .filter(file => !file.endsWith(MOVELIST_FILENAME))
           .forEach(file => {
             try {
               const filePath = path.join(userDataRoot, file);
@@ -248,6 +251,6 @@ export default class Json implements IInitializablePersistence<string> {
   };
 
   movePath = (user: User): string => {
-    return path.join(this.userDataRoot(user), 'moveList.json');
+    return path.join(this.userDataRoot(user), MOVELIST_FILENAME);
   };
 }
