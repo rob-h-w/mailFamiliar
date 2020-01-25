@@ -18,6 +18,13 @@ function canFixByReconnecting(reason: any): boolean {
     }
   }
 
+  if (reason.message) {
+    switch (reason.message) {
+      case 'Not authenticated':
+        return true;
+    }
+  }
+
   return false;
 }
 
