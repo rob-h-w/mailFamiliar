@@ -12,7 +12,12 @@ let Box: any;
 let clock: sinon.SinonFakeTimers;
 let Imap: any;
 let imap: any;
-let logger: any;
+let logger: {
+  debug: sinon.SinonStub;
+  error: sinon.SinonStub;
+  info: sinon.SinonStub;
+  warn: sinon.SinonStub;
+};
 let persistence: any;
 let predictor: IPredictor;
 let Promisified: any;
@@ -181,6 +186,108 @@ describe('userConnection', () => {
       it('does not create or delete boxes', () => {
         expect(persistence.createBox.called).to.be.false();
         expect(persistence.deleteBox.called).to.be.false();
+      });
+
+      describe('disconnected', () => {
+        let disconnectCallback: sinon.SinonStub;
+
+        beforeEach(() => {
+          logger.warn.reset();
+          logger.debug.reset();
+        });
+
+        describe('with callback', () => {
+          beforeEach(() => {
+            disconnectCallback = sinon.stub();
+            userConnection.onDisconnect = disconnectCallback;
+          });
+
+          describe('by close with error', () => {
+            beforeEach(() => {
+              userConnection.onClose(true);
+            });
+
+            it('calls the callback', () => {
+              expect(disconnectCallback.callCount).to.equal(1);
+            });
+
+            it('logs correctly', () => {
+              expect(logger.warn.callCount).to.equal(1);
+              expect(logger.warn.args[0][0]).endsWith('with error.');
+            });
+          });
+
+          describe('by close without error', () => {
+            beforeEach(() => {
+              userConnection.onClose(false);
+            });
+
+            it('calls the callback', () => {
+              expect(disconnectCallback.callCount).to.equal(1);
+            });
+
+            it('logs correctly', () => {
+              expect(logger.warn.callCount).to.equal(1);
+              expect(logger.warn.args[0][0]).endsWith('closed.');
+            });
+          });
+
+          describe('by end', () => {
+            beforeEach(() => {
+              userConnection.onEnd();
+            });
+
+            it('calls the callback', () => {
+              expect(disconnectCallback.callCount).to.equal(1);
+            });
+
+            it('logs correctly', () => {
+              expect(logger.debug.callCount).to.equal(2);
+              expect(logger.debug.args[0]).to.equal(['Connection ended.']);
+              expect(logger.debug.args[1]).to.equal(['Attempting to reconnect.']);
+            });
+          });
+        });
+
+        describe('without callback', () => {
+          beforeEach(() => {
+            userConnection.onDisconnect = undefined;
+          });
+
+          describe('by close with error', () => {
+            beforeEach(() => {
+              userConnection.onClose(true);
+            });
+
+            it('logs correctly', () => {
+              expect(logger.warn.callCount).to.equal(1);
+              expect(logger.warn.args[0][0]).endsWith('with error.');
+            });
+          });
+
+          describe('by close without error', () => {
+            beforeEach(() => {
+              userConnection.onClose(false);
+            });
+
+            it('logs correctly', () => {
+              expect(logger.warn.callCount).to.equal(1);
+              expect(logger.warn.args[0][0]).endsWith('closed.');
+            });
+          });
+
+          describe('by end', () => {
+            beforeEach(() => {
+              userConnection.onEnd();
+            });
+
+            it('logs correctly', () => {
+              expect(logger.debug.callCount).to.equal(2);
+              expect(logger.debug.args[0]).to.equal(['Connection ended.']);
+              expect(logger.debug.args[1]).to.equal(['No disconnect callback found.']);
+            });
+          });
+        });
       });
     });
 

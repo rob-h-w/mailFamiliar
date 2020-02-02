@@ -232,6 +232,7 @@ export default class UserConnection implements IBoxListener {
         hadError ? ' with error.' : '.'
       }`
     );
+
     if (this.disconnectCallback) {
       this.disconnectCallback();
     }
@@ -239,6 +240,17 @@ export default class UserConnection implements IBoxListener {
 
   set onDisconnect(callback: OnDisconnect | undefined) {
     this.disconnectCallback = callback;
+  }
+
+  public onEnd() {
+    logger.debug('Connection ended.');
+
+    if (this.disconnectCallback) {
+      logger.debug('Attempting to reconnect.');
+      this.disconnectCallback();
+    } else {
+      logger.debug('No disconnect callback found.');
+    }
   }
 
   public onExpunge = async (seqNo: number) => {

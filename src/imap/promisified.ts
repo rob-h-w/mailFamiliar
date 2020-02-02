@@ -6,6 +6,7 @@ import logger from '../logger';
 
 export interface IBoxListener {
   onClose: (hadError: boolean) => void;
+  onEnd: () => void;
   onExpunge: (seqNo: number) => void;
   onMail: (count: number) => void;
   onUidValidity: (validity: number) => void;
@@ -77,10 +78,11 @@ export default class Promisified {
 
   private setBoxListener = (listener: IBoxListener) => {
     this.imap.on('close', listener.onClose);
+    this.imap.on('end', listener.onEnd);
     this.imap.on('expunge', listener.onExpunge);
     this.imap.on('mail', listener.onMail);
     this.imap.on('uidvalidity', listener.onUidValidity);
-    ['alert', 'end', 'update'].forEach(event => {
+    ['alert', 'update'].forEach(event => {
       this.imap.on(event, (...args: any[]) => {
         logger.error({
           args,
