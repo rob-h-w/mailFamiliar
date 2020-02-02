@@ -11,6 +11,7 @@ export interface DiffAndAtables {
   START: AdjacencyTable | null;
   FINISH: AdjacencyTable | null;
   diff: Diff;
+  maxLength: number;
   otherAtables: ReadonlyArray<AdjacencyTable>;
   strings: ReadonlyArray<string>;
 }
@@ -104,6 +105,13 @@ function confidenceFromStringDiff(diff: Diff, str: string): number {
   return diffCharacterCount / str.length;
 }
 
+function updateMaxLength(aTables: DiffAndAtables) {
+  aTables.maxLength = Math.max(
+    aTables.maxLength,
+    aTables.strings.reduce((str, max) => (str.length > max.length ? str : max)).length
+  );
+}
+
 export const DiffAndAtables = {
   addStrings: (
     aTables: DiffAndAtables,
@@ -119,6 +127,8 @@ export const DiffAndAtables = {
       const {hasFinish, hasStart} = diffInfo(aTables);
       strings.forEach(str => addStringsToAtables(aTables, str, hasFinish, hasStart));
     }
+
+    updateMaxLength(aTables);
 
     return aTables;
   },
@@ -167,6 +177,7 @@ export const DiffAndAtables = {
       FINISH: null,
       START: null,
       diff: [],
+      maxLength: 0,
       otherAtables: [],
       strings: []
     };
@@ -180,6 +191,7 @@ export const DiffAndAtables = {
     aTables.strings = strings;
 
     strings.forEach((str, index) => {
+      aTables.maxLength = Math.max(aTables.maxLength, str.length);
       switch (index) {
         case 0:
           break;

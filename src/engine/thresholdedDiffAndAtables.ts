@@ -8,10 +8,10 @@ interface ThresholdedDiffCollection {
   [index: number]: DiffAndAtables[];
 }
 
-const BUCKET_SIZE = 50;
 const MAX_REDUCER = (max: number, candidate: number) => Math.max(max, candidate);
+const MAX_SIMILARITY = 0.2;
 const MIN_CONFIDENCE = 0.5;
-const MIN_EQUALITY = 0.02;
+const MIN_EQUALITY = 0.05;
 
 export default class ThresholdedDiffAndAtables {
   private readonly diffs: ThresholdedDiffCollection;
@@ -35,10 +35,26 @@ export default class ThresholdedDiffAndAtables {
   }
 
   private addStringToSegLength(strVal: string, segLength: number) {
-    this.diffs[segLength] = this.withString(this.diffs[segLength], segLength, strVal);
+    this.diffs[segLength] = ThresholdedDiffAndAtables.withString(
+      this.diffs[segLength],
+      segLength,
+      strVal
+    );
   }
 
-  private withString(
+  private static similarity(diffAndAtable: DiffAndAtables): number {
+    if (diffAndAtable.strings.length === 1) {
+      return 1;
+    }
+
+    if (diffAndAtable.maxLength === 0) {
+      return 0;
+    }
+
+    return this.countCharacters(diffAndAtable.diff) / diffAndAtable.maxLength;
+  }
+
+  private static withString(
     diffAndAtablesList: DiffAndAtables[],
     segLength: number,
     strVal: string
@@ -50,9 +66,7 @@ export default class ThresholdedDiffAndAtables {
     let highestConfidence = 0;
 
     for (const diffAndAtable of diffAndAtablesList) {
-      const length = diffAndAtable.strings.length;
-
-      if (length < BUCKET_SIZE) {
+      if (ThresholdedDiffAndAtables.similarity(diffAndAtable) > MAX_SIMILARITY) {
         highestConfidence = 1;
         replacementIndex = index;
         break;
@@ -77,7 +91,7 @@ export default class ThresholdedDiffAndAtables {
       const candidateDiffAndAtable = diffAndAtablesList[replacementIndex];
       if (candidateDiffAndAtable) {
         newVal = DiffAndAtables.addStrings(candidateDiffAndAtable, [strVal], segLength);
-        newVal = this.isWithinThreshold(newVal, strVal) ? newVal : null;
+        newVal = ThresholdedDiffAndAtables.isWithinThreshold(newVal, strVal) ? newVal : null;
       }
     }
 
@@ -98,11 +112,15 @@ export default class ThresholdedDiffAndAtables {
 
   private confidenceForSegLength(strVal: string, segLength: number): number {
     return this.diffs[segLength]
-      .map(diff => this.confidenceForDiff(diff, strVal, segLength))
+      .map(diff => ThresholdedDiffAndAtables.confidenceForDiff(diff, strVal, segLength))
       .reduce(MAX_REDUCER, 0);
   }
 
-  private confidenceForDiff(diff: DiffAndAtables, strVal: string, segLength: number): number {
+  private static confidenceForDiff(
+    diff: DiffAndAtables,
+    strVal: string,
+    segLength: number
+  ): number {
     const naiveConfidence = DiffAndAtables.confidenceFor(diff, strVal);
 
     if (!naiveConfidence) {
@@ -110,7 +128,9 @@ export default class ThresholdedDiffAndAtables {
     }
 
     const hypotheticallyAddedTdaat = DiffAndAtables.addStrings(diff, [strVal], segLength);
-    const matchingCharacters = this.countCharacters(hypotheticallyAddedTdaat.diff);
+    const matchingCharacters = ThresholdedDiffAndAtables.countCharacters(
+      hypotheticallyAddedTdaat.diff
+    );
     const nonMatchingCharacters = strVal.length - matchingCharacters;
 
     return (matchingCharacters + naiveConfidence * nonMatchingCharacters) / strVal.length;
@@ -155,13 +175,16 @@ export default class ThresholdedDiffAndAtables {
     );
   }
 
-  private isWithinThreshold(daa: DiffAndAtables, candidate: string): boolean {
+  private static isWithinThreshold(daa: DiffAndAtables, candidate: string): boolean {
     if (candidate.length === 0 || daa.strings.length === 0) {
       return true;
     }
 
     if (daa.strings.length === 1) {
-      return this.diffIsWithinThreshold(stringDiff(daa.strings[0], candidate), candidate);
+      return ThresholdedDiffAndAtables.diffIsWithinThreshold(
+        stringDiff(daa.strings[0], candidate),
+        candidate
+      );
     }
 
     const newDiff = daa.diff;
@@ -169,14 +192,14 @@ export default class ThresholdedDiffAndAtables {
       return false;
     }
 
-    return this.diffIsWithinThreshold(newDiff, candidate);
+    return ThresholdedDiffAndAtables.diffIsWithinThreshold(newDiff, candidate);
   }
 
-  private diffIsWithinThreshold(diff: Diff, candidate: string): boolean {
-    return this.countCharacters(diff) / candidate.length > MIN_EQUALITY;
+  private static diffIsWithinThreshold(diff: Diff, candidate: string): boolean {
+    return ThresholdedDiffAndAtables.countCharacters(diff) / candidate.length > MIN_EQUALITY;
   }
 
-  private countCharacters(diff: Diff) {
+  private static countCharacters(diff: Diff) {
     return diff.map(val => (val ? val.length : 0)).reduce((sum, val) => sum + val, 0);
   }
 }
