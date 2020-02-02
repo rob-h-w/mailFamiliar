@@ -21,11 +21,15 @@ describe('DiffAndAtables', () => {
 
     beforeEach(() => {
       daat = DiffAndAtables.emptyAtables();
-      DiffAndAtables.addStrings(daat, [theString]);
+      daat = DiffAndAtables.addStrings(daat, [theString]);
     });
 
-    it('has no confidence for the same string', () => {
-      expect(DiffAndAtables.confidenceFor(daat, theString)).to.equal(0);
+    it('has total confidence for the same string', () => {
+      expect(DiffAndAtables.confidenceFor(daat, theString)).to.equal(1);
+    });
+
+    it('has the correct max length', () => {
+      expect(daat.maxLength).to.equal(18);
     });
   });
 
@@ -39,6 +43,10 @@ describe('DiffAndAtables', () => {
 
     it('has total confidence for the same string', () => {
       expect(DiffAndAtables.confidenceFor(daat, theString)).to.equal(1);
+    });
+
+    it('has the correct max length', () => {
+      expect(daat.maxLength).to.equal(18);
     });
   });
 
@@ -72,6 +80,10 @@ describe('DiffAndAtables', () => {
 
     it('has no confidence for a string that does not conform to other strings', () => {
       expect(DiffAndAtables.confidenceFor(daat, 'xyz')).to.equal(0);
+    });
+
+    it('has the correct max length', () => {
+      expect(daat.maxLength).to.equal(27);
     });
   });
 });
