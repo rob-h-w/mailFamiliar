@@ -3,16 +3,17 @@ import {Map} from 'immutable';
 import * as _ from 'lodash';
 
 import Box from './box';
+import {BadStateException} from './exceptions';
 import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {IBoxListener} from '../imap/promisified';
 import logger from '../logger';
+import NewMailHandler from './newMailHandler';
 import IPersistence from '../persistence/persistence';
 import User from '../persistence/user';
 import IPredictor from './predictor';
 import {create as createPredictors, PredictorType} from './predictors';
 import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
-import NewMailHandler from './newMailHandler';
 import {messageFromBody, Message} from '../types/message';
 import Move, {createMovesFromJson} from '../types/move';
 
@@ -26,13 +27,13 @@ export default class UserConnection implements IBoxListener {
   private currentlyOpen?: Box;
   private disconnectCallback?: OnDisconnect;
   private inbox?: Box;
-  private mailBoxes: ReadonlyArray<Box>;
+  private mailBoxes?: ReadonlyArray<Box>;
   private newMailHander: NewMailHandler;
   private readonly persistenceReference: IPersistence;
   private readonly pImap: Promisified;
   private readonly predictors: Map<PredictorType, IPredictor>;
   private readonly currentPredictor: IPredictor;
-  private refreshTimer: NodeJS.Timer;
+  private refreshTimer?: NodeJS.Timer;
   private readonly userReference: User;
   private isPopulatingBox: boolean = false;
   private isShallowSyncing: boolean = false;
@@ -44,12 +45,15 @@ export default class UserConnection implements IBoxListener {
     this.attempts = connectionAttempts;
     this.persistenceReference = persistence;
     this.pImap = new Promisified(new Imap(user), this);
+    this.movesList = [];
+    this.movesMap = {};
+    this.newMailHander = new NewMailHandler(this, this.pImap);
     this.predictors = createPredictors();
     this.currentPredictor = this.predictors.get(u.predictorType || 'Traat') as IPredictor;
     this.userReference = user;
   }
 
-  get boxes(): ReadonlyArray<Box> {
+  get boxes(): ReadonlyArray<Box> | undefined {
     return this.mailBoxes;
   }
 
@@ -134,8 +138,9 @@ export default class UserConnection implements IBoxListener {
   public async init() {
     logger.debug('starting connection init');
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
-    this.movesList = createMovesFromJson(await this.persistence.listMoves(this.user));
-    this.movesMap = {};
+    this.movesList = this.movesList.concat(
+      createMovesFromJson(await this.persistence.listMoves(this.user))
+    );
     this.movesList.forEach(move => (this.movesMap[move.message.headers] = move));
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
@@ -143,7 +148,6 @@ export default class UserConnection implements IBoxListener {
         this.disconnectCallback();
       }
     });
-    this.newMailHander = new NewMailHandler(this, this.pImap);
     const writablePersistedBoxes: Box[] = persistedBoxes.map(box => box);
     const mailBoxes = await this.pImap.getBoxes();
     const discoveredBoxes = this.collectMailboxes(mailBoxes);
@@ -228,17 +232,25 @@ export default class UserConnection implements IBoxListener {
         hadError ? ' with error.' : '.'
       }`
     );
-    if (this.onDisconnect) {
-      this.onDisconnect();
-    }
-  }
 
-  get onDisconnect() {
-    return this.disconnectCallback;
+    if (this.disconnectCallback) {
+      this.disconnectCallback();
+    }
   }
 
   set onDisconnect(callback: OnDisconnect | undefined) {
     this.disconnectCallback = callback;
+  }
+
+  public onEnd() {
+    logger.debug('Connection ended.');
+
+    if (this.disconnectCallback) {
+      logger.debug('Attempting to reconnect.');
+      this.disconnectCallback();
+    } else {
+      logger.debug('No disconnect callback found.');
+    }
   }
 
   public onExpunge = async (seqNo: number) => {
@@ -449,6 +461,10 @@ export default class UserConnection implements IBoxListener {
 
     try {
       this.isShallowSyncing = true;
+      if (this.boxes === undefined) {
+        throw new BadStateException('Mailboxes have not yet been retrieved.');
+      }
+
       for (const box of this.boxes
         .filter(box => canLearnFrom(box.qualifiedName))
         .filter(box => excluding.indexOf(box.qualifiedName) === -1)) {

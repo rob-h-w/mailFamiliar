@@ -33,17 +33,12 @@ class Glue {
   readonly synchronizer: Synchronizer;
 
   constructor() {
-    this.persistence = new Json();
+    this.persistence = new Json(this.path());
     this.synchronizer = new Synchronizer(this.persistence);
   }
 
   async init() {
-    await this.persistence.init(
-      env
-        .get('M_FAMILIAR_STORAGE')
-        .required()
-        .asString()
-    );
+    await this.persistence.init(this.path());
     await this.synchronizer.init();
   }
 
@@ -54,6 +49,13 @@ class Glue {
     }
 
     return false;
+  }
+
+  private path(): string {
+    return env
+      .get('M_FAMILIAR_STORAGE')
+      .required()
+      .asString();
   }
 }
 

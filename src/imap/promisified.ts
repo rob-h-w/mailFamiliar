@@ -6,6 +6,7 @@ import logger from '../logger';
 
 export interface IBoxListener {
   onClose: (hadError: boolean) => void;
+  onEnd: () => void;
   onExpunge: (seqNo: number) => void;
   onMail: (count: number) => void;
   onUidValidity: (validity: number) => void;
@@ -32,12 +33,12 @@ export default class Promisified {
     this.imap = imap;
     this.setBoxListener(listener);
 
-    this.closeBox = promisify<void>(imap.closeBox.bind(imap));
-    this.getBoxes = promisify<Imap.MailBoxes>(imap.getBoxes.bind(imap));
-    this.move = promisify<string[], string, void>(imap.move.bind(imap));
-    this.openBox = promisify<string, Imap.Box>(imap.openBox.bind(imap));
-    this.search = promisify<any[], number[]>(imap.search.bind(imap));
-    this.subscribeBox = promisify<string, void>(imap.subscribeBox.bind(imap));
+    this.closeBox = promisify(imap.closeBox.bind(imap));
+    this.getBoxes = promisify(imap.getBoxes.bind(imap));
+    this.move = promisify(imap.move.bind(imap));
+    this.openBox = promisify(imap.openBox.bind(imap));
+    this.search = promisify(imap.search.bind(imap));
+    this.subscribeBox = promisify(imap.subscribeBox.bind(imap));
   }
 
   fetch = (fetch: Imap.ImapFetch): Promise<ReadonlyArray<MessageBody>> => {
@@ -77,10 +78,11 @@ export default class Promisified {
 
   private setBoxListener = (listener: IBoxListener) => {
     this.imap.on('close', listener.onClose);
+    this.imap.on('end', listener.onEnd);
     this.imap.on('expunge', listener.onExpunge);
     this.imap.on('mail', listener.onMail);
     this.imap.on('uidvalidity', listener.onUidValidity);
-    ['alert', 'end', 'update'].forEach(event => {
+    ['alert', 'update'].forEach(event => {
       this.imap.on(event, (...args: any[]) => {
         logger.error({
           args,

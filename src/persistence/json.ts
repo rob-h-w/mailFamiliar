@@ -95,15 +95,17 @@ function stringify(value: any, depth: number = 0): string {
 }
 
 export default class Json implements IInitializablePersistence<string> {
-  private contentsFolder: string;
+  private readonly contentsFolder: string;
+
+  public constructor(contentsFolder: string) {
+    this.contentsFolder = contentsFolder;
+  }
 
   public userDataRoot(user: User): string {
     return path.join(this.contentsFolder, hashOf(user.user));
   }
 
-  async init(contentsFolder: string) {
-    this.contentsFolder = contentsFolder;
-  }
+  async init(_: string) {}
 
   private boxName(box: Box): string {
     return hashOf(box.qualifiedName);
