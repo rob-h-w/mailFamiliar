@@ -9,9 +9,9 @@ interface ThresholdedDiffCollection {
 }
 
 const MAX_REDUCER = (max: number, candidate: number) => Math.max(max, candidate);
-const MAX_SIMILARITY = 0.2;
-const MIN_CONFIDENCE = 0.5;
-const MIN_EQUALITY = 0.05;
+const MAX_SIMILARITY = 0.05;
+const MIN_CONFIDENCE = 0.8;
+const MIN_EQUALITY = 0.01;
 
 export default class ThresholdedDiffAndAtables {
   private readonly diffs: ThresholdedDiffCollection;
