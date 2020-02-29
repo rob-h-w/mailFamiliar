@@ -4,7 +4,7 @@ import {Map} from 'immutable';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
-import IPredictor from '../../../src/engine/predictor';
+import Predictor from '../../../src/engine/predictor';
 import {PredictorTypeValues} from '../../../src/engine/predictors';
 import {until} from '../../api/tools/wait';
 
@@ -19,7 +19,7 @@ let logger: {
   warn: sinon.SinonStub;
 };
 let persistence: any;
-let predictor: IPredictor;
+let predictor: Predictor;
 let Promisified: any;
 let promisified: any;
 let UserConnection: any;

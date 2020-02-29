@@ -3,20 +3,20 @@ import {Map as ImMap} from 'immutable';
 import {DiffAndAtables} from './diffAndAtables';
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
-import IPredictor from './predictor';
+import Predictor from './predictor';
 import MIN_SEGMENT_LENGTHS from './segmentLengths';
 
-interface IDiffAndAtablesInstance {
+interface DiffAndAtablesInstance {
   daa: DiffAndAtables;
   minSegmentLength: number;
 }
 
-interface ITablesMap {
-  [key: string]: ReadonlyArray<IDiffAndAtablesInstance>;
+interface TablesMap {
+  [key: string]: ReadonlyArray<DiffAndAtablesInstance>;
 }
 
-export default class RegexAndAtable implements IPredictor {
-  private readonly boxesToInstancesMap: ITablesMap;
+export default class RegexAndAtable implements Predictor {
+  private readonly boxesToInstancesMap: TablesMap;
 
   constructor() {
     this.boxesToInstancesMap = {};
@@ -57,8 +57,8 @@ export default class RegexAndAtable implements IPredictor {
 
   private forEachInstanceOf = (
     qualifiedBoxName: string,
-    fn: (instance: IDiffAndAtablesInstance) => DiffAndAtables
-  ): ReadonlyArray<IDiffAndAtablesInstance> => {
+    fn: (instance: DiffAndAtablesInstance) => DiffAndAtables
+  ): ReadonlyArray<DiffAndAtablesInstance> => {
     const instances = this.boxesToInstancesMap[qualifiedBoxName];
     return instances.map(instance => ({
       daa: fn(instance),

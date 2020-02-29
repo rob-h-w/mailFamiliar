@@ -3,10 +3,10 @@ const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab'
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
-import IPersistence from '../../../src/persistence/persistence';
+import Persistence from '../../../src/persistence/persistence';
 import User from '../../../src/persistence/user';
 
-let persistence: IPersistence;
+let persistence: Persistence;
 let user: User;
 let UserConnection: any;
 let userConnection: any;

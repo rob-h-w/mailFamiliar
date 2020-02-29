@@ -6,12 +6,12 @@ import Box from './box';
 import {BadStateException} from './exceptions';
 import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
-import Promisified, {IBoxListener} from '../imap/promisified';
+import Promisified, {BoxListener, MessageBody} from '../imap/promisified';
 import logger from '../logger';
 import NewMailHandler from './newMailHandler';
-import IPersistence from '../persistence/persistence';
+import Persistence from '../persistence/persistence';
 import User from '../persistence/user';
-import IPredictor from './predictor';
+import Predictor from './predictor';
 import {create as createPredictors, PredictorType} from './predictors';
 import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
 import {messageFromBody, Message} from '../types/message';
@@ -22,25 +22,25 @@ const DAY_IN_MS = 24 * 60 * 60 * SECOND_IN_MS;
 const OPERATION_PAUSE_MS = 100;
 const INTER_MAILBOX_PAUSE = 1 * SECOND_IN_MS;
 
-export default class UserConnection implements IBoxListener {
+export default class UserConnection implements BoxListener {
   private attempts: number;
   private currentlyOpen?: Box;
   private disconnectCallback?: OnDisconnect;
   private inbox?: Box;
   private mailBoxes?: ReadonlyArray<Box>;
   private newMailHander: NewMailHandler;
-  private readonly persistenceReference: IPersistence;
+  private readonly persistenceReference: Persistence;
   private readonly pImap: Promisified;
-  private readonly predictors: Map<PredictorType, IPredictor>;
-  private readonly currentPredictor: IPredictor;
+  private readonly predictors: Map<PredictorType, Predictor>;
+  private readonly currentPredictor: Predictor;
   private refreshTimer?: NodeJS.Timer;
   private readonly userReference: User;
-  private isPopulatingBox: boolean = false;
-  private isShallowSyncing: boolean = false;
+  private isPopulatingBox = false;
+  private isShallowSyncing = false;
   private movesList: Move[];
   private movesMap: {[index: string]: Move};
 
-  public constructor(persistence: IPersistence, u: User, connectionAttempts: number) {
+  public constructor(persistence: Persistence, u: User, connectionAttempts: number) {
     const user = withTrialSettings(u);
     this.attempts = connectionAttempts;
     this.persistenceReference = persistence;
@@ -49,7 +49,7 @@ export default class UserConnection implements IBoxListener {
     this.movesMap = {};
     this.newMailHander = new NewMailHandler(this, this.pImap);
     this.predictors = createPredictors();
-    this.currentPredictor = this.predictors.get(u.predictorType || 'Traat') as IPredictor;
+    this.currentPredictor = this.predictors.get(u.predictorType || 'Traat') as Predictor;
     this.userReference = user;
   }
 
@@ -57,7 +57,7 @@ export default class UserConnection implements IBoxListener {
     return this.mailBoxes;
   }
 
-  private async closeBox() {
+  private async closeBox(): Promise<void> {
     await this.newMailHander.finished();
     if (this.currentlyOpen) {
       const qualifiedName = this.currentlyOpen.qualifiedName;
@@ -87,7 +87,7 @@ export default class UserConnection implements IBoxListener {
       const root: string = parent
         ? `${parent.qualifiedName}${folder.delimiter || rootDelimiter}`
         : '';
-      const qualifiedName: string = `${root}${name}`;
+      const qualifiedName = `${root}${name}`;
       const box: Box = new Box({
         imapFolder: folder,
         name,
@@ -106,19 +106,20 @@ export default class UserConnection implements IBoxListener {
     return boxes;
   }
 
-  get connectionAttempts() {
+  get connectionAttempts(): number {
     return this.attempts;
   }
 
-  defaultStartDate = () => new Date(Date.now() - DAY_IN_MS * this.user.syncWindowDays);
+  defaultStartDate = (): Date => new Date(Date.now() - DAY_IN_MS * this.user.syncWindowDays);
 
-  disconnect = async () => {
+  disconnect = async (): Promise<void> => {
     try {
       await this.pImap.closeBox();
+      // eslint-disable-next-line no-empty
     } catch {}
   };
 
-  fetch = (source: any, seq = false) => {
+  fetch = (source: any, seq = false): Promise<readonly MessageBody[]> => {
     const fetchObj = seq ? this.pImap.imap.seq : this.pImap.imap;
     return this.pImap.fetch(
       fetchObj.fetch(source, {
@@ -129,13 +130,13 @@ export default class UserConnection implements IBoxListener {
     );
   };
 
-  async handleNewMail() {
+  async handleNewMail(): Promise<void> {
     if (this.currentlyOpen) {
       await this.newMailHander.handleMail(this.currentlyOpen);
     }
   }
 
-  public async init() {
+  public async init(): Promise<void> {
     logger.debug('starting connection init');
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
     this.movesList = this.movesList.concat(
@@ -215,7 +216,7 @@ export default class UserConnection implements IBoxListener {
     return move;
   }
 
-  public async recordMove(move: Move) {
+  public async recordMove(move: Move): Promise<void> {
     const headers = move.message.headers;
 
     if (!this.hasMove(headers)) {
@@ -226,7 +227,7 @@ export default class UserConnection implements IBoxListener {
     await this.persistence.recordMoves(this.user, this.movesList);
   }
 
-  public onClose(hadError: boolean) {
+  public onClose(hadError: boolean): void {
     logger.warn(
       `Connection for ${_.get(this, 'userReference.user', 'unknown user')} closed${
         hadError ? ' with error.' : '.'
@@ -242,7 +243,7 @@ export default class UserConnection implements IBoxListener {
     this.disconnectCallback = callback;
   }
 
-  public onEnd() {
+  public onEnd(): void {
     logger.debug('Connection ended.');
 
     if (this.disconnectCallback) {
@@ -253,7 +254,7 @@ export default class UserConnection implements IBoxListener {
     }
   }
 
-  public onExpunge = async (seqNo: number) => {
+  public onExpunge = async (seqNo: number): Promise<void> => {
     logger.debug({seqNo}, 'onExpunge');
     if (!this.currentlyOpen) {
       // Shouldn't be possible - log it & move on.
@@ -282,13 +283,13 @@ export default class UserConnection implements IBoxListener {
     await this.shallowSyncSince(expungedMessage.date, [this.currentlyOpen.qualifiedName], true);
   };
 
-  public onMail = async (count: number) => {
+  public onMail = async (count: number): Promise<void> => {
     logger.debug({count}, 'onMail');
     await this.handleNewMail();
     logger.debug('New mails handled');
   };
 
-  public onUidValidity = async (uidValidity: number) => {
+  public onUidValidity = async (uidValidity: number): Promise<void> => {
     logger.debug({uidValidity}, 'onUidValidity');
     const box = this.currentlyOpen;
     if (box && _.get(box, 'uidValidity') !== uidValidity) {
@@ -297,9 +298,9 @@ export default class UserConnection implements IBoxListener {
     }
   };
 
-  public async shutdown() {}
+  public async shutdown(): Promise<void> {}
 
-  private openBox = async (box: Box) => {
+  private openBox = async (box: Box): Promise<void> => {
     logger.debug(
       {
         previousQualifiedName: this.currentlyOpen ? this.currentlyOpen.qualifiedName : 'null',
@@ -343,7 +344,7 @@ export default class UserConnection implements IBoxListener {
     }
   };
 
-  private async openInbox() {
+  private async openInbox(): Promise<void> {
     if (this.currentlyOpen && this.currentlyOpen.isInbox) {
       return;
     }
@@ -357,7 +358,7 @@ export default class UserConnection implements IBoxListener {
     await this.openBox(this.inbox);
   }
 
-  private async pause(timeMs: number = OPERATION_PAUSE_MS) {
+  private async pause(timeMs: number = OPERATION_PAUSE_MS): Promise<NodeJS.Timeout> {
     return new Promise(resolve => setTimeout(resolve, timeMs));
   }
 
@@ -405,15 +406,15 @@ export default class UserConnection implements IBoxListener {
     }
   }
 
-  get persistence(): IPersistence {
+  get persistence(): Persistence {
     return this.persistenceReference;
   }
 
-  get predictor(): IPredictor {
+  get predictor(): Predictor {
     return this.currentPredictor;
   }
 
-  private refresh() {
+  private refresh(): Promise<void> {
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
     }
@@ -427,7 +428,7 @@ export default class UserConnection implements IBoxListener {
     return this.shallowSync();
   }
 
-  private async resetBox() {
+  private async resetBox(): Promise<void> {
     if (!this.currentlyOpen) {
       return;
     }
@@ -439,22 +440,22 @@ export default class UserConnection implements IBoxListener {
   }
 
   private addToPredictor(
-    predictor: IPredictor,
+    predictor: Predictor,
     messages: ReadonlyArray<Message>,
     qualifiedName: string
-  ) {
+  ): void {
     messages.forEach(message => predictor.addHeaders(message.headers, qualifiedName));
   }
 
-  private async shallowSync() {
+  private async shallowSync(): Promise<void> {
     await this.shallowSyncSince(this.defaultStartDate());
   }
 
   private async shallowSyncSince(
     date: Date,
     excluding: string[] = [],
-    resetSyncedTo: boolean = false
-  ) {
+    resetSyncedTo = false
+  ): Promise<void> {
     if (this.isShallowSyncing) {
       return;
     }

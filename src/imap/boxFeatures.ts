@@ -21,10 +21,10 @@ export type DoNotLearnFrom = Static<typeof DoNotLearnFromValues>;
 const DoNotMoveToValues = DraftsBoxValues.Or(SentBoxValues).Or(TrashBoxValues);
 export type DoNotMoveTo = Static<typeof DoNotMoveToValues>;
 
-export function canLearnFrom(boxName: string) {
+export function canLearnFrom(boxName: string): boolean {
   return !DoNotLearnFromValues.guard(boxName.toUpperCase());
 }
 
-export function canMoveTo(boxName: string) {
+export function canMoveTo(boxName: string): boolean {
   return !DoNotMoveToValues.guard(boxName.toUpperCase());
 }

@@ -8,7 +8,7 @@ export function getSyncedTo(box: Box): number {
   return box.syncedTo - (trialSettings ? trialSettings.lastSyncedDaysAgo * 24 * 60 * 60 * 1000 : 0);
 }
 
-export function reset() {
+export function reset(): void {
   trialSettings = undefined;
 }
 
@@ -19,6 +19,6 @@ export function withTrialSettings(user: User): User {
   };
 }
 
-export function useTrialSettings(settings: TrialSettings) {
+export function useTrialSettings(settings: TrialSettings): void {
   trialSettings = settings;
 }

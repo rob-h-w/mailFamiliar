@@ -2,11 +2,11 @@ import Box from '../engine/box';
 import Move from '../types/move';
 import User from './user';
 
-export interface IInitializablePersistence<InitParams> extends IPersistence {
+export interface InitializablePersistence<InitParams> extends Persistence {
   init(parameters: InitParams): Promise<void>;
 }
 
-export default interface IPersistence {
+export default interface Persistence {
   createUser(user: User): Promise<void>;
   listUsers(): Promise<Array<User>>;
 

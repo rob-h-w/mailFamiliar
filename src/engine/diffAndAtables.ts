@@ -27,7 +27,7 @@ interface DiffInfo {
  * @param selector If this doesn't select an AdjacencyTable, all bets are off.
  * @param str The string to add.
  */
-function addStringToAtable(aTables: DiffAndAtables, selector: string, str: string) {
+function addStringToAtable(aTables: DiffAndAtables, selector: string, str: string): void {
   const aTable = _.get(aTables, selector) as AdjacencyTable | null;
   if (aTable) {
     aTable.addString(str);
@@ -41,7 +41,7 @@ function addStringsToAtables(
   str: string,
   hasFinish: boolean,
   hasStart: boolean
-) {
+): void {
   const matchResult = match(aTables.diff, str);
 
   if (!matchResult || !matchResult.isComplete) {
@@ -84,7 +84,7 @@ function diffInfo(aTables: DiffAndAtables): DiffInfo {
   return result;
 }
 
-function confidenceFromStringList(aTables: DiffAndAtables, str: string) {
+function confidenceFromStringList(aTables: DiffAndAtables, str: string): number {
   if (_.isEmpty(aTables.strings)) {
     return 0;
   }
@@ -105,7 +105,7 @@ function confidenceFromStringDiff(diff: Diff, str: string): number {
   return diffCharacterCount / str.length;
 }
 
-function updateMaxLength(aTables: DiffAndAtables) {
+function updateMaxLength(aTables: DiffAndAtables): void {
   aTables.maxLength = Math.max(
     aTables.maxLength,
     aTables.strings.reduce((str, max) => (str.length > max.length ? str : max)).length

@@ -1,7 +1,7 @@
 import {Map} from 'immutable';
 import {Literal, Static, Union} from 'runtypes';
 
-import IPredictor from './predictor';
+import Predictor from './predictor';
 import CrossCorrelate from './crossCorrelate';
 import RegexAndAtable from './regexAndAtable';
 import ThresholdedRegexAndAtable from './thresholdedRegexAndAtable';
@@ -13,14 +13,14 @@ export const PredictorTypeValues = Union(
 );
 export type PredictorType = Static<typeof PredictorTypeValues>;
 
-type Ctor = () => IPredictor;
+type Ctor = () => Predictor;
 
 const predictorConstructors: Map<PredictorType, Ctor> = Map([
-  ['CrossCorrelate', () => new CrossCorrelate()],
-  ['RegexAndAtable', () => new RegexAndAtable()],
-  ['Traat', () => new ThresholdedRegexAndAtable()]
+  ['CrossCorrelate', (): Predictor => new CrossCorrelate()],
+  ['RegexAndAtable', (): Predictor => new RegexAndAtable()],
+  ['Traat', (): Predictor => new ThresholdedRegexAndAtable()]
 ] as [PredictorType, Ctor][]);
 
-export function create(): Map<PredictorType, IPredictor> {
+export function create(): Map<PredictorType, Predictor> {
   return predictorConstructors.map(ctor => ctor());
 }

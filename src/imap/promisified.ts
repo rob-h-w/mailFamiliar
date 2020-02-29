@@ -4,7 +4,7 @@ import {promisify} from 'util';
 import {OnDisconnect, waitForConnection} from './functions';
 import logger from '../logger';
 
-export interface IBoxListener {
+export interface BoxListener {
   onClose: (hadError: boolean) => void;
   onEnd: () => void;
   onExpunge: (seqNo: number) => void;
@@ -29,7 +29,7 @@ export default class Promisified {
   readonly search: (criteria: any[]) => Promise<number[]>;
   readonly subscribeBox: (mailboxName: string) => Promise<void>;
 
-  constructor(imap: Imap, listener: IBoxListener) {
+  constructor(imap: Imap, listener: BoxListener) {
     this.imap = imap;
     this.setBoxListener(listener);
 
@@ -76,7 +76,7 @@ export default class Promisified {
     });
   }; // fetch(source: any /* MessageSource */, options: FetchOptions): ImapFetch
 
-  private setBoxListener = (listener: IBoxListener) => {
+  private setBoxListener = (listener: BoxListener): void => {
     this.imap.on('close', listener.onClose);
     this.imap.on('end', listener.onEnd);
     this.imap.on('expunge', listener.onExpunge);

@@ -1,8 +1,9 @@
-import {diff_match_patch} from 'diff-match-patch';
+// eslint-disable-next-line camelcase
+import {diff_match_patch as diffMatchPatch} from 'diff-match-patch';
 
 import Diff from './diff';
 
-const dmp = new diff_match_patch();
+const dmp = new diffMatchPatch();
 
 export const DEFAULT_MIN_LENGTH = 2;
 

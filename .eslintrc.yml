@@ -1,0 +1,25 @@
+env:
+  es6: true
+  node: true
+extends:
+  - eslint:recommended
+  - plugin:@typescript-eslint/eslint-recommended
+  - plugin:@typescript-eslint/recommended
+globals:
+  Atomics: readonly
+  SharedArrayBuffer: readonly
+parser: '@typescript-eslint/parser'
+parserOptions:
+  ecmaVersion: 2018
+plugins:
+  - '@typescript-eslint'
+rules:
+  {
+    '@typescript-eslint/no-empty-function': off,
+    '@typescript-eslint/no-explicit-any': off,
+    '@typescript-eslint/no-use-before-define': off,
+    no-extra-semi: off,
+    object-curly-spacing: [error, never],
+    semi: off,
+    space-before-function-paren: off,
+  }

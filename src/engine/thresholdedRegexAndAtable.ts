@@ -1,10 +1,10 @@
 import {Map} from 'immutable';
 
 import Box from './box';
-import IPredictor, {UndeclaredBoxError} from './predictor';
+import Predictor, {UndeclaredBoxError} from './predictor';
 import ThresholdedDiffAndAtables from './thresholdedDiffAndAtables';
 
-export default class ThresholdedRegexAndAtable implements IPredictor {
+export default class ThresholdedRegexAndAtable implements Predictor {
   private boxMap: Map<string, ThresholdedDiffAndAtables> = Map.of();
 
   addHeaders = (headers: string, qualifiedBoxName: string): void =>

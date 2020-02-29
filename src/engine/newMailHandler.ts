@@ -14,7 +14,7 @@ export default class NewMailHandler {
   private readonly userConnection: UserConnection;
   private waitPromise: Promise<void> | null = null;
   private waitResolve: (() => void) | null = null;
-  private workCount: number = 0;
+  private workCount = 0;
 
   constructor(userConnection: UserConnection, pImap: Promisified) {
     this.pImap = pImap;
@@ -92,11 +92,11 @@ export default class NewMailHandler {
     return update;
   }
 
-  private lock() {
+  private lock(): void {
     this.workCount++;
   }
 
-  private release() {
+  private release(): void {
     this.workCount--;
     if (this.workCount === 0 && this.waitResolve) {
       this.waitResolve();
@@ -105,7 +105,7 @@ export default class NewMailHandler {
     }
   }
 
-  public async handleMail(box: Box) {
+  public async handleMail(box: Box): Promise<void> {
     logger.debug({qualifiedName: box.qualifiedName}, 'handleMail');
     this.lock();
     try {
@@ -153,7 +153,7 @@ export default class NewMailHandler {
     }
   }
 
-  public async finished() {
+  public async finished(): Promise<void> {
     if (this.workCount === 0) {
       return Promise.resolve();
     } else {

@@ -1,19 +1,19 @@
 import _ = require('lodash');
 
-import IPersistence from '../persistence/persistence';
+import Persistence from '../persistence/persistence';
 import User from 'persistence/user';
 import UserConnection from './userConnection';
 
 export default class Synchronizer {
   private connections: UserConnection[];
-  private readonly persistence: IPersistence;
+  private readonly persistence: Persistence;
 
-  constructor(persistence: IPersistence) {
+  constructor(persistence: Persistence) {
     this.connections = [];
     this.persistence = persistence;
   }
 
-  public init = async () => {
+  public init = async (): Promise<void> => {
     if (!_.isEmpty(this.connections)) {
       throw new Error('Cannot init until prior connections are extinguished.');
     }
@@ -25,9 +25,12 @@ export default class Synchronizer {
     }
   };
 
-  private initUserConnection = async (user: User, connectionAttempts: number = 0) => {
+  private initUserConnection = async (
+    user: User,
+    connectionAttempts = 0
+  ): Promise<UserConnection> => {
     const userConnection = new UserConnection(this.persistence, user, connectionAttempts);
-    userConnection.onDisconnect = () => {
+    userConnection.onDisconnect = (): void => {
       const timeout =
         1000 *
         user.reconnect.timeoutSeconds *
@@ -41,7 +44,7 @@ export default class Synchronizer {
     return userConnection;
   };
 
-  public reconnect = async () => {
+  public reconnect = async (): Promise<void> => {
     for (const connection of this.connections) {
       await connection.disconnect();
     }

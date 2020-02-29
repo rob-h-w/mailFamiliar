@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import {Dictionary, Number, Record, Static} from 'runtypes';
 
 function undefinedDecorator<T>(fn: (undefinable: T) => void) {
-  return (undefinable?: T) => {
+  return (undefinable?: T): void => {
     if (undefinable === undefined) {
       return;
     }
@@ -15,7 +15,7 @@ function addAdjacencyTableDecorator(
   self: AdjacencyTable,
   fn: (source: AdjacencyTableJson) => void
 ) {
-  return (source: AdjacencyTable | AdjacencyTableJson) => {
+  return (source: AdjacencyTable | AdjacencyTableJson): void => {
     if (source instanceof AdjacencyTable) {
       self.addAdjacencyTable(source.raw);
       return;
@@ -33,20 +33,20 @@ export const AdjacencyTableJson = Record({
 
 export type AdjacencyTableJson = Static<typeof AdjacencyTableJson>;
 
-interface IMap {
+interface Map {
   [s: string]: number;
 }
 
 export default class AdjacencyTable {
-  private readonly startTable: IMap = {};
-  private readonly table: IMap = {};
+  private readonly startTable: Map = {};
+  private readonly table: Map = {};
   private tSampleLength = 0;
-  private tSamples: number = 0;
+  private tSamples = 0;
 
   static readonly START = 'START';
   static readonly FINISH = 'FINISH';
 
-  private static addToMap = (map: IMap, key: string, value: number) => {
+  private static addToMap = (map: Map, key: string, value: number): void => {
     if (map[key]) {
       map[key] += value;
     } else {
@@ -75,7 +75,7 @@ export default class AdjacencyTable {
     throw new Error(`Cannot split key "${key}"`);
   };
 
-  private static subtractFromMap = (map: IMap, key: string, value: number) => {
+  private static subtractFromMap = (map: Map, key: string, value: number): void => {
     if (!map[key]) {
       return;
     }
@@ -107,7 +107,7 @@ export default class AdjacencyTable {
     }
   }
 
-  private handleArray(source: Array<any>) {
+  private handleArray(source: Array<any>): void {
     if (_.isEmpty(source)) {
       return;
     }
@@ -135,11 +135,11 @@ export default class AdjacencyTable {
     })
   );
 
-  private addAt = (key: string, value: number) => {
+  private addAt = (key: string, value: number): void => {
     this.aTableOperationAt('addToMap', key, value);
   };
 
-  public addString = undefinedDecorator((source: string) => {
+  public addString = undefinedDecorator((source: string): void => {
     let previous = AdjacencyTable.START;
 
     for (const char of Array.from(source)) {
@@ -157,12 +157,12 @@ export default class AdjacencyTable {
     opName: 'addToMap' | 'subtractFromMap',
     key: string,
     value: number
-  ) => {
+  ): void => {
     AdjacencyTable[opName](this.table, key, value);
     AdjacencyTable[opName](this.startTable, AdjacencyTable.firstChar(key), value);
   };
 
-  public confidenceFor = (str: string) => {
+  public confidenceFor = (str: string): number => {
     let cumulativeProbability = 0;
     let first = AdjacencyTable.START;
     const strArray = [...Array.from(str), AdjacencyTable.FINISH];
@@ -175,11 +175,11 @@ export default class AdjacencyTable {
     return cumulativeProbability / strArray.length;
   };
 
-  private decrementAt = (key: string) => {
+  private decrementAt = (key: string): void => {
     this.subtractAt(key, 1);
   };
 
-  private incrementAt = (key: string) => {
+  private incrementAt = (key: string): void => {
     this.addAt(key, 1);
   };
 
@@ -204,7 +204,7 @@ export default class AdjacencyTable {
   }
 
   subtractAdjacencyTable = undefinedDecorator(
-    addAdjacencyTableDecorator(this, (source: AdjacencyTableJson) => {
+    addAdjacencyTableDecorator(this, (source: AdjacencyTableJson): void => {
       const table = source.table;
       for (const key of Object.keys(table).sort()) {
         this.subtractAt(key, source.table[key]);
@@ -215,11 +215,11 @@ export default class AdjacencyTable {
     })
   );
 
-  private subtractAt = (key: string, value: number) => {
+  private subtractAt = (key: string, value: number): void => {
     this.aTableOperationAt('subtractFromMap', key, value);
   };
 
-  subtractString = undefinedDecorator((source: string) => {
+  subtractString = undefinedDecorator((source: string): void => {
     let previous = AdjacencyTable.START;
 
     for (const char of source) {

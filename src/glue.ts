@@ -1,7 +1,7 @@
 import * as env from 'env-var';
 
 import Synchronizer from './engine/synchronizer';
-import {IInitializablePersistence} from './persistence/persistence';
+import {InitializablePersistence} from './persistence/persistence';
 import Json from './persistence/json';
 
 function canFixByReconnecting(reason: any): boolean {
@@ -29,7 +29,7 @@ function canFixByReconnecting(reason: any): boolean {
 }
 
 class Glue {
-  readonly persistence: IInitializablePersistence<string>;
+  readonly persistence: InitializablePersistence<string>;
   readonly synchronizer: Synchronizer;
 
   constructor() {

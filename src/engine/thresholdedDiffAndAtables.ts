@@ -8,7 +8,7 @@ interface ThresholdedDiffCollection {
   [index: number]: DiffAndAtables[];
 }
 
-const MAX_REDUCER = (max: number, candidate: number) => Math.max(max, candidate);
+const MAX_REDUCER = (max: number, candidate: number): number => Math.max(max, candidate);
 const MAX_SIMILARITY = 0.05;
 const MIN_CONFIDENCE = 0.8;
 const MIN_EQUALITY = 0.01;
@@ -22,11 +22,11 @@ export default class ThresholdedDiffAndAtables {
     this.addStrings(strings);
   }
 
-  addStrings(strings: ReadonlyArray<string>) {
+  addStrings(strings: ReadonlyArray<string>): void {
     strings.forEach(this.addString.bind(this));
   }
 
-  private addString(strVal: string) {
+  private addString(strVal: string): void {
     if (this.containsString(strVal)) {
       return;
     }
@@ -34,7 +34,7 @@ export default class ThresholdedDiffAndAtables {
     MIN_SEGMENT_LENGTHS.forEach(segLength => this.addStringToSegLength(strVal, segLength));
   }
 
-  private addStringToSegLength(strVal: string, segLength: number) {
+  private addStringToSegLength(strVal: string, segLength: number): void {
     this.diffs[segLength] = ThresholdedDiffAndAtables.withString(
       this.diffs[segLength],
       segLength,
@@ -136,11 +136,11 @@ export default class ThresholdedDiffAndAtables {
     return (matchingCharacters + naiveConfidence * nonMatchingCharacters) / strVal.length;
   }
 
-  removeStrings(strings: string[]) {
+  removeStrings(strings: string[]): void {
     strings.forEach(this.removeString.bind(this));
   }
 
-  private removeString(strVal: string) {
+  private removeString(strVal: string): void {
     if (!this.containsString(strVal)) {
       return;
     }
@@ -148,7 +148,7 @@ export default class ThresholdedDiffAndAtables {
     MIN_SEGMENT_LENGTHS.forEach(segLength => this.removeStringFromSegLength(strVal, segLength));
   }
 
-  private removeStringFromSegLength(strVal: string, segLength: number) {
+  private removeStringFromSegLength(strVal: string, segLength: number): void {
     const diffAndAtablesList = this.diffs[segLength];
     let removalIndex = -1;
     const removeFrom: DiffAndAtables = diffAndAtablesList.find((diffAndAtables, index) => {
@@ -199,7 +199,7 @@ export default class ThresholdedDiffAndAtables {
     return ThresholdedDiffAndAtables.countCharacters(diff) / candidate.length > MIN_EQUALITY;
   }
 
-  private static countCharacters(diff: Diff) {
+  private static countCharacters(diff: Diff): number {
     return diff.map(val => (val ? val.length : 0)).reduce((sum, val) => sum + val, 0);
   }
 }

@@ -11,7 +11,7 @@ export class UndeclaredBoxError extends Error {
   }
 }
 
-export default interface IPredictor {
+export default interface Predictor {
   addHeaders(header: string, qualifiedBoxName: string): void;
   considerBox(box: Box): void;
   folderScore(headers: string): Map<string, number>;

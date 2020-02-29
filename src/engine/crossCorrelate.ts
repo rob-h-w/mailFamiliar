@@ -1,7 +1,7 @@
 import {Map as ImMap} from 'immutable';
 
 import Box from './box';
-import IPredictor from './predictor';
+import Predictor from './predictor';
 import {crossCorrelateStrings} from '../tools/crossCorrelate';
 
 const MODE_SLOTS = 100;
@@ -16,7 +16,7 @@ function toMode(range: ModeRange): number {
   return range.from + step / 2;
 }
 
-export default class CrossCorrelate implements IPredictor {
+export default class CrossCorrelate implements Predictor {
   private readonly boxToHeaders: Map<string, Array<string>>;
 
   constructor() {

@@ -3,9 +3,9 @@ import * as fs from 'fs';
 import * as _ from 'lodash';
 import * as path from 'path';
 
-import Box, {IBoxPersisted} from '../engine/box';
+import Box, {BoxPersisted} from '../engine/box';
 import {BadJsonException} from './exceptions';
-import {IInitializablePersistence} from './persistence';
+import {InitializablePersistence} from './persistence';
 import Move, {createMovesFromJson} from '../types/move';
 import User from './user';
 
@@ -29,11 +29,11 @@ function indent(depth: number, value: string): string {
   return `${result}${value}`;
 }
 
-function skipMember(member: any) {
+function skipMember(member: any): boolean {
   return _.isUndefined(member) || _.isFunction(member);
 }
 
-function stringify(value: any, depth: number = 0): string {
+function stringify(value: any, depth = 0): string {
   if (_.isNull(value)) {
     return 'null';
   }
@@ -94,7 +94,7 @@ function stringify(value: any, depth: number = 0): string {
   return `${result}\n${indent(depth, '}')}`;
 }
 
-export default class Json implements IInitializablePersistence<string> {
+export default class Json implements InitializablePersistence<string> {
   private readonly contentsFolder: string;
 
   public constructor(contentsFolder: string) {
@@ -105,7 +105,8 @@ export default class Json implements IInitializablePersistence<string> {
     return path.join(this.contentsFolder, hashOf(user.user));
   }
 
-  async init(_: string) {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async init(_persistencePath: string): Promise<void> {}
 
   private boxName(box: Box): string {
     return hashOf(box.qualifiedName);
@@ -115,7 +116,8 @@ export default class Json implements IInitializablePersistence<string> {
     return path.join(this.userDataRoot(user), `${this.boxName(box)}.json`);
   }
 
-  async createUser() {}
+  async createUser(): Promise<void> {}
+
   async listUsers(): Promise<Array<User>> {
     return new Promise<Array<User>>((resolve, reject) => {
       fs.readdir(this.contentsFolder, (err, files) => {
@@ -137,7 +139,7 @@ export default class Json implements IInitializablePersistence<string> {
     });
   }
 
-  async createBox(user: User, box: Box) {
+  async createBox(user: User, box: Box): Promise<void> {
     const folder = this.userDataRoot(user);
     if (!fs.existsSync(folder)) {
       fs.mkdirSync(folder);
@@ -145,7 +147,7 @@ export default class Json implements IInitializablePersistence<string> {
     await this.updateBox(user, box);
   }
 
-  async deleteBox(user: User, box: Box) {
+  async deleteBox(user: User, box: Box): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       fs.unlink(this.boxPath(user, box), err => {
         if (err) {
@@ -192,13 +194,15 @@ export default class Json implements IInitializablePersistence<string> {
               box.messages.forEach((message: any) => {
                 message.date = new Date(Date.parse(message.date));
               });
-              boxen.push(new Box(box as IBoxPersisted));
+              boxen.push(new Box(box as BoxPersisted));
             } catch (e) {
-              if (e instanceof SyntaxError) {
-                e = new BadJsonException(path.join(userDataRoot, file), e);
+              let reThrow = e;
+
+              if (reThrow instanceof SyntaxError) {
+                reThrow = new BadJsonException(path.join(userDataRoot, file), e);
               }
 
-              throw e;
+              throw reThrow;
             }
           });
 
@@ -209,7 +213,7 @@ export default class Json implements IInitializablePersistence<string> {
 
   updateBox = async (user: User, box: Box): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
-      const boxPersisted: IBoxPersisted = {
+      const boxPersisted: BoxPersisted = {
         box: box.box,
         messages: box.messages,
         name: box.name,

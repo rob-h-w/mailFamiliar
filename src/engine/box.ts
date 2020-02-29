@@ -6,18 +6,18 @@ import Promisified from '../imap/promisified';
 import logger from '../logger';
 import {Message} from '../types/message';
 
-interface IBoxRequired {
+interface BoxRequired {
   name: string;
   qualifiedName: string;
   syncedTo: number;
 }
 
-export interface IBoxPersisted extends IBoxRequired {
+export interface BoxPersisted extends BoxRequired {
   box?: Imap.Box;
   messages?: ReadonlyArray<Message>;
 }
 
-interface IBox extends IBoxPersisted {
+interface BoxAndFolder extends BoxPersisted {
   imapFolder?: Imap.Folder;
   pImap?: Promisified;
 }
@@ -46,7 +46,7 @@ export default class Box {
   readonly name: string;
   readonly qualifiedName: string;
 
-  private static check(box: Box) {
+  private static check(box: Box): void {
     if (!box.pImap) {
       throw new Error(`Box named ${box.qualifiedName} does not have an IMAP implementation.`);
     }
@@ -60,7 +60,7 @@ export default class Box {
     return !!fullyQualifiedName && fullyQualifiedName.toUpperCase() === 'INBOX';
   }
 
-  constructor({box, imapFolder, messages, name, pImap, qualifiedName, syncedTo}: IBox) {
+  constructor({box, imapFolder, messages, name, pImap, qualifiedName, syncedTo}: BoxAndFolder) {
     this.imapBox = box;
     this.imapFolder = imapFolder;
     this.name = name;
@@ -76,7 +76,7 @@ export default class Box {
     }
   }
 
-  addMessage = (message: Message) => {
+  addMessage = (message: Message): void => {
     if (this.hasMessage(message)) {
       return;
     }
@@ -85,11 +85,11 @@ export default class Box {
     this.syncedToEpoch = Math.max(this.syncedToEpoch, message.date.getTime());
   };
 
-  private addMessageHash = (message: Message) => {
+  private addMessageHash = (message: Message): void => {
     this.msgHashes[msgHashString(message)] = message;
   };
 
-  get box() {
+  get box(): Imap.Box | undefined {
     return this.imapBox;
   }
 
@@ -102,7 +102,7 @@ export default class Box {
     return Box.isInbox(this.qualifiedName);
   }
 
-  mergeFrom(box: Box) {
+  mergeFrom(box: Box): void {
     if (box.qualifiedName !== this.qualifiedName) {
       throw new Error(`Attempt to merge ${box.qualifiedName} into ${this.qualifiedName}`);
     }
@@ -143,7 +143,7 @@ export default class Box {
     return 'UNREADY';
   };
 
-  removeMessage = (message: Message) => {
+  removeMessage = (message: Message): void => {
     if (!this.hasMessage(message)) {
       return;
     }
@@ -151,19 +151,19 @@ export default class Box {
     delete this.msgHashes[msgHashString(message)];
   };
 
-  reset = () => {
+  reset = (): void => {
     this.msgHashes = {};
     this.syncedToEpoch = 0;
   };
 
-  subscribe = async () => {
+  subscribe = async (): Promise<void> => {
     Box.check(this);
     if (this.pImap) {
       await this.pImap.subscribeBox(this.qualifiedName);
     }
   };
 
-  get syncedTo() {
+  get syncedTo(): number {
     return this.syncedToEpoch;
   }
 
@@ -171,7 +171,7 @@ export default class Box {
     this.syncedToEpoch = value;
   }
 
-  public setSyncedToNow() {
+  public setSyncedToNow(): void {
     this.syncedTo = Date.now();
   }
 
