@@ -19,7 +19,7 @@ function ignore(reason: any): boolean {
   return false;
 }
 
-function handleError(reason: Error) {
+function handleError(reason: Error): void {
   logger.error(reason);
 
   if (ignore(reason) || glue.handleError(reason)) {

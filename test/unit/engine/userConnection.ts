@@ -146,7 +146,8 @@ describe('userConnection', () => {
     user = {
       predictorType: undefined,
       syncWindowDays: 10,
-      trial: undefined
+      trial: undefined,
+      user: 'user name'
     };
   });
 
@@ -232,6 +233,16 @@ describe('userConnection', () => {
             });
           });
 
+          describe('without a callback', () => {
+            beforeEach(() => {
+              userConnection.onDisconnect = undefined;
+            });
+
+            it('throws', () => {
+              expect(() => userConnection.onClose(false)).to.throw();
+            });
+          });
+
           describe('by end', () => {
             beforeEach(() => {
               userConnection.onEnd();
@@ -256,7 +267,9 @@ describe('userConnection', () => {
 
           describe('by close with error', () => {
             beforeEach(() => {
-              userConnection.onClose(true);
+              try {
+                userConnection.onClose(true);
+              } catch {}
             });
 
             it('logs correctly', () => {
@@ -267,7 +280,9 @@ describe('userConnection', () => {
 
           describe('by close without error', () => {
             beforeEach(() => {
-              userConnection.onClose(false);
+              try {
+                userConnection.onClose(false);
+              } catch {}
             });
 
             it('logs correctly', () => {
@@ -278,7 +293,9 @@ describe('userConnection', () => {
 
           describe('by end', () => {
             beforeEach(() => {
-              userConnection.onEnd();
+              try {
+                userConnection.onEnd();
+              } catch {}
             });
 
             it('logs correctly', () => {

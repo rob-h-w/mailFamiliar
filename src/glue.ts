@@ -1,12 +1,17 @@
 import * as env from 'env-var';
 
 import Synchronizer from './engine/synchronizer';
+import {MissingDisconnectionCallback} from './persistence/exceptions';
 import {InitializablePersistence} from './persistence/persistence';
 import Json from './persistence/json';
 
 function canFixByReconnecting(reason: any): boolean {
   if (!reason) {
     return false;
+  }
+
+  if (reason instanceof MissingDisconnectionCallback) {
+    return true;
   }
 
   if (reason.source) {

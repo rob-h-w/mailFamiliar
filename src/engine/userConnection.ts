@@ -9,6 +9,7 @@ import {OnDisconnect} from '../imap/functions';
 import Promisified, {BoxListener, MessageBody} from '../imap/promisified';
 import logger from '../logger';
 import NewMailHandler from './newMailHandler';
+import {MissingDisconnectionCallback} from '../persistence/exceptions';
 import Persistence from '../persistence/persistence';
 import User from '../persistence/user';
 import Predictor from './predictor';
@@ -236,6 +237,8 @@ export default class UserConnection implements BoxListener {
 
     if (this.disconnectCallback) {
       this.disconnectCallback();
+    } else {
+      throw new MissingDisconnectionCallback();
     }
   }
 
@@ -251,6 +254,7 @@ export default class UserConnection implements BoxListener {
       this.disconnectCallback();
     } else {
       logger.debug('No disconnect callback found.');
+      throw new MissingDisconnectionCallback();
     }
   }
 
