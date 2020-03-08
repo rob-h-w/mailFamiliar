@@ -101,6 +101,7 @@ describe('userConnection', () => {
 
     predictor = {
       addHeaders: sinon.stub(),
+      addMistake: sinon.stub(),
       considerBox: sinon.stub(),
       folderScore: sinon.stub(),
       name: sinon.stub().returns('name'),

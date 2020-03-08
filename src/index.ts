@@ -32,7 +32,6 @@ function handleError(reason: Error): void {
   }, 10);
 }
 
-export async function startServer(): Promise<object>;
 export async function startServer() {
   process.on('uncaughtException', (reason: Error) => {
     handleError(reason);

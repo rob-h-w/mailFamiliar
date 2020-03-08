@@ -4,17 +4,17 @@ import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
-import mockImap, {MockResult as ImapMock} from './mocks/imap';
-import boxes from './tools/fixture/standard/boxes';
-import {useFixture} from './tools/fixture/standard/useFixture';
-import {EventHandlers, startServerInHealthyState} from './tools/server';
-
-import {PredictorTypeValues} from '../../src/engine/predictors';
-import fakeBox from './mocks/imap/fakeBox';
-import {waitATick, until} from './tools/wait';
 import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
+import mockImap from './mocks/imap';
+import fakeBox from './mocks/imap/fakeBox';
+import {default as ImapMock} from './mocks/imap/mockResult';
 import ServerState, {fromBoxes} from './mocks/imap/serverState';
 import {mockStorageAndSetEnvironment} from './mocks/mailFamiliarStorage';
+import boxes from './tools/fixture/standard/boxes';
+import {useFixture} from './tools/fixture/standard/useFixture';
+import {startServerInHealthyState} from './tools/server';
+import {waitATick, until} from './tools/wait';
+import {PredictorTypeValues} from '../../src/engine/predictors';
 
 let bunyanMock: BunyanMock;
 let clock: sinon.SinonFakeTimers;
@@ -70,7 +70,6 @@ describe('folder selection', () => {
     }
   ];
 
-  let eventHandlers: EventHandlers;
   let server: any;
   let serverState: ServerState;
 
@@ -114,7 +113,7 @@ describe('folder selection', () => {
 
         mockery.registerMock('imap', imapMock.class);
 
-        ({eventHandlers, server} = await startServerInHealthyState(imapMock));
+        server = await startServerInHealthyState();
         await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
       });
 
@@ -139,21 +138,18 @@ describe('folder selection', () => {
           describe('when a new mail comes in that matches', () => {
             beforeEach(async () => {
               bunyanMock.logger.debug.reset();
-              await imapMock.simulate.mailReceived(
-                [
-                  {
-                    attributes: {
-                      date: new Date(),
-                      flags: [],
-                      uid: 32
-                    },
-                    body: Buffer.from('interesting spam like the others'),
-                    seqno: 1,
-                    synced: false
-                  }
-                ],
-                eventHandlers
-              );
+              await imapMock.simulate.mailReceived([
+                {
+                  attributes: {
+                    date: new Date(),
+                    flags: [],
+                    uid: 32
+                  },
+                  body: Buffer.from('interesting spam like the others'),
+                  seqno: 1,
+                  synced: false
+                }
+              ]);
               await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
             });
 
@@ -168,21 +164,18 @@ describe('folder selection', () => {
             describe('but has been seen', () => {
               beforeEach(async () => {
                 imapMock.object.move.reset();
-                await imapMock.simulate.mailReceived(
-                  [
-                    {
-                      attributes: {
-                        date: new Date(),
-                        flags: ['\\Seen'],
-                        uid: 33
-                      },
-                      body: Buffer.from('interesting spam like the others'),
-                      seqno: 2,
-                      synced: false
-                    }
-                  ],
-                  eventHandlers
-                );
+                await imapMock.simulate.mailReceived([
+                  {
+                    attributes: {
+                      date: new Date(),
+                      flags: ['\\Seen'],
+                      uid: 33
+                    },
+                    body: Buffer.from('interesting spam like the others'),
+                    seqno: 2,
+                    synced: false
+                  }
+                ]);
                 await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
               });
 
@@ -207,7 +200,7 @@ describe('folder selection', () => {
                 synced: false
               }
             ]);
-            await eventHandlers.on.mail(1);
+            await imapMock.eventHandlers.on.mail(1);
             await waitATick();
           });
 
@@ -273,7 +266,7 @@ describe('folder selection', () => {
       imapMock.setServerState(UNSORTED);
       mockery.registerMock('imap', imapMock.class);
 
-      ({eventHandlers, server} = await startServerInHealthyState(imapMock));
+      server = await startServerInHealthyState();
       await until(() => bunyanMock.logger.info.calledWith('shallow sync complete'));
       bunyanMock.logger.info.reset();
       bunyanMock.logger.debug.reset();
@@ -292,21 +285,18 @@ describe('folder selection', () => {
     describe('when a new mail comes in that should be moved', () => {
       beforeEach(async () => {
         imapMock.object.move.reset();
-        await imapMock.simulate.mailReceived(
-          [
-            {
-              attributes: {
-                date: new Date(),
-                flags: [],
-                uid: 32
-              },
-              body: Buffer.from('this little piggy had an existential crisis'),
-              seqno: 1,
-              synced: false
-            }
-          ],
-          eventHandlers
-        );
+        await imapMock.simulate.mailReceived([
+          {
+            attributes: {
+              date: new Date(),
+              flags: [],
+              uid: 32
+            },
+            body: Buffer.from('this little piggy had an existential crisis'),
+            seqno: 1,
+            synced: false
+          }
+        ]);
 
         await until(() => bunyanMock.logger.debug.calledWith('New mails handled'));
         bunyanMock.logger.debug.reset();

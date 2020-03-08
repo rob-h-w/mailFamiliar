@@ -3,6 +3,7 @@ import {Map as ImMap} from 'immutable';
 import Box from './box';
 import Predictor from './predictor';
 import {crossCorrelateStrings} from '../tools/crossCorrelate';
+import Mistake from 'types/mistake';
 
 const MODE_SLOTS = 100;
 
@@ -28,6 +29,9 @@ export default class CrossCorrelate implements Predictor {
     headersList.push(headers);
     this.boxToHeaders.set(qualifiedBoxName, headersList);
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  addMistake(_mistake: Mistake): void {}
 
   considerBox(box: Box): void {
     for (const message of box.messages) {

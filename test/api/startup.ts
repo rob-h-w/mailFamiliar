@@ -7,7 +7,8 @@ import * as path from 'path';
 import {stub, SinonStub} from 'sinon';
 
 import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
-import mockImap, {MockResult as ImapMock} from './mocks/imap';
+import mockImap from './mocks/imap';
+import ImapMock from './mocks/imap/mockResult';
 import {mockStorageAndSetEnvironment, MockResult as StorageMock} from './mocks/mailFamiliarStorage';
 import {until, waitATick} from './tools/wait';
 
@@ -93,6 +94,12 @@ describe('startup', () => {
           }
         }
       });
+    });
+
+    afterEach(async () => {
+      server = await serverPromise;
+
+      server.stop();
     });
 
     it('registers an error handler', () => {
