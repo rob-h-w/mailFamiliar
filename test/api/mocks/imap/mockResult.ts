@@ -1,6 +1,14 @@
 import MockMessage from './mockMessage';
 import ServerState from './serverState';
-import {EventHandlers} from '../../tools/server';
+
+export interface EventHandlers {
+  on: {
+    [key: string]: any;
+  };
+  once: {
+    [key: string]: any;
+  };
+}
 
 export interface Simulate {
   event: {
@@ -9,11 +17,12 @@ export interface Simulate {
     mail: (count: number) => void;
     uidValidity: (validity: number) => void;
   };
-  mailReceived: (mails: MockMessage[], handlers: EventHandlers) => Promise<void>;
+  mailReceived: (mails: MockMessage[]) => Promise<void>;
 }
 
 export default interface MockResult {
   class: any;
+  eventHandlers: EventHandlers;
   fetchReturnsWith: (mails: MockMessage[]) => void;
   object: any;
   setServerState: (state: ServerState) => void;

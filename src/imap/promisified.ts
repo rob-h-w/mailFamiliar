@@ -77,11 +77,11 @@ export default class Promisified {
   }; // fetch(source: any /* MessageSource */, options: FetchOptions): ImapFetch
 
   private setBoxListener = (listener: BoxListener): void => {
-    this.imap.on('close', listener.onClose);
-    this.imap.on('end', listener.onEnd);
-    this.imap.on('expunge', listener.onExpunge);
-    this.imap.on('mail', listener.onMail);
-    this.imap.on('uidvalidity', listener.onUidValidity);
+    this.imap.on('close', listener.onClose.bind(listener));
+    this.imap.on('end', listener.onEnd.bind(listener));
+    this.imap.on('expunge', listener.onExpunge.bind(listener));
+    this.imap.on('mail', listener.onMail.bind(listener));
+    this.imap.on('uidvalidity', listener.onUidValidity.bind(listener));
     ['alert', 'update'].forEach(event => {
       this.imap.on(event, (...args: any[]) => {
         logger.error({

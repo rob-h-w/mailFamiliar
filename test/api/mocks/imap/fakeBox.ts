@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 
 import FolderState from './folderState';
-import {MockMessage} from '.';
+import MockMessage from './mockMessage';
 
 const WEEK_MS = 1000 * 60 * 60 * 24 * 7;
 

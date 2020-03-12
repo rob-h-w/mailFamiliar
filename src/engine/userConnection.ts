@@ -17,6 +17,8 @@ import {create as createPredictors, PredictorType} from './predictors';
 import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
 import {messageFromBody, Message} from '../types/message';
 import Move, {createMovesFromJson} from '../types/move';
+import MistakeTracker from './mistakeTracker';
+import Mistake from 'types/mistake';
 
 const SECOND_IN_MS = 1000;
 const DAY_IN_MS = 24 * 60 * 60 * SECOND_IN_MS;
@@ -38,6 +40,7 @@ export default class UserConnection implements BoxListener {
   private readonly userReference: User;
   private isPopulatingBox = false;
   private isShallowSyncing = false;
+  private mistakeTracker?: MistakeTracker;
   private movesList: Move[];
   private movesMap: {[index: string]: Move};
 
@@ -197,10 +200,15 @@ export default class UserConnection implements BoxListener {
     }
 
     this.mailBoxes = resultingBoxes;
-    this.mailBoxes.forEach(this.currentPredictor.considerBox);
+    this.mailBoxes.forEach(box => this.currentPredictor.considerBox(box));
     await this.openInbox();
     this.attempts = 0;
     await this.refresh();
+    this.mistakeTracker = new MistakeTracker(
+      this.movesList,
+      this.boxes as Box[],
+      (mistake: Mistake): void => this.predictor.addMistake(mistake)
+    );
 
     logger.info('init complete');
   }
@@ -223,6 +231,7 @@ export default class UserConnection implements BoxListener {
     if (!this.hasMove(headers)) {
       this.movesList.push(move);
       this.movesMap[headers] = move;
+      this.mistakeTracker?.addMove(move);
     }
 
     await this.persistence.recordMoves(this.user, this.movesList);
@@ -448,7 +457,10 @@ export default class UserConnection implements BoxListener {
     messages: ReadonlyArray<Message>,
     qualifiedName: string
   ): void {
-    messages.forEach(message => predictor.addHeaders(message.headers, qualifiedName));
+    messages.forEach(message => {
+      predictor.addHeaders(message.headers, qualifiedName);
+      this.mistakeTracker?.inspectMessage(qualifiedName, message);
+    });
   }
 
   private async shallowSync(): Promise<void> {

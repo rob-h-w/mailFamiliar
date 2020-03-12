@@ -5,7 +5,8 @@ import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
 import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
-import mockImap, {MockResult as ImapMock} from './mocks/imap';
+import mockImap from './mocks/imap';
+import ImapMock from './mocks/imap/mockResult';
 import boxes from './tools/fixture/standard/boxes';
 import {useFixture} from './tools/fixture/standard/useFixture';
 import {startServerInHealthyState} from './tools/server';
@@ -43,7 +44,7 @@ describe('periodic refresh', () => {
       now: 1547375767863,
       shouldAdvanceTime: true
     });
-    ({server} = await startServerInHealthyState(imapMock));
+    server = await startServerInHealthyState();
   });
 
   afterEach(async () => {

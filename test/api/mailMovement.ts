@@ -4,11 +4,12 @@ import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
-import mockImap, {MockResult as ImapMock} from './mocks/imap';
+import mockImap from './mocks/imap';
+import ImapMock from './mocks/imap/mockResult';
 import boxes from './tools/fixture/standard/boxes';
 import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
 import {useFixture} from './tools/fixture/standard/useFixture';
-import {EventHandlers, startServerInHealthyState} from './tools/server';
+import {startServerInHealthyState} from './tools/server';
 import {fromBoxes} from './mocks/imap/serverState';
 import {mockStorageAndSetEnvironment} from './mocks/mailFamiliarStorage';
 import {until} from './tools/wait';
@@ -18,7 +19,6 @@ let clock: sinon.SinonFakeTimers;
 let imapMock: ImapMock;
 
 describe('mail movement', () => {
-  let eventHandlers: EventHandlers;
   let server: any;
 
   beforeEach(async () => {
@@ -64,7 +64,7 @@ describe('mail movement', () => {
 
     mockery.registerMock('imap', imapMock.class);
 
-    ({eventHandlers, server} = await startServerInHealthyState(imapMock));
+    server = await startServerInHealthyState();
     await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
   });
 
@@ -89,7 +89,7 @@ describe('mail movement', () => {
     beforeEach(async () => {
       imapMock.object.openBox.reset();
       bunyanMock.logger.info.reset();
-      await eventHandlers.on.expunge(40465);
+      await imapMock.eventHandlers.on.expunge(40465);
       await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
     });
 

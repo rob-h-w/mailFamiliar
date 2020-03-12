@@ -5,6 +5,7 @@ import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
 import Predictor from './predictor';
 import MIN_SEGMENT_LENGTHS from './segmentLengths';
+import Mistake from 'types/mistake';
 
 interface DiffAndAtablesInstance {
   daa: DiffAndAtables;
@@ -28,6 +29,9 @@ export default class RegexAndAtable implements Predictor {
       instance => DiffAndAtables.addStrings(instance.daa, [headers], instance.minSegmentLength)
     );
   };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  addMistake(_mistake: Mistake): void {}
 
   considerBox = (box: Box): void => {
     this.boxesToInstancesMap[box.qualifiedName] = MIN_SEGMENT_LENGTHS.map(minSegmentLength => ({

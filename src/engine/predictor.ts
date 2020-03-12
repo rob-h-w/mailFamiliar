@@ -1,6 +1,7 @@
 import {Map} from 'immutable';
 
 import Box from './box';
+import Mistake from 'types/mistake';
 
 export class UndeclaredBoxError extends Error {
   constructor(qualifiedBoxName: string) {
@@ -13,6 +14,7 @@ export class UndeclaredBoxError extends Error {
 
 export default interface Predictor {
   addHeaders(header: string, qualifiedBoxName: string): void;
+  addMistake(mistake: Mistake): void;
   considerBox(box: Box): void;
   folderScore(headers: string): Map<string, number>;
   name(): string;

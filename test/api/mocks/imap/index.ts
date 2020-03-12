@@ -9,14 +9,10 @@ import {Stream} from 'stream';
 
 import Mailboxes from './mailboxes';
 import MockMessage from './mockMessage';
-import MockResult, {Simulate} from './mockResult';
+import MockResult, {Simulate, EventHandlers} from './mockResult';
 import ServerState from './serverState';
-import {EventHandlers} from '../../tools/server';
 import {waitATick} from '../../tools/wait';
 import replaceReset from '../../tools/replaceReset';
-
-export {default as MockMessage} from './mockMessage';
-export {default as MockResult} from './mockResult';
 
 let newMails: MockMessage[] = [];
 
@@ -42,11 +38,10 @@ function makeSetServerState(
   };
 }
 
-function makeSimulateMailReceived(): (
-  mails: MockMessage[],
+function makeSimulateMailReceived(
   eventHandlers: EventHandlers
-) => Promise<void> {
-  return async (mails: MockMessage[], eventHandlers: EventHandlers) => {
+): (mails: MockMessage[]) => Promise<void> {
+  return async (mails: MockMessage[]) => {
     newMails = mails;
     await eventHandlers.on.mail(mails.length);
     await waitATick();
@@ -162,11 +157,25 @@ export default function imap(): MockResult {
     seq,
     subscribeBox: sinon.stub().callsArg(1)
   };
+  const eventHandlers: EventHandlers = {
+    on: {},
+    once: {}
+  };
 
   replaceReset(object.closeBox, () => {
     object.closeBox.callsFake((callback: (result: Error | null) => void) => {
       object._currentlyOpened = null;
       callback(null);
+    });
+  });
+
+  replaceReset(object.connect, () => {
+    object.connect.callsFake(() => {
+      if (eventHandlers.on.ready) {
+        eventHandlers.on.ready();
+      } else if (eventHandlers.once.ready) {
+        eventHandlers.once.ready();
+      }
     });
   });
 
@@ -211,6 +220,18 @@ export default function imap(): MockResult {
   });
 
   replaceReset(object.move, () => object.move.callsArgWith(2, null));
+
+  replaceReset(object.on, () =>
+    object.on.callsFake((name: string, callback: Function) => {
+      eventHandlers.on[name] = callback;
+    })
+  );
+
+  replaceReset(object.once, () =>
+    object.once.callsFake((name: string, callback: Function) => {
+      eventHandlers.once[name] = callback;
+    })
+  );
 
   replaceReset(object.openBox, () => {
     object.openBox.callsFake((boxName: string, callback: (result: Error | null) => void) => {
@@ -264,12 +285,13 @@ export default function imap(): MockResult {
       mail: makeEvent('mail', object),
       uidValidity: makeEvent('uidvalidity', object)
     },
-    mailReceived: makeSimulateMailReceived()
+    mailReceived: makeSimulateMailReceived(eventHandlers)
   };
   const setServerState = makeSetServerState(object, simulate);
 
   return {
     class: sinon.stub().returns(object),
+    eventHandlers,
     fetchReturnsWith,
     object,
     setServerState,
