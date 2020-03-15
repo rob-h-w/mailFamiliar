@@ -9,8 +9,14 @@ export default class ThresholdedRegexAndAtable implements Predictor {
   private boxMap: Map<string, ThresholdedDiffAndAtables> = Map.of();
   private mistakenBoxMap: Map<string, ThresholdedDiffAndAtables> = Map.of();
 
-  addHeaders = (headers: string, qualifiedBoxName: string): void =>
+  addHeaders = (headers: string, qualifiedBoxName: string): void => {
     this.getBoxDiff(qualifiedBoxName).addStrings([headers]);
+
+    const tdaat: ThresholdedDiffAndAtables | undefined = this.mistakenBoxMap.get(qualifiedBoxName);
+    if (tdaat) {
+      tdaat.removeStrings([headers]);
+    }
+  };
 
   addMistake(mistake: Mistake): void {
     const errantDestination = mistake.errantMove.destination;
