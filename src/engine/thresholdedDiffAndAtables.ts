@@ -9,8 +9,8 @@ interface ThresholdedDiffCollection {
 }
 
 const MAX_REDUCER = (max: number, candidate: number): number => Math.max(max, candidate);
-const MAX_SIMILARITY = 0.05;
-const MIN_CONFIDENCE = 0.8;
+const MIN_SIMILARITY = 0.3;
+const MIN_CONFIDENCE = 0.99;
 const MIN_EQUALITY = 0.01;
 
 export default class ThresholdedDiffAndAtables {
@@ -27,10 +27,6 @@ export default class ThresholdedDiffAndAtables {
   }
 
   private addString(strVal: string): void {
-    if (this.containsString(strVal)) {
-      return;
-    }
-
     MIN_SEGMENT_LENGTHS.forEach(segLength => this.addStringToSegLength(strVal, segLength));
   }
 
@@ -66,7 +62,7 @@ export default class ThresholdedDiffAndAtables {
     let highestConfidence = 0;
 
     for (const diffAndAtable of diffAndAtablesList) {
-      if (ThresholdedDiffAndAtables.similarity(diffAndAtable) > MAX_SIMILARITY) {
+      if (ThresholdedDiffAndAtables.similarity(diffAndAtable) > MIN_SIMILARITY) {
         highestConfidence = 1;
         replacementIndex = index;
         break;
