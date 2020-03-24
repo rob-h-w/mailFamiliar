@@ -9,8 +9,14 @@ export default class ThresholdedRegexAndAtable implements Predictor {
   private boxMap: Map<string, ThresholdedDiffAndAtables> = Map.of();
   private mistakenBoxMap: Map<string, ThresholdedDiffAndAtables> = Map.of();
 
-  addHeaders = (headers: string, qualifiedBoxName: string): void =>
+  addHeaders(headers: string, qualifiedBoxName: string): void {
     this.getBoxDiff(qualifiedBoxName).addStrings([headers]);
+
+    const tdaat: ThresholdedDiffAndAtables | undefined = this.mistakenBoxMap.get(qualifiedBoxName);
+    if (tdaat) {
+      tdaat.removeStrings([headers]);
+    }
+  }
 
   addMistake(mistake: Mistake): void {
     const errantDestination = mistake.errantMove.destination;
@@ -32,19 +38,19 @@ export default class ThresholdedRegexAndAtable implements Predictor {
     return diff;
   }
 
-  considerBox = (box: Box): void => {
+  considerBox(box: Box): void {
     this.boxMap = this.boxMap.set(
       box.qualifiedName,
       new ThresholdedDiffAndAtables(box.messages.map(messages => messages.headers as string))
     );
-  };
+  }
 
-  folderScore = (headers: string): Map<string, number> => {
+  folderScore(headers: string): Map<string, number> {
     return this.boxMap.map(
       (tdaat, qualifiedName) =>
         tdaat.confidenceFor(headers) - this.mistakeScore(qualifiedName, headers)
     );
-  };
+  }
 
   private mistakeScore(qualifiedName: string, headers: string): number {
     const tdaat: ThresholdedDiffAndAtables | undefined = this.mistakenBoxMap.get(qualifiedName);
@@ -55,8 +61,11 @@ export default class ThresholdedRegexAndAtable implements Predictor {
     return 0;
   }
 
-  name = (): string => 'thresholded regex';
+  name(): string {
+    return 'thresholded regex';
+  }
 
-  removeHeaders = (headers: string, qualifiedBoxName: string): void =>
+  removeHeaders(headers: string, qualifiedBoxName: string): void {
     this.getBoxDiff(qualifiedBoxName).removeStrings([headers]);
+  }
 }

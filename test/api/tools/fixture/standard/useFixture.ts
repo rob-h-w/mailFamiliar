@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+const MATCHER = /^[a-f0-9]+\.json$/;
+
 export async function useFixture() {
   const foldersUp = ['..', '..', '..'];
   const dataSource = path.join(__dirname, ...foldersUp, 'fixtures', 'standard');
@@ -13,7 +15,7 @@ export async function useFixture() {
 
   const datafiles = fs
     .readdirSync(path.join(__dirname, ...foldersUp, 'fixtures', 'standard'))
-    .filter(name => name.endsWith('.json'));
+    .filter(name => MATCHER.test(name));
 
   for (const dataFile of datafiles) {
     fs.copyFileSync(path.join(dataSource, dataFile), path.join(dataDestination, dataFile));
