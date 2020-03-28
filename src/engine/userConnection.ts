@@ -118,6 +118,13 @@ export default class UserConnection implements BoxListener {
 
   disconnect = async (): Promise<void> => {
     try {
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = undefined;
+      }
+
+      this.disconnectCallback = undefined;
+
       await this.pImap.closeBox();
       // eslint-disable-next-line no-empty
     } catch {}
