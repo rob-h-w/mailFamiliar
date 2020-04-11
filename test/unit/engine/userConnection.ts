@@ -55,7 +55,7 @@ function mockBox(params: BoxParams) {
     reset: sinon.stub(),
     setSyncedToNow: sinon.stub(),
     subscribe: sinon.stub().resolves(),
-    syncedTo: params.syncedTo
+    syncedTo: params.syncedTo,
   };
   box.mergeFrom = (other: Obj) => {
     box.messages = other.messages;
@@ -64,7 +64,7 @@ function mockBox(params: BoxParams) {
   };
   mockedBoxen[name] = {
     box,
-    params
+    params,
   };
   return box;
 }
@@ -73,13 +73,13 @@ describe('userConnection', () => {
   beforeEach(() => {
     clock = sinon.useFakeTimers({
       now: 1547375767863,
-      shouldAdvanceTime: true
+      shouldAdvanceTime: true,
     });
     mockedBoxen = {};
     mockery.enable({
       useCleanCache: true,
       warnOnReplace: false,
-      warnOnUnregistered: false
+      warnOnUnregistered: false,
     });
 
     Box = sinon.spy((params: BoxParams) => {
@@ -87,7 +87,7 @@ describe('userConnection', () => {
       return box;
     });
 
-    Box.isInbox = sinon.spy(name => name === 'INBOX');
+    Box.isInbox = sinon.spy((name) => name === 'INBOX');
 
     imap = {};
     Imap = sinon.stub().returns(imap);
@@ -96,7 +96,7 @@ describe('userConnection', () => {
       debug: sinon.stub(),
       error: sinon.stub(),
       info: sinon.stub(),
-      warn: sinon.stub()
+      warn: sinon.stub(),
     };
 
     predictor = {
@@ -105,7 +105,7 @@ describe('userConnection', () => {
       considerBox: sinon.stub(),
       folderScore: sinon.stub(),
       name: sinon.stub().returns('name'),
-      removeHeaders: sinon.stub()
+      removeHeaders: sinon.stub(),
     };
 
     promisified = {
@@ -117,27 +117,24 @@ describe('userConnection', () => {
         delimiter: '/',
         fetch: sinon.stub(),
         seq: {
-          fetch: sinon.stub()
-        }
+          fetch: sinon.stub(),
+        },
       },
       on: sinon.stub(),
       once: sinon.stub(),
       openBox: sinon.stub(),
       search: sinon.stub().resolves([]),
       subscribeBox: sinon.stub(),
-      waitForConnection: sinon.stub().resolves()
+      waitForConnection: sinon.stub().resolves(),
     };
-    Promisified = sinon
-      .stub()
-      .withArgs(imap)
-      .returns(promisified);
+    Promisified = sinon.stub().withArgs(imap).returns(promisified);
 
     mockery.registerMock('./box', {default: Box});
     mockery.registerMock('imap', Imap);
     mockery.registerMock('../imap/promisified', {default: Promisified});
     mockery.registerMock('../logger', {default: logger});
     mockery.registerMock('./predictors', {
-      create: sinon.stub().returns(Map.of(PredictorTypeValues.alternatives[2].value, predictor))
+      create: sinon.stub().returns(Map.of(PredictorTypeValues.alternatives[2].value, predictor)),
     });
 
     mockery.registerAllowable('../../../src/engine/userConnection');
@@ -148,7 +145,7 @@ describe('userConnection', () => {
       predictorType: undefined,
       syncWindowDays: 10,
       trial: undefined,
-      user: 'user name'
+      user: 'user name',
     };
   });
 
@@ -169,7 +166,7 @@ describe('userConnection', () => {
         deleteBox: sinon.stub(),
         listBoxes: sinon.stub(),
         listMoves: sinon.stub().resolves([]),
-        updateBox: sinon.stub()
+        updateBox: sinon.stub(),
       };
     });
 
@@ -194,8 +191,9 @@ describe('userConnection', () => {
         let disconnectCallback: sinon.SinonStub;
 
         beforeEach(() => {
-          logger.warn.reset();
           logger.debug.reset();
+          logger.info.reset();
+          logger.warn.reset();
         });
 
         describe('with callback', () => {
@@ -212,11 +210,6 @@ describe('userConnection', () => {
             it('calls the callback', () => {
               expect(disconnectCallback.callCount).to.equal(1);
             });
-
-            it('logs correctly', () => {
-              expect(logger.warn.callCount).to.equal(1);
-              expect(logger.warn.args[0][0]).endsWith('with error.');
-            });
           });
 
           describe('by close without error', () => {
@@ -226,11 +219,6 @@ describe('userConnection', () => {
 
             it('calls the callback', () => {
               expect(disconnectCallback.callCount).to.equal(1);
-            });
-
-            it('logs correctly', () => {
-              expect(logger.warn.callCount).to.equal(1);
-              expect(logger.warn.args[0][0]).endsWith('closed.');
             });
           });
 
@@ -254,9 +242,8 @@ describe('userConnection', () => {
             });
 
             it('logs correctly', () => {
-              expect(logger.debug.callCount).to.equal(2);
-              expect(logger.debug.args[0]).to.equal(['Connection ended.']);
-              expect(logger.debug.args[1]).to.equal(['Attempting to reconnect.']);
+              expect(logger.info.callCount).to.equal(1);
+              expect(logger.info.args[0]).to.equal(['Connection ended.']);
             });
           });
         });
@@ -272,11 +259,6 @@ describe('userConnection', () => {
                 userConnection.onClose(true);
               } catch {}
             });
-
-            it('logs correctly', () => {
-              expect(logger.warn.callCount).to.equal(1);
-              expect(logger.warn.args[0][0]).endsWith('with error.');
-            });
           });
 
           describe('by close without error', () => {
@@ -284,11 +266,6 @@ describe('userConnection', () => {
               try {
                 userConnection.onClose(false);
               } catch {}
-            });
-
-            it('logs correctly', () => {
-              expect(logger.warn.callCount).to.equal(1);
-              expect(logger.warn.args[0][0]).endsWith('closed.');
             });
           });
 
@@ -300,9 +277,10 @@ describe('userConnection', () => {
             });
 
             it('logs correctly', () => {
-              expect(logger.debug.callCount).to.equal(2);
-              expect(logger.debug.args[0]).to.equal(['Connection ended.']);
-              expect(logger.debug.args[1]).to.equal(['No disconnect callback found.']);
+              expect(logger.info.callCount).to.equal(1);
+              expect(logger.info.args[0]).to.equal(['Connection ended.']);
+              expect(logger.debug.callCount).to.equal(1);
+              expect(logger.debug.args[0]).to.equal(['No disconnect callback found.']);
             });
           });
         });
@@ -316,8 +294,8 @@ describe('userConnection', () => {
             attribs: [],
             children: {},
             delimiter: '/',
-            parent: null
-          }
+            parent: null,
+          },
         });
         persistence.listBoxes.returns([]);
         userConnection = new UserConnection(persistence, user);
@@ -362,8 +340,8 @@ describe('userConnection', () => {
             attribs: [],
             children: {},
             delimiter: '/',
-            parent: null
-          }
+            parent: null,
+          },
         });
         persistence.listBoxes.returns([deletedBox]);
         userConnection = new UserConnection(persistence, user);
@@ -403,16 +381,16 @@ describe('userConnection', () => {
           flags: [],
           messages: {
             new: 0,
-            total: 0
+            total: 0,
           },
           name: 'INBOX',
           uidnext: 1,
-          uidvalidity: 1390994418
+          uidvalidity: 1390994418,
         },
         messages: [],
         name: 'INBOX',
         qualifiedName: 'INBOX',
-        syncedTo: 1547370062078
+        syncedTo: 1547370062078,
       };
 
       beforeEach(async () => {
@@ -421,8 +399,8 @@ describe('userConnection', () => {
             attribs: [],
             children: {},
             delimiter: '/',
-            parent: null
-          }
+            parent: null,
+          },
         });
         persistence.listBoxes.returns([inbox]);
         mockery.deregisterMock('./predictors');
@@ -438,10 +416,10 @@ describe('userConnection', () => {
             date: new Date('2019-01-13T10:36:06.863Z'),
             envelope: {},
             size: 3,
-            uid: 1
+            uid: 1,
           },
           body: 'abc',
-          seqno: 2
+          seqno: 2,
         };
 
         beforeEach(async () => {
@@ -454,7 +432,7 @@ describe('userConnection', () => {
         it('searches since the last synced date', () => {
           expect(promisified.search.calledOnce).to.be.true();
           expect(promisified.search.firstCall.args).to.equal([
-            [['SINCE', new Date(inbox.syncedTo)]]
+            [['SINCE', new Date(inbox.syncedTo)]],
           ]);
         });
 
@@ -502,7 +480,7 @@ describe('userConnection', () => {
         it('searches since the last synced date', () => {
           expect(promisified.search.calledOnce).to.be.true();
           expect(promisified.search.firstCall.args).to.equal([
-            [['SINCE', new Date(inbox.syncedTo)]]
+            [['SINCE', new Date(inbox.syncedTo)]],
           ]);
         });
 
@@ -521,11 +499,11 @@ describe('userConnection', () => {
                 date: new Date('2019-01-13T10:36:06.863Z'),
                 envelope: {},
                 size: 3,
-                uid: 1
+                uid: 1,
               },
               body: 'abc',
-              seqno: 1
-            }
+              seqno: 1,
+            },
           ]);
           await userConnection.shallowSync();
         });
@@ -533,7 +511,7 @@ describe('userConnection', () => {
         it('searches since the last synced date', () => {
           expect(promisified.search.called).to.be.true();
           expect(promisified.search.firstCall.args).to.equal([
-            [['SINCE', new Date(inbox.syncedTo)]]
+            [['SINCE', new Date(inbox.syncedTo)]],
           ]);
         });
 
