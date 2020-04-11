@@ -97,7 +97,7 @@ export default class UserConnection implements BoxListener {
         name,
         pImap: this.pImap,
         qualifiedName,
-        syncedTo: 0
+        syncedTo: 0,
       });
 
       boxes.push(box);
@@ -136,7 +136,7 @@ export default class UserConnection implements BoxListener {
       fetchObj.fetch(source, {
         bodies: 'HEADER',
         envelope: true,
-        size: true
+        size: true,
       })
     );
   };
@@ -153,14 +153,14 @@ export default class UserConnection implements BoxListener {
     this.movesList = this.movesList.concat(
       createMovesFromJson(await this.persistence.listMoves(this.user))
     );
-    this.movesList.forEach(move => (this.movesMap[move.message.headers] = move));
+    this.movesList.forEach((move) => (this.movesMap[move.message.headers] = move));
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
       if (this.disconnectCallback) {
         this.disconnectCallback();
       }
     });
-    const writablePersistedBoxes: Box[] = persistedBoxes.map(box => box);
+    const writablePersistedBoxes: Box[] = persistedBoxes.map((box) => box);
     const mailBoxes = await this.pImap.getBoxes();
     const discoveredBoxes = this.collectMailboxes(mailBoxes);
     const resultingBoxes: Box[] = [];
@@ -207,7 +207,7 @@ export default class UserConnection implements BoxListener {
     }
 
     this.mailBoxes = resultingBoxes;
-    this.mailBoxes.forEach(box => this.currentPredictor.considerBox(box));
+    this.mailBoxes.forEach((box) => this.currentPredictor.considerBox(box));
     await this.openInbox();
     this.attempts = 0;
     await this.refresh();
@@ -244,13 +244,15 @@ export default class UserConnection implements BoxListener {
     await this.persistence.recordMoves(this.user, this.movesList);
   }
 
-  public onClose(hadError: boolean): void {
-    logger.warn(
-      `Connection for ${_.get(this, 'userReference.user', 'unknown user')} closed${
-        hadError ? ' with error.' : '.'
-      }`
-    );
+  set onDisconnect(callback: OnDisconnect | undefined) {
+    this.disconnectCallback = callback;
+  }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onAlert(_: string): void {}
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public onClose(_: boolean): void {
     if (this.disconnectCallback) {
       this.disconnectCallback();
     } else {
@@ -258,15 +260,10 @@ export default class UserConnection implements BoxListener {
     }
   }
 
-  set onDisconnect(callback: OnDisconnect | undefined) {
-    this.disconnectCallback = callback;
-  }
-
   public onEnd(): void {
-    logger.debug('Connection ended.');
+    logger.info('Connection ended.');
 
     if (this.disconnectCallback) {
-      logger.debug('Attempting to reconnect.');
       this.disconnectCallback();
     } else {
       logger.debug('No disconnect callback found.');
@@ -274,8 +271,7 @@ export default class UserConnection implements BoxListener {
     }
   }
 
-  public onExpunge = async (seqNo: number): Promise<void> => {
-    logger.debug({seqNo}, 'onExpunge');
+  public async onExpunge(seqNo: number): Promise<void> {
     if (!this.currentlyOpen) {
       // Shouldn't be possible - log it & move on.
       logger.warn(
@@ -284,7 +280,7 @@ export default class UserConnection implements BoxListener {
       return;
     }
 
-    const expungedMessage = this.currentlyOpen.messages.find(message => message.seq === seqNo);
+    const expungedMessage = this.currentlyOpen.messages.find((message) => message.seq === seqNo);
 
     if (!expungedMessage) {
       // We never knew about the expunged message. All good.
@@ -301,22 +297,29 @@ export default class UserConnection implements BoxListener {
 
     // Trigger check of all other boxen in case the message moved there.
     await this.shallowSyncSince(expungedMessage.date, [this.currentlyOpen.qualifiedName], true);
-  };
+  }
 
-  public onMail = async (count: number): Promise<void> => {
-    logger.debug({count}, 'onMail');
+  public async onMail(count: number): Promise<void> {
+    if (count === 0) {
+      return;
+    }
+
     await this.handleNewMail();
     logger.debug('New mails handled');
-  };
+  }
 
-  public onUidValidity = async (uidValidity: number): Promise<void> => {
-    logger.debug({uidValidity}, 'onUidValidity');
+  public async onUidValidity(uidValidity: number): Promise<void> {
     const box = this.currentlyOpen;
     if (box && _.get(box, 'uidValidity') !== uidValidity) {
       // regenerate the entire box.
       await this.resetBox();
     }
-  };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public async onUpdate(_seqNo: number, _info: {uid: number; modSeq: string}): Promise<void> {
+    await this.shallowSync();
+  }
 
   public async shutdown(): Promise<void> {}
 
@@ -324,7 +327,7 @@ export default class UserConnection implements BoxListener {
     logger.debug(
       {
         previousQualifiedName: this.currentlyOpen ? this.currentlyOpen.qualifiedName : 'null',
-        qualifiedName: box.qualifiedName
+        qualifiedName: box.qualifiedName,
       },
       'openBox'
     );
@@ -379,7 +382,7 @@ export default class UserConnection implements BoxListener {
   }
 
   private async pause(timeMs: number = OPERATION_PAUSE_MS): Promise<NodeJS.Timeout> {
-    return new Promise(resolve => setTimeout(resolve, timeMs));
+    return new Promise((resolve) => setTimeout(resolve, timeMs));
   }
 
   private async populateBox(startDate?: Date): Promise<Message[]> {
@@ -464,7 +467,7 @@ export default class UserConnection implements BoxListener {
     messages: ReadonlyArray<Message>,
     qualifiedName: string
   ): void {
-    messages.forEach(message => {
+    messages.forEach((message) => {
       predictor.addHeaders(message.headers, qualifiedName);
       this.mistakeTracker?.inspectMessage(qualifiedName, message);
     });
@@ -490,8 +493,8 @@ export default class UserConnection implements BoxListener {
       }
 
       for (const box of this.boxes
-        .filter(box => canLearnFrom(box.qualifiedName))
-        .filter(box => excluding.indexOf(box.qualifiedName) === -1)) {
+        .filter((box) => canLearnFrom(box.qualifiedName))
+        .filter((box) => excluding.indexOf(box.qualifiedName) === -1)) {
         if (resetSyncedTo) {
           box.syncedTo = date.getTime();
         }

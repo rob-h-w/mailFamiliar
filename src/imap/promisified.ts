@@ -5,11 +5,13 @@ import {OnDisconnect, waitForConnection} from './functions';
 import logger from '../logger';
 
 export interface BoxListener {
+  onAlert: (message: string) => void;
   onClose: (hadError: boolean) => void;
   onEnd: () => void;
   onExpunge: (seqNo: number) => void;
   onMail: (count: number) => void;
   onUidValidity: (validity: number) => void;
+  onUpdate: (seqNo: number, info: any) => void;
 }
 
 export interface MessageBody {
@@ -49,16 +51,16 @@ export default class Promisified {
           attrs: {
             date: new Date(),
             flags: [],
-            uid: 0
+            uid: 0,
           },
-          seqno
+          seqno,
         };
-        message.on('attributes', attrs => {
+        message.on('attributes', (attrs) => {
           msg.attrs = attrs;
         });
         message.on('body', (stream, info) => {
           msg.bodyInfo = info;
-          stream.on('data', chunk => {
+          stream.on('data', (chunk) => {
             msg.body = msg.body || '';
             msg.body += chunk.toString();
           });
@@ -70,27 +72,29 @@ export default class Promisified {
       fetch.on('end', () => {
         resolve(messages);
       });
-      fetch.on('error', error => {
+      fetch.on('error', (error) => {
         reject(error);
       });
     });
   }; // fetch(source: any /* MessageSource */, options: FetchOptions): ImapFetch
 
   private setBoxListener = (listener: BoxListener): void => {
-    this.imap.on('close', listener.onClose.bind(listener));
-    this.imap.on('end', listener.onEnd.bind(listener));
-    this.imap.on('expunge', listener.onExpunge.bind(listener));
-    this.imap.on('mail', listener.onMail.bind(listener));
-    this.imap.on('uidvalidity', listener.onUidValidity.bind(listener));
-    ['alert', 'update'].forEach(event => {
-      this.imap.on(event, (...args: any[]) => {
-        logger.error({
-          args,
-          event
-        });
-      });
-    });
+    this.onEvent('alert', listener.onAlert, listener);
+    this.onEvent('close', listener.onClose, listener);
+    this.onEvent('end', listener.onEnd, listener);
+    this.onEvent('expunge', listener.onExpunge, listener);
+    this.onEvent('mail', listener.onMail, listener);
+    this.onEvent('uidvalidity', listener.onUidValidity, listener);
+    this.onEvent('update', listener.onUpdate, listener);
   };
+
+  private onEvent(eventName: string, listenerFunction: Function, listener: BoxListener): void {
+    const bound = listenerFunction.bind(listener);
+    this.imap.on(eventName, (...args: any): void => {
+      logger.debug(`received ${eventName}(${args})`);
+      return bound(...args);
+    });
+  }
 
   waitForConnection = (callback?: OnDisconnect): Promise<void> => {
     return waitForConnection(this.imap, callback);
