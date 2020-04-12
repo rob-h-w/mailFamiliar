@@ -1,6 +1,5 @@
 import {expect} from '@hapi/code';
 const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
-import {Map} from 'immutable';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
@@ -134,7 +133,9 @@ describe('userConnection', () => {
     mockery.registerMock('../imap/promisified', {default: Promisified});
     mockery.registerMock('../logger', {default: logger});
     mockery.registerMock('./predictors', {
-      create: sinon.stub().returns(Map.of(PredictorTypeValues.alternatives[2].value, predictor)),
+      create: sinon
+        .stub()
+        .returns(new Map([[PredictorTypeValues.alternatives[2].value, predictor]])),
     });
 
     mockery.registerAllowable('../../../src/engine/userConnection');

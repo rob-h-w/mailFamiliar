@@ -1,5 +1,3 @@
-import {Map as ImMap} from 'immutable';
-
 import Box from './box';
 import Predictor from './predictor';
 import {crossCorrelateStrings} from '../tools/crossCorrelate';
@@ -39,14 +37,12 @@ export default class CrossCorrelate implements Predictor {
     }
   }
 
-  folderScore(headers: string): ImMap<string, number> {
-    const result: {[key: string]: number} = {};
-
-    for (const [qualifiedName, headersList] of this.boxToHeaders.entries()) {
-      result[qualifiedName] = this.entryScore(headers, headersList);
-    }
-
-    return ImMap(result);
+  folderScore(headers: string): Map<string, number> {
+    const result = new Map();
+    this.boxToHeaders.forEach((headersList, qualifiedName) =>
+      result.set(qualifiedName, this.entryScore(headers, headersList))
+    );
+    return result;
   }
 
   private entryScore(headers: string, headersList: ReadonlyArray<string>): number {
@@ -94,7 +90,7 @@ export default class CrossCorrelate implements Predictor {
     for (const score of scores) {
       const modeRangeIndex = Math.max(
         0,
-        ranges.findIndex(range => range.from < score && range.to >= score)
+        ranges.findIndex((range) => range.from < score && range.to >= score)
       );
       const count = modeRangeIndexToCount.get(modeRangeIndex) || 0;
       modeRangeIndexToCount.set(modeRangeIndex, count + 1);
