@@ -1,5 +1,3 @@
-import {Map as ImMap} from 'immutable';
-
 import {DiffAndAtables} from './diffAndAtables';
 import Box from './box';
 import {canMoveTo} from '../imap/boxFeatures';
@@ -26,7 +24,7 @@ export default class RegexAndAtable implements Predictor {
   addHeaders = (headers: string, qualifiedBoxName: string): void => {
     this.boxesToInstancesMap[qualifiedBoxName] = this.forEachInstanceOf(
       qualifiedBoxName,
-      instance => DiffAndAtables.addStrings(instance.daa, [headers], instance.minSegmentLength)
+      (instance) => DiffAndAtables.addStrings(instance.daa, [headers], instance.minSegmentLength)
     );
   };
 
@@ -34,26 +32,26 @@ export default class RegexAndAtable implements Predictor {
   addMistake(_mistake: Mistake): void {}
 
   considerBox = (box: Box): void => {
-    this.boxesToInstancesMap[box.qualifiedName] = MIN_SEGMENT_LENGTHS.map(minSegmentLength => ({
+    this.boxesToInstancesMap[box.qualifiedName] = MIN_SEGMENT_LENGTHS.map((minSegmentLength) => ({
       daa: DiffAndAtables.fromStrings(
-        box.messages.map(message => message.headers as string),
+        box.messages.map((message) => message.headers as string),
         minSegmentLength
       ),
-      minSegmentLength
+      minSegmentLength,
     }));
   };
 
-  folderScore = (headers: string): ImMap<string, number> => {
-    return ImMap(
+  folderScore = (headers: string): Map<string, number> => {
+    return new Map(
       Object.keys(this.boxesToInstancesMap)
-        .filter(name => canMoveTo(name))
+        .filter((name) => canMoveTo(name))
         .map(
-          key =>
+          (key) =>
             [
               key,
               this.boxesToInstancesMap[key]
-                .map(instance => DiffAndAtables.confidenceFor(instance.daa, headers))
-                .reduce((total, next) => total + next, 0) / this.boxesToInstancesMap[key].length
+                .map((instance) => DiffAndAtables.confidenceFor(instance.daa, headers))
+                .reduce((total, next) => total + next, 0) / this.boxesToInstancesMap[key].length,
             ] as [string, number]
         )
     );
@@ -64,9 +62,9 @@ export default class RegexAndAtable implements Predictor {
     fn: (instance: DiffAndAtablesInstance) => DiffAndAtables
   ): ReadonlyArray<DiffAndAtablesInstance> => {
     const instances = this.boxesToInstancesMap[qualifiedBoxName];
-    return instances.map(instance => ({
+    return instances.map((instance) => ({
       daa: fn(instance),
-      minSegmentLength: instance.minSegmentLength
+      minSegmentLength: instance.minSegmentLength,
     }));
   };
 
@@ -75,7 +73,7 @@ export default class RegexAndAtable implements Predictor {
   removeHeaders = (headers: string, qualifiedBoxName: string): void => {
     this.boxesToInstancesMap[qualifiedBoxName] = this.forEachInstanceOf(
       qualifiedBoxName,
-      instance => DiffAndAtables.removeStrings(instance.daa, [headers], instance.minSegmentLength)
+      (instance) => DiffAndAtables.removeStrings(instance.daa, [headers], instance.minSegmentLength)
     );
   };
 }

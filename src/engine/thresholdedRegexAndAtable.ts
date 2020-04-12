@@ -1,13 +1,11 @@
-import {Map} from 'immutable';
-
 import Box from './box';
 import Predictor, {UndeclaredBoxError} from './predictor';
 import ThresholdedDiffAndAtables from './thresholdedDiffAndAtables';
 import Mistake from 'types/mistake';
 
 export default class ThresholdedRegexAndAtable implements Predictor {
-  private boxMap: Map<string, ThresholdedDiffAndAtables> = Map.of();
-  private mistakenBoxMap: Map<string, ThresholdedDiffAndAtables> = Map.of();
+  private boxMap: Map<string, ThresholdedDiffAndAtables> = new Map();
+  private mistakenBoxMap: Map<string, ThresholdedDiffAndAtables> = new Map();
 
   addHeaders(headers: string, qualifiedBoxName: string): void {
     this.getBoxDiff(qualifiedBoxName).addStrings([headers]);
@@ -41,15 +39,19 @@ export default class ThresholdedRegexAndAtable implements Predictor {
   considerBox(box: Box): void {
     this.boxMap = this.boxMap.set(
       box.qualifiedName,
-      new ThresholdedDiffAndAtables(box.messages.map(messages => messages.headers as string))
+      new ThresholdedDiffAndAtables(box.messages.map((messages) => messages.headers as string))
     );
   }
 
   folderScore(headers: string): Map<string, number> {
-    return this.boxMap.map(
-      (tdaat, qualifiedName) =>
+    const result = new Map();
+    this.boxMap.forEach((tdaat, qualifiedName) =>
+      result.set(
+        qualifiedName,
         tdaat.confidenceFor(headers) - this.mistakeScore(qualifiedName, headers)
+      )
     );
+    return result;
   }
 
   private mistakeScore(qualifiedName: string, headers: string): number {

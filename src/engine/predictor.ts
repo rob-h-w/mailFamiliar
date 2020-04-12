@@ -1,5 +1,3 @@
-import {Map} from 'immutable';
-
 import Box from './box';
 import Mistake from 'types/mistake';
 

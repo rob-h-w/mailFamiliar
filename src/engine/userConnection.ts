@@ -1,5 +1,4 @@
 import * as Imap from 'imap';
-import {Map} from 'immutable';
 import * as _ from 'lodash';
 
 import Box from './box';
