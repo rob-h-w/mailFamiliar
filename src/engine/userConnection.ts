@@ -318,7 +318,7 @@ export default class UserConnection implements BoxListener {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async onUpdate(_seqNo: number, _info: {uid: number; modSeq: string}): Promise<void> {
-    await this.shallowSync();
+    // TODO: update our content here, if needed.
   }
 
   public async shutdown(): Promise<void> {}

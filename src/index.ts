@@ -2,9 +2,13 @@ import * as Hapi from '@hapi/hapi';
 
 import glue from './glue';
 import logger from './logger';
+import ListenerManager, {ServerEventsListenerManager} from './events/listenerManager';
 
 declare const process: any;
 declare const __filename: string;
+
+let processManager: ListenerManager;
+let serverEventsManager: ServerEventsListenerManager;
 
 function ignore(reason: any): boolean {
   if (!reason) {
@@ -27,17 +31,20 @@ function handleError(reason: Error): void {
   }
 
   logger.fatal('!!!!!!!!!!!!!!!!!!!!! Exiting !!!!!!!!!!!!!!!!!!!!!!!!');
+  serverEventsManager.close();
+  processManager.close();
   setTimeout(() => {
     process.exit(1);
   }, 10);
 }
 
 export async function startServer() {
-  process.on('uncaughtException', (reason: Error) => {
+  processManager = new ListenerManager(process);
+  processManager.on('uncaughtException', (reason: Error) => {
     handleError(reason);
   });
 
-  process.on('unhandledRejection', (reason: Error) => {
+  processManager.on('unhandledRejection', (reason: Error) => {
     handleError(reason);
   });
 
@@ -48,10 +55,11 @@ export async function startServer() {
   logger.info('creating HTTP server');
 
   const server: Hapi.Server = new Hapi.Server({
-    port: 8080
+    port: 8080,
   });
 
-  server.events.on('log', (event: Hapi.LogEvent, tags: {[key: string]: true}) => {
+  serverEventsManager = new ServerEventsListenerManager(server.events);
+  serverEventsManager.on('log', (event: Hapi.LogEvent, tags: {[key: string]: true}) => {
     logger.info({event, tags});
   });
 

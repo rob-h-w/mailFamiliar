@@ -3,6 +3,7 @@ import {promisify} from 'util';
 
 import {OnDisconnect, waitForConnection} from './functions';
 import logger from '../logger';
+import ListenerManager from '../events/listenerManager';
 
 export interface BoxListener {
   onAlert: (message: string) => void;
@@ -23,6 +24,7 @@ export interface MessageBody {
 
 export default class Promisified {
   readonly imap: Imap;
+  readonly imapMessageManager: ListenerManager;
 
   readonly closeBox: () => Promise<void>;
   readonly getBoxes: () => Promise<Imap.MailBoxes>;
@@ -33,6 +35,7 @@ export default class Promisified {
 
   constructor(imap: Imap, listener: BoxListener) {
     this.imap = imap;
+    this.imapMessageManager = new ListenerManager(imap);
     this.setBoxListener(listener);
 
     this.closeBox = promisify(imap.closeBox.bind(imap));
@@ -43,10 +46,16 @@ export default class Promisified {
     this.subscribeBox = promisify(imap.subscribeBox.bind(imap));
   }
 
-  fetch = (fetch: Imap.ImapFetch): Promise<ReadonlyArray<MessageBody>> => {
+  public close(): void {
+    this.imapMessageManager.close();
+  }
+
+  public fetch(fetch: Imap.ImapFetch): Promise<ReadonlyArray<MessageBody>> {
+    const fetchManager = new ListenerManager(fetch);
     return new Promise<ReadonlyArray<MessageBody>>((resolve, reject) => {
       const messages: MessageBody[] = [];
-      fetch.on('message', (message, seqno) => {
+      fetchManager.on('message', (message: Imap.ImapMessage, seqno: number) => {
+        const messageManager = new ListenerManager(message);
         const msg: MessageBody = {
           attrs: {
             date: new Date(),
@@ -55,28 +64,35 @@ export default class Promisified {
           },
           seqno,
         };
-        message.on('attributes', (attrs) => {
+        messageManager.on('attributes', (attrs) => {
           msg.attrs = attrs;
         });
-        message.on('body', (stream, info) => {
-          msg.bodyInfo = info;
-          stream.on('data', (chunk) => {
-            msg.body = msg.body || '';
-            msg.body += chunk.toString();
-          });
-        });
-        message.on('end', () => {
+        messageManager.on(
+          'body',
+          (stream: NodeJS.ReadableStream, info: Imap.ImapMessageBodyInfo) => {
+            msg.bodyInfo = info;
+            const streamManager = new ListenerManager(stream);
+            streamManager.on('data', (chunk) => {
+              msg.body = msg.body || '';
+              msg.body += chunk.toString();
+            });
+            streamManager.once('end', () => streamManager.close());
+          }
+        );
+        messageManager.on('end', () => {
+          messageManager.close();
           messages.push(msg);
         });
       });
-      fetch.on('end', () => {
+      fetchManager.on('end', () => {
+        fetchManager.close();
         resolve(messages);
       });
-      fetch.on('error', (error) => {
+      fetchManager.on('error', (error) => {
         reject(error);
       });
     });
-  }; // fetch(source: any /* MessageSource */, options: FetchOptions): ImapFetch
+  }
 
   private setBoxListener = (listener: BoxListener): void => {
     this.onEvent('alert', listener.onAlert, listener);
@@ -90,7 +106,7 @@ export default class Promisified {
 
   private onEvent(eventName: string, listenerFunction: Function, listener: BoxListener): void {
     const bound = listenerFunction.bind(listener);
-    this.imap.on(eventName, (...args: any): void => {
+    this.imapMessageManager.on(eventName, (...args: any): void => {
       logger.debug(`received ${eventName}(${args})`);
       return bound(...args);
     });
