@@ -249,7 +249,7 @@ export default function imap(): MockResult {
   replaceReset(object.openBox, () => {
     object.openBox.callsFake((boxName: string, callback: (result: Error | null) => void) => {
       if (Object.keys(object._state.folders).indexOf(boxName) === -1) {
-        return callback(new Error(`Folder ${boxName} isn't present.`));
+        return callback(new Error(`Mailbox doesn't exist: ${boxName}`));
       }
 
       object._currentlyOpened = boxName;

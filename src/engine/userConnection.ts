@@ -2,7 +2,7 @@ import * as Imap from 'imap';
 import * as _ from 'lodash';
 
 import Box from './box';
-import {BadStateException} from './exceptions';
+import {BadStateException, BoxDeletedException} from './exceptions';
 import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {BoxListener, MessageBody} from '../imap/promisified';
@@ -146,19 +146,9 @@ export default class UserConnection implements BoxListener {
     }
   }
 
-  public async init(): Promise<void> {
-    logger.debug('starting connection init');
+  private async assembleBoxes(): Promise<void> {
+    const previousBoxes: ReadonlySet<Box> | undefined = new Set(this.mailBoxes);
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
-    this.movesList = this.movesList.concat(
-      createMovesFromJson(await this.persistence.listMoves(this.user))
-    );
-    this.movesList.forEach((move) => (this.movesMap[move.message.headers] = move));
-    await this.pImap.waitForConnection(() => {
-      this.currentlyOpen = undefined;
-      if (this.disconnectCallback) {
-        this.disconnectCallback();
-      }
-    });
     const writablePersistedBoxes: Box[] = persistedBoxes.map((box) => box);
     const mailBoxes = await this.pImap.getBoxes();
     const discoveredBoxes = this.collectMailboxes(mailBoxes);
@@ -194,7 +184,9 @@ export default class UserConnection implements BoxListener {
     for (let i: number = resultingBoxes.length - 1; i > -1; i--) {
       const box = resultingBoxes[i];
       try {
-        await box.subscribe();
+        if (!previousBoxes || !previousBoxes.has(box)) {
+          await box.subscribe();
+        }
 
         if (box.isInbox) {
           this.inbox = box;
@@ -206,7 +198,25 @@ export default class UserConnection implements BoxListener {
     }
 
     this.mailBoxes = resultingBoxes;
-    this.mailBoxes.forEach((box) => this.currentPredictor.considerBox(box));
+    this.mailBoxes
+      .filter((box) => !(previousBoxes && previousBoxes.has(box)))
+      .forEach((box) => this.currentPredictor.considerBox(box));
+  }
+
+  public async init(): Promise<void> {
+    logger.debug('starting connection init');
+    this.movesList = this.movesList.concat(
+      createMovesFromJson(await this.persistence.listMoves(this.user))
+    );
+    this.movesList.forEach((move) => (this.movesMap[move.message.headers] = move));
+    await this.pImap.waitForConnection(() => {
+      this.currentlyOpen = undefined;
+      if (this.disconnectCallback) {
+        this.disconnectCallback();
+      }
+    });
+
+    await this.assembleBoxes();
     await this.openInbox();
     this.attempts = 0;
     await this.refresh();
@@ -335,34 +345,38 @@ export default class UserConnection implements BoxListener {
       return;
     }
 
-    await this.newMailHander.finished();
-    await this.closeBox();
-    let resetBox = false;
-
     try {
-      this.currentlyOpen = box;
+      await this.newMailHander.finished();
+      await this.closeBox();
+      let resetBox = false;
 
-      switch (await box.open()) {
-        case 'NEW':
-          await this.persistence.updateBox(this.user, box);
-          break;
-        case 'UIDS_INVALID':
-          resetBox = true;
-          break;
+      try {
+        this.currentlyOpen = box;
+
+        switch (await box.open()) {
+          case 'NEW':
+            await this.persistence.updateBox(this.user, box);
+            break;
+          case 'UIDS_INVALID':
+            resetBox = true;
+            break;
+        }
+      } catch (e) {
+        this.currentlyOpen = undefined;
+        throw e;
+      }
+
+      if (resetBox) {
+        await this.resetBox();
+      }
+
+      if (!this.currentlyOpen) {
+        await this.openBox(box);
+      } else {
+        logger.debug(`Opened ${this.currentlyOpen.qualifiedName}`);
       }
     } catch (e) {
-      this.currentlyOpen = undefined;
-      throw e;
-    }
-
-    if (resetBox) {
-      await this.resetBox();
-    }
-
-    if (!this.currentlyOpen) {
-      await this.openBox(box);
-    } else {
-      logger.debug(`Opened ${this.currentlyOpen.qualifiedName}`);
+      BoxDeletedException.checkAndThrow(box, e);
     }
   };
 
@@ -451,14 +465,23 @@ export default class UserConnection implements BoxListener {
   }
 
   private async resetBox(): Promise<void> {
-    if (!this.currentlyOpen) {
-      return;
-    }
+    try {
+      if (!this.currentlyOpen) {
+        return;
+      }
 
-    const predictor = this.currentPredictor;
-    const shouldBeOpen = this.currentlyOpen;
-    shouldBeOpen.reset();
-    this.addToPredictor(predictor, await this.populateBox(), shouldBeOpen.qualifiedName);
+      const predictor = this.currentPredictor;
+      const shouldBeOpen = this.currentlyOpen;
+      shouldBeOpen.reset();
+      this.addToPredictor(predictor, await this.populateBox(), shouldBeOpen.qualifiedName);
+    } catch (e) {
+      if (e instanceof BoxDeletedException) {
+        await this.assembleBoxes();
+        await this.resetBox();
+      } else {
+        throw e;
+      }
+    }
   }
 
   private addToPredictor(
@@ -513,6 +536,14 @@ export default class UserConnection implements BoxListener {
       await this.handleNewMail();
 
       logger.info(`shallow sync complete`);
+    } catch (e) {
+      if (e instanceof BoxDeletedException) {
+        await this.assembleBoxes();
+        this.isShallowSyncing = false;
+        await this.shallowSyncSince(date, excluding, resetSyncedTo);
+      } else {
+        throw e;
+      }
     } finally {
       this.isShallowSyncing = false;
     }
