@@ -68,7 +68,7 @@ function makeEvent<T>(name: string, object: any): (value: T) => void {
 function makeFetchResultFor(mails: MockMessage[]): ImapFetch {
   const fetchListeners: any = {
     on: {},
-    once: {}
+    once: {},
   };
   const assertDefined = <T>(value: T | null | undefined): T => {
     expect(value).to.exist();
@@ -86,7 +86,7 @@ function makeFetchResultFor(mails: MockMessage[]): ImapFetch {
     const messages = ['error', 'message', 'end'];
     if (
       messages
-        .map(message => {
+        .map((message) => {
           return fetchListeners.on[message] || fetchListeners.once[message];
         })
         .reduce((othersPresent, isPresent) => othersPresent && isPresent, true)
@@ -104,16 +104,28 @@ function makeFetchResultFor(mails: MockMessage[]): ImapFetch {
       fetchListeners.once[event] = listener;
       checkFetchListeners();
       return mockFetchObject;
-    })
+    }),
+    removeListener: sinon.spy((event: string, listener: Function) => {
+      if (fetchListeners.on[event] === listener) {
+        delete fetchListeners.on[event];
+      }
+
+      if (fetchListeners.once[event] === listener) {
+        delete fetchListeners.once[event];
+      }
+    }),
   });
   const callback = () => {
     expect((mockFetchObject.on as any).called || (mockFetchObject.once as any).called).to.be.true();
     for (const mail of mails) {
       const fakeMessage = {
-        on: sinon.stub()
+        on: sinon.stub(),
+        removeListener: sinon.stub(),
       };
       const msgHandlerFor = (message: string) => {
-        const argList = assertDefined(fakeMessage.on.args.find(argList => argList[0] === message));
+        const argList = assertDefined(
+          fakeMessage.on.args.find((argList) => argList[0] === message)
+        );
         expect(argList.length).to.equal(2);
         return argList[1];
       };
@@ -139,7 +151,7 @@ function mockFetchResult(object: any) {
 
 export default function imap(): MockResult {
   const seq = {
-    fetch: sinon.stub()
+    fetch: sinon.stub(),
   };
   const object = {
     _currentlyOpened: null as null | string,
@@ -153,13 +165,14 @@ export default function imap(): MockResult {
     on: sinon.stub(),
     once: sinon.stub(),
     openBox: sinon.stub(),
+    removeListener: sinon.stub(),
     search: sinon.stub().callsArgWith(1, null, []),
     seq,
-    subscribeBox: sinon.stub().callsArg(1)
+    subscribeBox: sinon.stub().callsArg(1),
   };
   const eventHandlers: EventHandlers = {
     on: {},
-    once: {}
+    once: {},
   };
 
   replaceReset(object.closeBox, () => {
@@ -210,7 +223,7 @@ export default function imap(): MockResult {
               attribs: folderState.attribs,
               children: folderState.children,
               delimiter: folderState.delimiter,
-              parent: folderState.parent
+              parent: folderState.parent,
             };
             return mailBoxes;
           }, {})
@@ -283,9 +296,9 @@ export default function imap(): MockResult {
       close: makeEvent('close', object),
       expunge: makeEvent('expunge', object),
       mail: makeEvent('mail', object),
-      uidValidity: makeEvent('uidvalidity', object)
+      uidValidity: makeEvent('uidvalidity', object),
     },
-    mailReceived: makeSimulateMailReceived(eventHandlers)
+    mailReceived: makeSimulateMailReceived(eventHandlers),
   };
   const setServerState = makeSetServerState(object, simulate);
 
@@ -295,6 +308,6 @@ export default function imap(): MockResult {
     fetchReturnsWith,
     object,
     setServerState,
-    simulate
+    simulate,
   };
 }
