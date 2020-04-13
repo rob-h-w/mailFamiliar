@@ -115,7 +115,7 @@ export default class UserConnection implements BoxListener {
 
   defaultStartDate = (): Date => new Date(Date.now() - DAY_IN_MS * this.user.syncWindowDays);
 
-  disconnect = async (): Promise<void> => {
+  async disconnect(): Promise<void> {
     try {
       if (this.refreshTimer) {
         clearTimeout(this.refreshTimer);
@@ -127,9 +127,9 @@ export default class UserConnection implements BoxListener {
       await this.pImap.closeBox();
       // eslint-disable-next-line no-empty
     } catch {}
-  };
+  }
 
-  fetch = (source: any, seq = false): Promise<readonly MessageBody[]> => {
+  fetch(source: any, seq = false): Promise<readonly MessageBody[]> {
     const fetchObj = seq ? this.pImap.imap.seq : this.pImap.imap;
     return this.pImap.fetch(
       fetchObj.fetch(source, {
@@ -138,7 +138,7 @@ export default class UserConnection implements BoxListener {
         size: true,
       })
     );
-  };
+  }
 
   async handleNewMail(): Promise<void> {
     if (this.currentlyOpen) {
@@ -332,7 +332,7 @@ export default class UserConnection implements BoxListener {
 
   public async shutdown(): Promise<void> {}
 
-  private openBox = async (box: Box): Promise<void> => {
+  private async openBox(box: Box): Promise<void> {
     logger.debug(
       {
         previousQualifiedName: this.currentlyOpen ? this.currentlyOpen.qualifiedName : 'null',
@@ -378,7 +378,7 @@ export default class UserConnection implements BoxListener {
     } catch (e) {
       BoxDeletedException.checkAndThrow(box, e);
     }
-  };
+  }
 
   private async openInbox(): Promise<void> {
     if (this.currentlyOpen && this.currentlyOpen.isInbox) {
