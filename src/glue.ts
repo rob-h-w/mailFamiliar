@@ -37,6 +37,8 @@ class Glue {
   readonly persistence: InitializablePersistence<string>;
   readonly synchronizer: Synchronizer;
 
+  private connectionTimer?: NodeJS.Timeout;
+
   constructor() {
     this.persistence = new Json(this.path());
     this.synchronizer = new Synchronizer(this.persistence);
@@ -48,8 +50,11 @@ class Glue {
   }
 
   handleError(reason: Error): boolean {
-    if (canFixByReconnecting(reason)) {
-      setTimeout(() => this.synchronizer.reconnect(), 10_000);
+    if (canFixByReconnecting(reason) && !this.connectionTimer) {
+      this.connectionTimer = setTimeout(() => {
+        this.connectionTimer = undefined;
+        this.synchronizer.reconnect();
+      }, 10_000);
       return true;
     }
 
@@ -57,10 +62,7 @@ class Glue {
   }
 
   private path(): string {
-    return env
-      .get('M_FAMILIAR_STORAGE')
-      .required()
-      .asString();
+    return env.get('M_FAMILIAR_STORAGE').required().asString();
   }
 }
 
