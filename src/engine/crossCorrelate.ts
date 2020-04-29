@@ -102,6 +102,10 @@ export default class CrossCorrelate implements Predictor {
     return this.boxToHeaders.get(qualifiedName) || [];
   }
 
+  model(): undefined {
+    return undefined;
+  }
+
   name(): string {
     return 'cross correlate';
   }

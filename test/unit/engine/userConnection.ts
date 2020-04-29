@@ -104,6 +104,7 @@ describe('userConnection', () => {
       addMistake: sinon.stub(),
       considerBox: sinon.stub(),
       folderScore: sinon.stub(),
+      persistenceModel: sinon.stub(),
       name: sinon.stub().returns('name'),
       removeHeaders: sinon.stub()
     };

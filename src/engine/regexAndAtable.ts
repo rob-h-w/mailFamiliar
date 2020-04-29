@@ -68,6 +68,10 @@ export default class RegexAndAtable implements Predictor {
     }));
   };
 
+  model(): undefined {
+    return undefined;
+  }
+
   name = (): string => 'regex';
 
   removeHeaders = (headers: string, qualifiedBoxName: string): void => {

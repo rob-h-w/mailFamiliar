@@ -1,11 +1,33 @@
+import PersistenceModel from '../persistence/model';
+import Persistence from '../persistence/persistence';
+import Mistake from '../types/mistake';
 import Box from './box';
 import Predictor, {UndeclaredBoxError} from './predictor';
 import ThresholdedDiffAndAtables from './thresholdedDiffAndAtables';
-import Mistake from '../types/mistake';
+
+class TraatPersistenceModel implements PersistenceModel {
+  private persistence: Persistence | undefined;
+  private predictor: ThresholdedRegexAndAtable;
+
+  constructor(predictor: ThresholdedRegexAndAtable) {
+    this.predictor = predictor;
+  }
+
+  persist(persistence: Persistence): Promise<void> {
+    this.persistence = persistence;
+    throw new Error('Method not implemented.');
+  }
+
+  restore(persistence: Persistence): Promise<void> {
+    this.persistence = persistence;
+    throw new Error('Method not implemented.');
+  }
+}
 
 export default class ThresholdedRegexAndAtable implements Predictor {
   private boxMap: Map<string, ThresholdedDiffAndAtables> = new Map();
   private mistakenBoxMap: Map<string, ThresholdedDiffAndAtables> = new Map();
+  private traatPersistenceModel: TraatPersistenceModel = new TraatPersistenceModel(this);
 
   addHeaders(headers: string, qualifiedBoxName: string): void {
     this.getBoxDiff(qualifiedBoxName).addStrings([headers]);
@@ -61,6 +83,10 @@ export default class ThresholdedRegexAndAtable implements Predictor {
     }
 
     return 0;
+  }
+
+  persistenceModel(): PersistenceModel {
+    return this.traatPersistenceModel;
   }
 
   name(): string {

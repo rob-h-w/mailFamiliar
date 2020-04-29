@@ -1,4 +1,5 @@
 import Box from './box';
+import PersistenceModel from '../persistence/model';
 import Mistake from '../types/mistake';
 
 export class UndeclaredBoxError extends Error {
@@ -15,6 +16,7 @@ export default interface Predictor {
   addMistake(mistake: Mistake): void;
   considerBox(box: Box): void;
   folderScore(headers: string): Map<string, number>;
+  persistenceModel(): PersistenceModel | undefined;
   name(): string;
   removeHeaders(headers: string, qualifiedBoxName: string): void;
 }

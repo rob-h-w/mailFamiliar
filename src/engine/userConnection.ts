@@ -207,6 +207,10 @@ export default class UserConnection implements BoxListener {
     this.movesList = this.movesList.concat(
       createMovesFromJson(await this.persistence.listMoves(this.user))
     );
+    const persistenceModel = this.currentPredictor.persistenceModel();
+    if (persistenceModel) {
+      await persistenceModel.restore(this.persistence);
+    }
     this.movesList.forEach(move => (this.movesMap[move.message.headers] = move));
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
