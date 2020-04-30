@@ -67,6 +67,7 @@ typings/
 
 # temporary bits
 tmp/
+remote_*/
 
 # Performance measurements
 perf*
