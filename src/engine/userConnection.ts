@@ -289,7 +289,14 @@ export default class UserConnection implements BoxListener {
       return;
     }
 
-    const expungedMessage = this.currentlyOpen.messages.find((message) => message.seq === seqNo);
+    const messages = this.currentlyOpen.messages;
+
+    if (seqNo > messages.length) {
+      // The expunged message is already gone. All good.
+      return;
+    }
+
+    const expungedMessage = messages[messages.length - seqNo];
 
     if (!expungedMessage) {
       // We never knew about the expunged message. All good.

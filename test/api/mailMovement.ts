@@ -103,7 +103,7 @@ describe('mail movement', () => {
     beforeEach(async () => {
       imapMock.object.openBox.reset();
       bunyanMock.logger.info.reset();
-      await imapMock.eventHandlers.on.expunge(40465);
+      await imapMock.eventHandlers.on.expunge(1);
       await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
     });
 

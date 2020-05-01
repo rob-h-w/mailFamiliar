@@ -420,7 +420,7 @@ describe('userConnection', () => {
             uid: 1,
           },
           body: 'abc',
-          seqno: 2,
+          seqno: 1,
         };
 
         beforeEach(async () => {
@@ -445,7 +445,7 @@ describe('userConnection', () => {
           const message = params[0];
           expect(message.date).to.equal(new Date('2019-01-13T10:36:06.863Z'));
           expect(message.headers).to.exist();
-          expect(message.seq).to.equal(2);
+          expect(message.seq).to.equal(1);
           expect(message.size).to.equal(3);
           expect(message.uid).to.equal(1);
         });
@@ -454,7 +454,7 @@ describe('userConnection', () => {
           beforeEach(async () => {
             persistence.updateBox.reset();
             mockedBoxen.INBOX.box.messages = mockedBoxen.INBOX.box.addMessage.firstCall.args;
-            await userConnection.onExpunge(2);
+            await userConnection.onExpunge(1);
           });
 
           it('calls removeMessage', () => {
