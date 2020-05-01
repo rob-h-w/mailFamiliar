@@ -100,7 +100,7 @@ describe('folder', () => {
     await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
   });
 
-  afterEach(async () => {
+  async function cleanup() {
     if (server) {
       await server.stop();
       server = null;
@@ -108,7 +108,11 @@ describe('folder', () => {
 
     clock.restore();
     mockery.disable();
-  });
+  }
+
+  afterEach(cleanup);
+
+  after(cleanup);
 
   describe('deletion', () => {
     beforeEach(async () => {
