@@ -78,7 +78,7 @@ describe('mail movement', () => {
     await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
   });
 
-  afterEach(async () => {
+  async function cleanup() {
     if (server) {
       await server.stop();
       server = null;
@@ -86,7 +86,11 @@ describe('mail movement', () => {
 
     clock.restore();
     mockery.disable();
-  });
+  }
+
+  afterEach(cleanup);
+
+  after(cleanup);
 
   it('ends up with INBOX open', () => {
     const openBox = imapMock.object.openBox;

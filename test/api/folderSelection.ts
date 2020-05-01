@@ -98,10 +98,19 @@ describe('folder selection', () => {
     mockery.registerMock('bunyan', bunyanMock.object);
   });
 
-  afterEach(() => {
+  async function cleanup() {
+    if (server) {
+      await server.stop();
+      server = null;
+    }
+
     clock.restore();
     mockery.disable();
-  });
+  }
+
+  afterEach(cleanup);
+
+  after(cleanup);
 
   PredictorTypeValues.alternatives.forEach((predictorType) =>
     describe(`with predictor ${predictorType.value}`, () => {
@@ -125,13 +134,6 @@ describe('folder selection', () => {
 
         server = await startServerInHealthyState();
         await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
-      });
-
-      afterEach(async () => {
-        if (server) {
-          await server.stop();
-          server = null;
-        }
       });
 
       it('spins up', () => {
@@ -230,13 +232,6 @@ describe('folder selection', () => {
   describe('when mail is moved', () => {
     let SORTED;
     let UNSORTED;
-
-    afterEach(async () => {
-      if (server) {
-        await server.stop();
-        server = null;
-      }
-    });
 
     beforeEach(async () => {
       SORTED = {

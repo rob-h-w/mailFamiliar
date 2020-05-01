@@ -57,16 +57,19 @@ describe('periodic refresh', () => {
     server = await startServerInHealthyState();
   });
 
-  afterEach(async () => {
-    clock.restore();
-
+  async function cleanup() {
     if (server) {
       await server.stop();
       server = null;
     }
 
+    clock.restore();
     mockery.disable();
-  });
+  }
+
+  afterEach(cleanup);
+
+  after(cleanup);
 
   describe('when an hour has passed', () => {
     beforeEach(async () => {

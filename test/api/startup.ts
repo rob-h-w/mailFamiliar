@@ -58,7 +58,7 @@ beforeEach(() => {
   stub(process, 'on');
 });
 
-afterEach(async () => {
+async function cleanup() {
   if (server) {
     await server.stop();
     server = null;
@@ -66,8 +66,15 @@ afterEach(async () => {
 
   mockery.disable();
 
-  ((process.on as unknown) as sinon.SinonStub).restore();
-});
+  const on = (process.on as unknown) as sinon.SinonStub;
+  if (on.restore) {
+    on.restore();
+  }
+}
+
+afterEach(cleanup);
+
+after(cleanup);
 
 describe('startup', () => {
   describe('startServer', () => {
