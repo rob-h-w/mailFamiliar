@@ -1,18 +1,26 @@
 import {expect} from '@hapi/code';
-const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
+const {
+  after,
+  afterEach,
+  before,
+  beforeEach,
+  describe,
+  it,
+} = (exports.lab = require('@hapi/lab').script());
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
 
 import {Box} from 'imap';
 
+import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
 import mockImap from './mocks/imap';
 import ImapMock from './mocks/imap/mockResult';
 import ServerState, {fromBoxes} from './mocks/imap/serverState';
+import {mockStorageAndSetEnvironment} from './mocks/mailFamiliarStorage';
 import boxes from './tools/fixture/standard/boxes';
-import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
 import {useFixture} from './tools/fixture/standard/useFixture';
 import {startServerInHealthyState} from './tools/server';
-import {mockStorageAndSetEnvironment} from './mocks/mailFamiliarStorage';
+import stubExit from './tools/stubExit';
 import {until} from './tools/wait';
 
 let bunyanMock: BunyanMock;
@@ -21,6 +29,8 @@ let imapMock: ImapMock;
 
 const INBOX = 'INBOX';
 const INTERESTING_SPAM = 'Interesting spam';
+
+stubExit(before, after);
 
 describe('folder', () => {
   const inbox = [
