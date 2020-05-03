@@ -290,30 +290,20 @@ export default class UserConnection implements BoxListener {
     }
 
     const currentlyOpen = this.currentlyOpen;
-    const messages = currentlyOpen.messages;
 
-    if (seqNo > messages.length) {
-      // The expunged message is already gone. All good.
-      return;
+    const expungedMessage = currentlyOpen.removeMessage(seqNo);
+
+    if (expungedMessage) {
+      this.currentPredictor.removeHeaders(expungedMessage.headers, currentlyOpen.qualifiedName);
+
+      if (currentlyOpen.isInbox && this.hasMove(expungedMessage.headers)) {
+        // We moved the message; all good.
+        return;
+      }
+
+      // Trigger check of all other boxen in case the message moved there.
+      await this.shallowSyncSince(expungedMessage.date, [currentlyOpen.qualifiedName], true);
     }
-
-    const expungedMessage = messages[messages.length - seqNo];
-
-    if (!expungedMessage) {
-      // We never knew about the expunged message. All good.
-      return;
-    }
-
-    if (currentlyOpen.isInbox && this.hasMove(expungedMessage.headers)) {
-      // We moved the message. All good.
-      return;
-    }
-
-    currentlyOpen.removeMessage(expungedMessage);
-    this.currentPredictor.removeHeaders(expungedMessage.headers, currentlyOpen.qualifiedName);
-
-    // Trigger check of all other boxen in case the message moved there.
-    await this.shallowSyncSince(expungedMessage.date, [currentlyOpen.qualifiedName], true);
   }
 
   public async onMail(count: number): Promise<void> {

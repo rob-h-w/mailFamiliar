@@ -60,11 +60,11 @@ export default class Promisified {
           attrs: {
             date: new Date(),
             flags: [],
-            uid: 0,
+            uid: 0
           },
-          seqno,
+          seqno
         };
-        messageManager.on('attributes', (attrs) => {
+        messageManager.on('attributes', attrs => {
           msg.attrs = attrs;
         });
         messageManager.on(
@@ -72,7 +72,7 @@ export default class Promisified {
           (stream: NodeJS.ReadableStream, info: Imap.ImapMessageBodyInfo) => {
             msg.bodyInfo = info;
             const streamManager = new ListenerManager(stream);
-            streamManager.on('data', (chunk) => {
+            streamManager.on('data', chunk => {
               msg.body = msg.body || '';
               msg.body += chunk.toString();
             });
@@ -88,13 +88,13 @@ export default class Promisified {
         fetchManager.close();
         resolve(messages);
       });
-      fetchManager.on('error', (error) => {
+      fetchManager.on('error', error => {
         reject(error);
       });
     });
   }
 
-  private setBoxListener = (listener: BoxListener): void => {
+  private setBoxListener(listener: BoxListener): void {
     this.onEvent('alert', listener.onAlert, listener);
     this.onEvent('close', listener.onClose, listener);
     this.onEvent('end', listener.onEnd, listener);
@@ -102,7 +102,7 @@ export default class Promisified {
     this.onEvent('mail', listener.onMail, listener);
     this.onEvent('uidvalidity', listener.onUidValidity, listener);
     this.onEvent('update', listener.onUpdate, listener);
-  };
+  }
 
   private onEvent(eventName: string, listenerFunction: Function, listener: BoxListener): void {
     const bound = listenerFunction.bind(listener);
@@ -112,7 +112,7 @@ export default class Promisified {
     });
   }
 
-  waitForConnection = (callback?: OnDisconnect): Promise<void> => {
+  public waitForConnection(callback?: OnDisconnect): Promise<void> {
     return waitForConnection(this.imap, callback);
-  };
+  }
 }

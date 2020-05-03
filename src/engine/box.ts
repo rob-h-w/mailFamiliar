@@ -32,7 +32,7 @@ const BoxStateValues = Union(
 export type BoxState = Static<typeof BoxStateValues>;
 
 function msgHashString(message: Message): string {
-  return `${message.date}${message.seq}${message.uid}`;
+  return `${message.date}${message.uid}`;
 }
 
 export default class Box {
@@ -42,8 +42,8 @@ export default class Box {
   private msgHashes: {
     [key: string]: Message;
   };
-  private offset?: number;
   private pImap?: Promisified;
+  private startingSeq?: number;
   private syncedToEpoch: number;
 
   readonly name: string;
@@ -82,23 +82,16 @@ export default class Box {
   }
 
   addMessage = (message: Message): void => {
-    const messageSeq = message.seq;
+    const messageIndex = this.indexOf(message.seq);
     const messageCopy = {...message};
 
     // We encode the sequence by ordering. Ensure the seq member doesn't
     // pollute hash calculations.
     messageCopy.seq = 0;
-    const messageIndex = messageSeq - this.seqOffset();
-
-    if (this.offset === undefined) {
-      throw new ImapBoxMissingException(this);
-    }
 
     this.messageList.splice(messageIndex, 0, messageCopy);
     this.addMessageHash(messageCopy);
     this.syncedToEpoch = Math.max(this.syncedToEpoch, messageCopy.date.getTime());
-
-    this.offset++;
   };
 
   private addMessageHash = (message: Message): void => {
@@ -139,21 +132,25 @@ export default class Box {
   server seq:     1, 2, 3, 4
   client indices:       0, 1
 
-  seqOffset = server seq - client index
+  seqOffset = server seq - client list length
   */
   private seqOffset(): number {
     if (!this.imapBox) {
       throw new ImapBoxMissingException(this);
     }
 
-    if (this.offset === undefined) {
-      this.offset = this.imapBox?.messages.total - this.messageList.length + 1;
+    if (this.startingSeq === undefined) {
+      this.startingSeq = this.imapBox?.messages.total - this.messageList.length;
     }
 
-    return this.offset;
+    return this.startingSeq;
   }
 
-  open = async (): Promise<BoxState> => {
+  private indexOf(seq: number): number {
+    return seq - this.seqOffset();
+  }
+
+  async open(): Promise<BoxState> {
     Box.check(this);
     if (this.pImap) {
       const box = await this.pImap.openBox(this.qualifiedName);
@@ -175,29 +172,32 @@ export default class Box {
     }
 
     return 'UNREADY';
-  };
+  }
 
-  removeMessage = (message: Message): void => {
-    if (!this.hasMessage(message)) {
-      return;
+  removeMessage(message: Message | number): Message | null {
+    if (typeof message === 'number') {
+      const index = this.indexOf(message);
+      if (index < 0 || index >= this.messages.length) {
+        return null;
+      }
+
+      return this.removeMessage(this.messages[index]);
+    } else {
+      if (!this.hasMessage(message)) {
+        return null;
+      }
+
+      delete this.msgHashes[msgHashString(message)];
+
+      const index = this.messageList.indexOf(message);
+
+      if (index === -1) {
+        return null;
+      }
+
+      return this.messageList.splice(index, 1)[0];
     }
-
-    delete this.msgHashes[msgHashString(message)];
-
-    const index = this.messageList.indexOf(message);
-
-    if (index === -1) {
-      return;
-    }
-
-    this.messageList.splice(index, 1);
-
-    if (this.offset === undefined) {
-      throw new ImapBoxMissingException(this);
-    }
-
-    this.offset--;
-  };
+  }
 
   reset = (): void => {
     this.msgHashes = {};

@@ -441,15 +441,15 @@ describe('userConnection', () => {
         describe('when mail is expunged', () => {
           beforeEach(async () => {
             persistence.updateBox.reset();
+            mockedBoxen.INBOX.box.removeMessage.reset();
             mockedBoxen.INBOX.box.messages = mockedBoxen.INBOX.box.addMessage.firstCall.args;
+            mockedBoxen.INBOX.box.removeMessage.returns(mockedBoxen.INBOX.box.messages[0]);
             await userConnection.onExpunge(1);
           });
 
           it('calls removeMessage', () => {
             expect(mockedBoxen.INBOX.box.removeMessage.calledOnce).to.be.true();
-            expect(mockedBoxen.INBOX.box.removeMessage.firstCall.args).to.equal(
-              mockedBoxen.INBOX.box.addMessage.firstCall.args
-            );
+            expect(mockedBoxen.INBOX.box.removeMessage.firstCall.args[0]).to.equal(1);
           });
 
           it('persists the updated box', () => {
