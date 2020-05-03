@@ -4,7 +4,7 @@
     "allowJs": true,
     "baseUrl": "./src",
     "checkJs": true,
-    "lib": ["es2017"],
+    "lib": ["es2019"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noImplicitAny": true,
@@ -18,6 +18,6 @@
     "strict": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "target": "es2017"
+    "target": "es2019"
   }
 }

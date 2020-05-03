@@ -10,7 +10,7 @@ globals:
   SharedArrayBuffer: readonly
 parser: '@typescript-eslint/parser'
 parserOptions:
-  ecmaVersion: 2018
+  ecmaVersion: 2019
 plugins:
   - '@typescript-eslint'
 rules:
@@ -18,8 +18,8 @@ rules:
     '@typescript-eslint/no-empty-function': off,
     '@typescript-eslint/no-explicit-any': off,
     '@typescript-eslint/no-use-before-define': off,
-    no-extra-semi: off,
+    no-extra-semi: 0,
     object-curly-spacing: [error, never],
-    semi: off,
-    space-before-function-paren: off,
+    semi: 0,
+    space-before-function-paren: 0,
   }
