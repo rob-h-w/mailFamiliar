@@ -413,12 +413,12 @@ export default class UserConnection implements BoxListener {
     this.isPopulatingBox = true;
 
     const newMessages = [];
-    const shouldBeOpen = this.currentlyOpen;
+    const currentlyOpen = this.currentlyOpen;
 
     try {
       if (_.isUndefined(startDate) || this.user.trial) {
         startDate = new Date(
-          Math.max(this.defaultStartDate().getTime(), getSyncedTo(this.currentlyOpen))
+          Math.max(this.defaultStartDate().getTime(), getSyncedTo(currentlyOpen))
         );
       }
 
@@ -426,23 +426,18 @@ export default class UserConnection implements BoxListener {
       if (search.length) {
         const messages = await this.fetch(search);
 
-        // Ensure the same box is still open.
-        await this.openBox(shouldBeOpen);
-
         for (const messageBody of messages) {
           const message = messageFromBody(messageBody);
-          this.currentlyOpen.addMessage(message);
+          currentlyOpen.addMessage(message);
           newMessages.push(message);
           await this.pause();
         }
       } else {
-        this.currentlyOpen.syncedTo = startDate.getTime();
+        currentlyOpen.syncedTo = startDate.getTime();
       }
 
-      await this.persistence.updateBox(this.user, this.currentlyOpen);
+      await this.persistence.updateBox(this.user, currentlyOpen);
 
-      // Ensure the same box is still open.
-      await this.openBox(shouldBeOpen);
       return newMessages;
     } finally {
       this.isPopulatingBox = false;

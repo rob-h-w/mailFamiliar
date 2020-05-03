@@ -98,7 +98,7 @@ describe('folder selection', () => {
     mockery.registerMock('bunyan', bunyanMock.object);
   });
 
-  async function cleanup() {
+  async function cleanup(): Promise<void> {
     if (server) {
       await server.stop();
       server = null;
@@ -123,10 +123,10 @@ describe('folder selection', () => {
         serverState = fromBoxes(boxes);
         const inboxState = serverState.folders.INBOX;
         inboxState.messages = inbox;
-        inboxState.messageState.total = inbox.length;
+        inboxState.box.messages.total = inbox.length;
         const interestingSpamState = serverState.folders['Interesting spam'];
         interestingSpamState.messages = interestingSpam;
-        interestingSpamState.messageState.total = interestingSpam.length;
+        interestingSpamState.box.messages.total = interestingSpam.length;
 
         imapMock.setServerState(serverState);
 

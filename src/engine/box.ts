@@ -2,6 +2,7 @@ import * as Imap from 'imap';
 import * as _ from 'lodash';
 import {Literal, Static, Union} from 'runtypes';
 
+import {ImapBoxMissingException} from './exceptions';
 import Promisified from '../imap/promisified';
 import logger from '../logger';
 import {Message} from '../types/message';
@@ -37,9 +38,11 @@ function msgHashString(message: Message): string {
 export default class Box {
   private imapBox?: Imap.Box;
   private imapFolder?: Imap.Folder;
+  private messageList: Message[] = [];
   private msgHashes: {
     [key: string]: Message;
   };
+  private offset?: number;
   private pImap?: Promisified;
   private syncedToEpoch: number;
 
@@ -73,16 +76,29 @@ export default class Box {
       for (const msg of messages) {
         this.addMessageHash(msg);
       }
+
+      this.messageList.push(...messages);
     }
   }
 
   addMessage = (message: Message): void => {
-    if (this.hasMessage(message)) {
-      return;
+    const messageSeq = message.seq;
+    const messageCopy = {...message};
+
+    // We encode the sequence by ordering. Ensure the seq member doesn't
+    // pollute hash calculations.
+    messageCopy.seq = 0;
+    const messageIndex = messageSeq - this.seqOffset();
+
+    if (this.offset === undefined) {
+      throw new ImapBoxMissingException(this);
     }
 
-    this.addMessageHash(message);
-    this.syncedToEpoch = Math.max(this.syncedToEpoch, message.date.getTime());
+    this.messageList.splice(messageIndex, 0, messageCopy);
+    this.addMessageHash(messageCopy);
+    this.syncedToEpoch = Math.max(this.syncedToEpoch, messageCopy.date.getTime());
+
+    this.offset++;
   };
 
   private addMessageHash = (message: Message): void => {
@@ -116,14 +132,32 @@ export default class Box {
   }
 
   get messages(): ReadonlyArray<Message> {
-    return Object.values(this.msgHashes);
+    return this.messageList;
+  }
+
+  /*
+  server seq:     1, 2, 3, 4
+  client indices:       0, 1
+
+  seqOffset = server seq - client index
+  */
+  private seqOffset(): number {
+    if (!this.imapBox) {
+      throw new ImapBoxMissingException(this);
+    }
+
+    if (this.offset === undefined) {
+      this.offset = this.imapBox?.messages.total - this.messageList.length + 1;
+    }
+
+    return this.offset;
   }
 
   open = async (): Promise<BoxState> => {
     Box.check(this);
     if (this.pImap) {
       const box = await this.pImap.openBox(this.qualifiedName);
-      logger.info(`Opened ${this.qualifiedName}`);
+      logger.info(`Opened ${box.name}`);
 
       let boxState: BoxState = !this.imapBox ? 'NEW' : 'UNCHANGED';
 
@@ -149,6 +183,20 @@ export default class Box {
     }
 
     delete this.msgHashes[msgHashString(message)];
+
+    const index = this.messageList.indexOf(message);
+
+    if (index === -1) {
+      return;
+    }
+
+    this.messageList.splice(index, 1);
+
+    if (this.offset === undefined) {
+      throw new ImapBoxMissingException(this);
+    }
+
+    this.offset--;
   };
 
   reset = (): void => {
