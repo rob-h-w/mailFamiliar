@@ -64,6 +64,7 @@ typings/
 # build output
 *.js
 *.js.map
+dist/
 
 # temporary bits
 tmp/
