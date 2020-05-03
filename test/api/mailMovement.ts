@@ -68,7 +68,7 @@ describe('mail movement', () => {
     const serverState = fromBoxes(boxes);
     const inboxState = serverState.folders.INBOX;
     inboxState.messages = inbox;
-    inboxState.messageState.total = inbox.length;
+    inboxState.box.messages.total = inbox.length;
 
     imapMock.setServerState(serverState);
 
@@ -78,7 +78,7 @@ describe('mail movement', () => {
     await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
   });
 
-  async function cleanup() {
+  async function cleanup(): Promise<void> {
     if (server) {
       await server.stop();
       server = null;

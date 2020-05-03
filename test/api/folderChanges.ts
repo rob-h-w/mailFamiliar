@@ -87,10 +87,10 @@ describe('folder', () => {
     serverState = fromBoxes(boxes);
     const inboxState = serverState.folders.INBOX;
     inboxState.messages = inbox;
-    inboxState.messageState.total = inbox.length;
+    inboxState.box.messages.total = inbox.length;
     const interestingSpamState = serverState.folders[INTERESTING_SPAM];
     interestingSpamState.messages = interestingSpam;
-    interestingSpamState.messageState.total = interestingSpam.length;
+    interestingSpamState.box.messages.total = interestingSpam.length;
 
     imapMock.setServerState(serverState);
 
@@ -100,7 +100,7 @@ describe('folder', () => {
     await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
   });
 
-  async function cleanup() {
+  async function cleanup(): Promise<void> {
     if (server) {
       await server.stop();
       server = null;

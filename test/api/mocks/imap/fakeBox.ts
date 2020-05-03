@@ -22,14 +22,23 @@ function mockMessage(message: string, index: number, now: number): MockMessage {
 export default function fakeBox(messages: ReadonlyArray<string>): FolderState {
   const now = Date.now();
   return {
-    attribs: [] as string[],
+    attribs: [],
+    box: {
+      flags: [],
+      newKeywords: false,
+      messages: {
+        new: 0,
+        total: 0,
+        unseen: 0,
+      },
+      permFlags: [],
+      persistentUIDs: true,
+      readOnly: false,
+      uidnext: 123,
+      uidvalidity: 456,
+    },
     children: null,
     delimiter: '/',
-    messageState: {
-      new: 0,
-      total: messages.length,
-      unseen: 0,
-    },
     messages: messages.map((message, index) => mockMessage(message, index, now)),
     parent: null,
   };

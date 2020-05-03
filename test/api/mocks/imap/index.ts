@@ -2,7 +2,7 @@
 
 import {expect} from '@hapi/code';
 import * as events from 'events';
-import {ImapFetch} from 'imap';
+import {Box, ImapFetch} from 'imap';
 import * as _ from 'lodash';
 import * as sinon from 'sinon';
 import {Stream} from 'stream';
@@ -156,7 +156,7 @@ export default function imap(): MockResult {
   const object = {
     _currentlyOpened: null as null | string,
     _simulate: null as any,
-    _state: null as any,
+    _state: null as ServerState | null,
     closeBox: sinon.stub().callsArg(0),
     connect: sinon.stub(),
     fetch: sinon.stub(),
@@ -215,10 +215,12 @@ export default function imap(): MockResult {
           return callback(null, {});
         }
 
+        const serverState: ServerState = object._state;
+
         callback(
           null,
-          Object.keys(object._state.folders).reduce<Mailboxes>((mailBoxes, folderName) => {
-            const folderState = object._state.folders[folderName];
+          Object.keys(serverState.folders).reduce<Mailboxes>((mailBoxes, folderName) => {
+            const folderState = serverState.folders[folderName];
             mailBoxes[folderName] = {
               attribs: folderState.attribs,
               children: folderState.children,
@@ -247,20 +249,31 @@ export default function imap(): MockResult {
   );
 
   replaceReset(object.openBox, () => {
-    object.openBox.callsFake((boxName: string, callback: (result: Error | null) => void) => {
-      if (Object.keys(object._state.folders).indexOf(boxName) === -1) {
-        return callback(new Error(`Mailbox doesn't exist: ${boxName}`));
-      }
+    object.openBox.callsFake(
+      (boxName: string, callback: (result: Error | null, box: Box) => void) => {
+        if (!object._state || !object._state.folders[boxName]) {
+          return callback(
+            new Error(`Mailbox doesn't exist: ${boxName}`),
+            (undefined as unknown) as Box
+          );
+        }
 
-      object._currentlyOpened = boxName;
-      callback(null);
-      const msgCount = object._state.folders[object._currentlyOpened].messages.filter(
-        (msg: any) => !msg.synced
-      ).length;
-      if (msgCount) {
-        object._simulate.event.mail(msgCount);
+        object._currentlyOpened = boxName;
+        const boxDefinition = object._state.folders[boxName];
+        callback(null, {
+          name: boxName,
+          ...boxDefinition.box,
+        });
+        const msgCount = object._state.folders[object._currentlyOpened].messages.filter(
+          (msg: any) => !msg.synced
+        ).length;
+        boxDefinition.box.messages.new = msgCount;
+        boxDefinition.box.messages.unseen = msgCount;
+        if (msgCount) {
+          object._simulate.event.mail(msgCount);
+        }
       }
-    });
+    );
   });
 
   replaceReset(object.search, () => {

@@ -96,7 +96,7 @@ export default class UserConnection implements BoxListener {
         name,
         pImap: this.pImap,
         qualifiedName,
-        syncedTo: 0,
+        syncedTo: 0
       });
 
       boxes.push(box);
@@ -135,7 +135,7 @@ export default class UserConnection implements BoxListener {
       fetchObj.fetch(source, {
         bodies: 'HEADER',
         envelope: true,
-        size: true,
+        size: true
       })
     );
   }
@@ -149,7 +149,7 @@ export default class UserConnection implements BoxListener {
   private async assembleBoxes(): Promise<void> {
     const previousBoxes: ReadonlySet<Box> | undefined = new Set(this.mailBoxes);
     const persistedBoxes: ReadonlyArray<Box> = (await this.persistence.listBoxes(this.user)) || [];
-    const writablePersistedBoxes: Box[] = persistedBoxes.map((box) => box);
+    const writablePersistedBoxes: Box[] = persistedBoxes.map(box => box);
     const mailBoxes = await this.pImap.getBoxes();
     const discoveredBoxes = this.collectMailboxes(mailBoxes);
     const resultingBoxes: Box[] = [];
@@ -199,8 +199,8 @@ export default class UserConnection implements BoxListener {
 
     this.mailBoxes = resultingBoxes;
     this.mailBoxes
-      .filter((box) => !(previousBoxes && previousBoxes.has(box)))
-      .forEach((box) => this.currentPredictor.considerBox(box));
+      .filter(box => !(previousBoxes && previousBoxes.has(box)))
+      .forEach(box => this.currentPredictor.considerBox(box));
   }
 
   public async init(): Promise<void> {
@@ -208,7 +208,7 @@ export default class UserConnection implements BoxListener {
     this.movesList = this.movesList.concat(
       createMovesFromJson(await this.persistence.listMoves(this.user))
     );
-    this.movesList.forEach((move) => (this.movesMap[move.message.headers] = move));
+    this.movesList.forEach(move => (this.movesMap[move.message.headers] = move));
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
       if (this.disconnectCallback) {
@@ -289,7 +289,8 @@ export default class UserConnection implements BoxListener {
       return;
     }
 
-    const messages = this.currentlyOpen.messages;
+    const currentlyOpen = this.currentlyOpen;
+    const messages = currentlyOpen.messages;
 
     if (seqNo > messages.length) {
       // The expunged message is already gone. All good.
@@ -303,16 +304,16 @@ export default class UserConnection implements BoxListener {
       return;
     }
 
-    if (this.currentlyOpen.isInbox && this.hasMove(expungedMessage.headers)) {
+    if (currentlyOpen.isInbox && this.hasMove(expungedMessage.headers)) {
       // We moved the message. All good.
       return;
     }
 
-    this.currentlyOpen.removeMessage(expungedMessage);
-    this.currentPredictor.removeHeaders(expungedMessage.headers, this.currentlyOpen.qualifiedName);
+    currentlyOpen.removeMessage(expungedMessage);
+    this.currentPredictor.removeHeaders(expungedMessage.headers, currentlyOpen.qualifiedName);
 
     // Trigger check of all other boxen in case the message moved there.
-    await this.shallowSyncSince(expungedMessage.date, [this.currentlyOpen.qualifiedName], true);
+    await this.shallowSyncSince(expungedMessage.date, [currentlyOpen.qualifiedName], true);
   }
 
   public async onMail(count: number): Promise<void> {
@@ -343,7 +344,7 @@ export default class UserConnection implements BoxListener {
     logger.debug(
       {
         previousQualifiedName: this.currentlyOpen ? this.currentlyOpen.qualifiedName : 'null',
-        qualifiedName: box.qualifiedName,
+        qualifiedName: box.qualifiedName
       },
       'openBox'
     );
@@ -402,7 +403,7 @@ export default class UserConnection implements BoxListener {
   }
 
   private async pause(timeMs: number = OPERATION_PAUSE_MS): Promise<NodeJS.Timeout> {
-    return new Promise((resolve) => setTimeout(resolve, timeMs));
+    return new Promise(resolve => setTimeout(resolve, timeMs));
   }
 
   private async populateBox(startDate?: Date): Promise<Message[]> {
@@ -413,12 +414,12 @@ export default class UserConnection implements BoxListener {
     this.isPopulatingBox = true;
 
     const newMessages = [];
-    const shouldBeOpen = this.currentlyOpen;
+    const currentlyOpen = this.currentlyOpen;
 
     try {
       if (_.isUndefined(startDate) || this.user.trial) {
         startDate = new Date(
-          Math.max(this.defaultStartDate().getTime(), getSyncedTo(this.currentlyOpen))
+          Math.max(this.defaultStartDate().getTime(), getSyncedTo(currentlyOpen))
         );
       }
 
@@ -426,23 +427,18 @@ export default class UserConnection implements BoxListener {
       if (search.length) {
         const messages = await this.fetch(search);
 
-        // Ensure the same box is still open.
-        await this.openBox(shouldBeOpen);
-
         for (const messageBody of messages) {
           const message = messageFromBody(messageBody);
-          this.currentlyOpen.addMessage(message);
+          currentlyOpen.addMessage(message);
           newMessages.push(message);
           await this.pause();
         }
       } else {
-        this.currentlyOpen.syncedTo = startDate.getTime();
+        currentlyOpen.syncedTo = startDate.getTime();
       }
 
-      await this.persistence.updateBox(this.user, this.currentlyOpen);
+      await this.persistence.updateBox(this.user, currentlyOpen);
 
-      // Ensure the same box is still open.
-      await this.openBox(shouldBeOpen);
       return newMessages;
     } finally {
       this.isPopulatingBox = false;
@@ -496,7 +492,7 @@ export default class UserConnection implements BoxListener {
     messages: ReadonlyArray<Message>,
     qualifiedName: string
   ): void {
-    messages.forEach((message) => {
+    messages.forEach(message => {
       predictor.addHeaders(message.headers, qualifiedName);
       this.mistakeTracker?.inspectMessage(qualifiedName, message);
     });
@@ -522,8 +518,8 @@ export default class UserConnection implements BoxListener {
       }
 
       for (const box of this.boxes
-        .filter((box) => canLearnFrom(box.qualifiedName))
-        .filter((box) => excluding.indexOf(box.qualifiedName) === -1)) {
+        .filter(box => canLearnFrom(box.qualifiedName))
+        .filter(box => excluding.indexOf(box.qualifiedName) === -1)) {
         if (resetSyncedTo) {
           box.syncedTo = date.getTime();
         }
