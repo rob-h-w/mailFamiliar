@@ -298,6 +298,7 @@ export default class UserConnection implements BoxListener {
 
       if (currentlyOpen.isInbox && this.hasMove(expungedMessage.headers)) {
         // We moved the message; all good.
+        await this.persistence.updateBox(this.user, currentlyOpen);
         return;
       }
 
