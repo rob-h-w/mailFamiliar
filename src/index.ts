@@ -33,8 +33,9 @@ function handleError(reason: Error): void {
   logger.fatal('!!!!!!!!!!!!!!!!!!!!! Exiting !!!!!!!!!!!!!!!!!!!!!!!!');
   serverEventsManager.close();
   processManager.close();
+  const processExit = process.exit;
   setTimeout(() => {
-    process.exit(1);
+    processExit(1);
   }, 10);
 }
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 import {expect} from '@hapi/code';
 const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
 import * as mockery from 'mockery';
@@ -54,7 +55,7 @@ function mockBox(params: BoxParams) {
     reset: sinon.stub(),
     setSyncedToNow: sinon.stub(),
     subscribe: sinon.stub().resolves(),
-    syncedTo: params.syncedTo,
+    syncedTo: params.syncedTo
   };
   box.mergeFrom = (other: Obj) => {
     box.messages = other.messages;
@@ -63,7 +64,7 @@ function mockBox(params: BoxParams) {
   };
   mockedBoxen[name] = {
     box,
-    params,
+    params
   };
   return box;
 }
@@ -72,13 +73,13 @@ describe('userConnection', () => {
   beforeEach(() => {
     clock = sinon.useFakeTimers({
       now: 1547375767863,
-      shouldAdvanceTime: true,
+      shouldAdvanceTime: true
     });
     mockedBoxen = {};
     mockery.enable({
       useCleanCache: true,
       warnOnReplace: false,
-      warnOnUnregistered: false,
+      warnOnUnregistered: false
     });
 
     Box = sinon.spy((params: BoxParams) => {
@@ -86,7 +87,7 @@ describe('userConnection', () => {
       return box;
     });
 
-    Box.isInbox = sinon.spy((name) => name === 'INBOX');
+    Box.isInbox = sinon.spy(name => name === 'INBOX');
 
     imap = {};
     Imap = sinon.stub().returns(imap);
@@ -95,7 +96,7 @@ describe('userConnection', () => {
       debug: sinon.stub(),
       error: sinon.stub(),
       info: sinon.stub(),
-      warn: sinon.stub(),
+      warn: sinon.stub()
     };
 
     predictor = {
@@ -104,7 +105,7 @@ describe('userConnection', () => {
       considerBox: sinon.stub(),
       folderScore: sinon.stub(),
       name: sinon.stub().returns('name'),
-      removeHeaders: sinon.stub(),
+      removeHeaders: sinon.stub()
     };
 
     promisified = {
@@ -116,17 +117,20 @@ describe('userConnection', () => {
         delimiter: '/',
         fetch: sinon.stub(),
         seq: {
-          fetch: sinon.stub(),
-        },
+          fetch: sinon.stub()
+        }
       },
       on: sinon.stub(),
       once: sinon.stub(),
       openBox: sinon.stub(),
       search: sinon.stub().resolves([]),
       subscribeBox: sinon.stub(),
-      waitForConnection: sinon.stub().resolves(),
+      waitForConnection: sinon.stub().resolves()
     };
-    Promisified = sinon.stub().withArgs(imap).returns(promisified);
+    Promisified = sinon
+      .stub()
+      .withArgs(imap)
+      .returns(promisified);
 
     mockery.registerMock('./box', {default: Box});
     mockery.registerMock('imap', Imap);
@@ -135,7 +139,7 @@ describe('userConnection', () => {
     mockery.registerMock('./predictors', {
       create: sinon
         .stub()
-        .returns(new Map([[PredictorTypeValues.alternatives[2].value, predictor]])),
+        .returns(new Map([[PredictorTypeValues.alternatives[2].value, predictor]]))
     });
 
     mockery.registerAllowable('../../../src/engine/userConnection');
@@ -146,7 +150,7 @@ describe('userConnection', () => {
       predictorType: undefined,
       syncWindowDays: 10,
       trial: undefined,
-      user: 'user name',
+      user: 'user name'
     };
   });
 
@@ -167,7 +171,7 @@ describe('userConnection', () => {
         deleteBox: sinon.stub(),
         listBoxes: sinon.stub(),
         listMoves: sinon.stub().resolves([]),
-        updateBox: sinon.stub(),
+        updateBox: sinon.stub()
       };
     });
 
@@ -254,22 +258,6 @@ describe('userConnection', () => {
             userConnection.onDisconnect = undefined;
           });
 
-          describe('by close with error', () => {
-            beforeEach(() => {
-              try {
-                userConnection.onClose(true);
-              } catch {}
-            });
-          });
-
-          describe('by close without error', () => {
-            beforeEach(() => {
-              try {
-                userConnection.onClose(false);
-              } catch {}
-            });
-          });
-
           describe('by end', () => {
             beforeEach(() => {
               try {
@@ -295,8 +283,8 @@ describe('userConnection', () => {
             attribs: [],
             children: {},
             delimiter: '/',
-            parent: null,
-          },
+            parent: null
+          }
         });
         persistence.listBoxes.returns([]);
         userConnection = new UserConnection(persistence, user);
@@ -341,8 +329,8 @@ describe('userConnection', () => {
             attribs: [],
             children: {},
             delimiter: '/',
-            parent: null,
-          },
+            parent: null
+          }
         });
         persistence.listBoxes.returns([deletedBox]);
         userConnection = new UserConnection(persistence, user);
@@ -382,16 +370,16 @@ describe('userConnection', () => {
           flags: [],
           messages: {
             new: 0,
-            total: 0,
+            total: 0
           },
           name: 'INBOX',
           uidnext: 1,
-          uidvalidity: 1390994418,
+          uidvalidity: 1390994418
         },
         messages: [],
         name: 'INBOX',
         qualifiedName: 'INBOX',
-        syncedTo: 1547370062078,
+        syncedTo: 1547370062078
       };
 
       beforeEach(async () => {
@@ -400,8 +388,8 @@ describe('userConnection', () => {
             attribs: [],
             children: {},
             delimiter: '/',
-            parent: null,
-          },
+            parent: null
+          }
         });
         persistence.listBoxes.returns([inbox]);
         mockery.deregisterMock('./predictors');
@@ -417,10 +405,10 @@ describe('userConnection', () => {
             date: new Date('2019-01-13T10:36:06.863Z'),
             envelope: {},
             size: 3,
-            uid: 1,
+            uid: 1
           },
           body: 'abc',
-          seqno: 2,
+          seqno: 1
         };
 
         beforeEach(async () => {
@@ -433,7 +421,7 @@ describe('userConnection', () => {
         it('searches since the last synced date', () => {
           expect(promisified.search.calledOnce).to.be.true();
           expect(promisified.search.firstCall.args).to.equal([
-            [['SINCE', new Date(inbox.syncedTo)]],
+            [['SINCE', new Date(inbox.syncedTo)]]
           ]);
         });
 
@@ -445,7 +433,7 @@ describe('userConnection', () => {
           const message = params[0];
           expect(message.date).to.equal(new Date('2019-01-13T10:36:06.863Z'));
           expect(message.headers).to.exist();
-          expect(message.seq).to.equal(2);
+          expect(message.seq).to.equal(1);
           expect(message.size).to.equal(3);
           expect(message.uid).to.equal(1);
         });
@@ -453,15 +441,15 @@ describe('userConnection', () => {
         describe('when mail is expunged', () => {
           beforeEach(async () => {
             persistence.updateBox.reset();
+            mockedBoxen.INBOX.box.removeMessage.reset();
             mockedBoxen.INBOX.box.messages = mockedBoxen.INBOX.box.addMessage.firstCall.args;
-            await userConnection.onExpunge(2);
+            mockedBoxen.INBOX.box.removeMessage.returns(mockedBoxen.INBOX.box.messages[0]);
+            await userConnection.onExpunge(1);
           });
 
           it('calls removeMessage', () => {
             expect(mockedBoxen.INBOX.box.removeMessage.calledOnce).to.be.true();
-            expect(mockedBoxen.INBOX.box.removeMessage.firstCall.args).to.equal(
-              mockedBoxen.INBOX.box.addMessage.firstCall.args
-            );
+            expect(mockedBoxen.INBOX.box.removeMessage.firstCall.args[0]).to.equal(1);
           });
 
           it('persists the updated box', () => {
@@ -481,7 +469,7 @@ describe('userConnection', () => {
         it('searches since the last synced date', () => {
           expect(promisified.search.calledOnce).to.be.true();
           expect(promisified.search.firstCall.args).to.equal([
-            [['SINCE', new Date(inbox.syncedTo)]],
+            [['SINCE', new Date(inbox.syncedTo)]]
           ]);
         });
 
@@ -500,11 +488,11 @@ describe('userConnection', () => {
                 date: new Date('2019-01-13T10:36:06.863Z'),
                 envelope: {},
                 size: 3,
-                uid: 1,
+                uid: 1
               },
               body: 'abc',
-              seqno: 1,
-            },
+              seqno: 1
+            }
           ]);
           await userConnection.shallowSync();
         });
@@ -512,7 +500,7 @@ describe('userConnection', () => {
         it('searches since the last synced date', () => {
           expect(promisified.search.called).to.be.true();
           expect(promisified.search.firstCall.args).to.equal([
-            [['SINCE', new Date(inbox.syncedTo)]],
+            [['SINCE', new Date(inbox.syncedTo)]]
           ]);
         });
 

@@ -1,5 +1,12 @@
 import {expect} from '@hapi/code';
-const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
+const {
+  after,
+  afterEach,
+  before,
+  beforeEach,
+  describe,
+  it,
+} = (exports.lab = require('@hapi/lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
@@ -12,11 +19,14 @@ import {useFixture} from './tools/fixture/standard/useFixture';
 import {startServerInHealthyState} from './tools/server';
 import {fromBoxes} from './mocks/imap/serverState';
 import {mockStorageAndSetEnvironment} from './mocks/mailFamiliarStorage';
+import stubExit from './tools/stubExit';
 import {until} from './tools/wait';
 
 let bunyanMock: BunyanMock;
 let clock: sinon.SinonFakeTimers;
 let imapMock: ImapMock;
+
+stubExit(before, after);
 
 describe('mail movement', () => {
   let server: any;
@@ -25,12 +35,12 @@ describe('mail movement', () => {
     mockery.enable({
       useCleanCache: true,
       warnOnReplace: false,
-      warnOnUnregistered: false
+      warnOnUnregistered: false,
     });
 
     clock = sinon.useFakeTimers({
       now: new Date('2019-01-01T00:00:00.000Z'),
-      shouldAdvanceTime: true
+      shouldAdvanceTime: true,
     });
 
     bunyanMock = bunyan();
@@ -48,17 +58,17 @@ describe('mail movement', () => {
           date: new Date('2018-12-25T12:21:37.000Z'),
           flags: [],
           size: 1234,
-          uid: 40465
+          uid: 40465,
         },
         body: Buffer.from("This goes in the buffer. It's buffer food. Nomnom."),
         seqno: 40465,
-        synced: true
-      }
+        synced: true,
+      },
     ];
     const serverState = fromBoxes(boxes);
     const inboxState = serverState.folders.INBOX;
     inboxState.messages = inbox;
-    inboxState.messageState.total = inbox.length;
+    inboxState.box.messages.total = inbox.length;
 
     imapMock.setServerState(serverState);
 
@@ -68,7 +78,7 @@ describe('mail movement', () => {
     await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
   });
 
-  afterEach(async () => {
+  async function cleanup(): Promise<void> {
     if (server) {
       await server.stop();
       server = null;
@@ -76,7 +86,11 @@ describe('mail movement', () => {
 
     clock.restore();
     mockery.disable();
-  });
+  }
+
+  afterEach(cleanup);
+
+  after(cleanup);
 
   it('ends up with INBOX open', () => {
     const openBox = imapMock.object.openBox;
@@ -89,7 +103,7 @@ describe('mail movement', () => {
     beforeEach(async () => {
       imapMock.object.openBox.reset();
       bunyanMock.logger.info.reset();
-      await imapMock.eventHandlers.on.expunge(40465);
+      await imapMock.eventHandlers.on.expunge(1);
       await until(() => bunyanMock.logger.info.calledWith(`shallow sync complete`));
     });
 

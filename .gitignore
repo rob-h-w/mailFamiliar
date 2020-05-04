@@ -68,6 +68,7 @@ dist/
 
 # temporary bits
 tmp/
+remote_*/
 
 # Performance measurements
 perf*

@@ -25,3 +25,12 @@ export class BoxDeletedException extends Error {
     throw e;
   }
 }
+
+export class ImapBoxMissingException extends Error {
+  public readonly missingImapBox: Box;
+
+  constructor(missing: Box) {
+    super('Imap box is missing');
+    this.missingImapBox = missing;
+  }
+}

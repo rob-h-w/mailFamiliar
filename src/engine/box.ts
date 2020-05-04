@@ -2,6 +2,7 @@ import * as Imap from 'imap';
 import * as _ from 'lodash';
 import {Literal, Static, Union} from 'runtypes';
 
+import {ImapBoxMissingException} from './exceptions';
 import Promisified from '../imap/promisified';
 import logger from '../logger';
 import {Message} from '../types/message';
@@ -31,16 +32,18 @@ const BoxStateValues = Union(
 export type BoxState = Static<typeof BoxStateValues>;
 
 function msgHashString(message: Message): string {
-  return `${message.date}${message.seq}${message.uid}`;
+  return `${message.date}${message.uid}`;
 }
 
 export default class Box {
   private imapBox?: Imap.Box;
   private imapFolder?: Imap.Folder;
+  private messageList: Message[] = [];
   private msgHashes: {
     [key: string]: Message;
   };
   private pImap?: Promisified;
+  private startingSeq?: number;
   private syncedToEpoch: number;
 
   readonly name: string;
@@ -73,16 +76,22 @@ export default class Box {
       for (const msg of messages) {
         this.addMessageHash(msg);
       }
+
+      this.messageList.push(...messages);
     }
   }
 
   addMessage = (message: Message): void => {
-    if (this.hasMessage(message)) {
-      return;
-    }
+    const messageIndex = this.indexOf(message.seq);
+    const messageCopy = {...message};
 
-    this.addMessageHash(message);
-    this.syncedToEpoch = Math.max(this.syncedToEpoch, message.date.getTime());
+    // We encode the sequence by ordering. Ensure the seq member doesn't
+    // pollute hash calculations.
+    messageCopy.seq = 0;
+
+    this.messageList.splice(messageIndex, 0, messageCopy);
+    this.addMessageHash(messageCopy);
+    this.syncedToEpoch = Math.max(this.syncedToEpoch, messageCopy.date.getTime());
   };
 
   private addMessageHash = (message: Message): void => {
@@ -116,14 +125,36 @@ export default class Box {
   }
 
   get messages(): ReadonlyArray<Message> {
-    return Object.values(this.msgHashes);
+    return this.messageList;
   }
 
-  open = async (): Promise<BoxState> => {
+  /*
+  server seq:     1, 2, 3, 4
+  client indices:       0, 1
+
+  seqOffset = server seq - client list length
+  */
+  private seqOffset(): number {
+    if (!this.imapBox) {
+      throw new ImapBoxMissingException(this);
+    }
+
+    if (this.startingSeq === undefined) {
+      this.startingSeq = this.imapBox?.messages.total - this.messageList.length;
+    }
+
+    return this.startingSeq;
+  }
+
+  private indexOf(seq: number): number {
+    return seq - this.seqOffset();
+  }
+
+  async open(): Promise<BoxState> {
     Box.check(this);
     if (this.pImap) {
       const box = await this.pImap.openBox(this.qualifiedName);
-      logger.info(`Opened ${this.qualifiedName}`);
+      logger.info(`Opened ${box.name}`);
 
       let boxState: BoxState = !this.imapBox ? 'NEW' : 'UNCHANGED';
 
@@ -141,15 +172,32 @@ export default class Box {
     }
 
     return 'UNREADY';
-  };
+  }
 
-  removeMessage = (message: Message): void => {
-    if (!this.hasMessage(message)) {
-      return;
+  removeMessage(message: Message | number): Message | null {
+    if (typeof message === 'number') {
+      const index = this.indexOf(message);
+      if (index < 0 || index >= this.messages.length) {
+        return null;
+      }
+
+      return this.removeMessage(this.messages[index]);
+    } else {
+      if (!this.hasMessage(message)) {
+        return null;
+      }
+
+      delete this.msgHashes[msgHashString(message)];
+
+      const index = this.messageList.indexOf(message);
+
+      if (index === -1) {
+        return null;
+      }
+
+      return this.messageList.splice(index, 1)[0];
     }
-
-    delete this.msgHashes[msgHashString(message)];
-  };
+  }
 
   reset = (): void => {
     this.msgHashes = {};

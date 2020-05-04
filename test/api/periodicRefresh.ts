@@ -1,5 +1,12 @@
 import {expect} from '@hapi/code';
-const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
+const {
+  after,
+  afterEach,
+  before,
+  beforeEach,
+  describe,
+  it,
+} = (exports.lab = require('@hapi/lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
@@ -12,10 +19,13 @@ import {useFixture} from './tools/fixture/standard/useFixture';
 import {startServerInHealthyState} from './tools/server';
 import {fromBoxes} from './mocks/imap/serverState';
 import {mockStorageAndSetEnvironment} from './mocks/mailFamiliarStorage';
+import stubExit from './tools/stubExit';
 import {until} from './tools/wait';
 
 let bunyanMock: BunyanMock;
 let imapMock: ImapMock;
+
+stubExit(before, after);
 
 describe('periodic refresh', () => {
   let clock: sinon.SinonFakeTimers;
@@ -27,7 +37,7 @@ describe('periodic refresh', () => {
     mockery.enable({
       useCleanCache: true,
       warnOnReplace: false,
-      warnOnUnregistered: false
+      warnOnUnregistered: false,
     });
 
     mockStorageAndSetEnvironment();
@@ -42,21 +52,24 @@ describe('periodic refresh', () => {
 
     clock = sinon.useFakeTimers({
       now: 1547375767863,
-      shouldAdvanceTime: true
+      shouldAdvanceTime: true,
     });
     server = await startServerInHealthyState();
   });
 
-  afterEach(async () => {
-    clock.restore();
-
+  async function cleanup() {
     if (server) {
       await server.stop();
       server = null;
     }
 
+    clock.restore();
     mockery.disable();
-  });
+  }
+
+  afterEach(cleanup);
+
+  after(cleanup);
 
   describe('when an hour has passed', () => {
     beforeEach(async () => {

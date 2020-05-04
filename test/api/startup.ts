@@ -1,6 +1,13 @@
 import {expect} from '@hapi/code';
 import * as fs from 'fs';
-const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
+const {
+  after,
+  afterEach,
+  before,
+  beforeEach,
+  describe,
+  it,
+} = (exports.lab = require('@hapi/lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
 import * as path from 'path';
@@ -10,6 +17,7 @@ import bunyan, {MockResult as BunyanMock} from './mocks/bunyan';
 import mockImap from './mocks/imap';
 import ImapMock from './mocks/imap/mockResult';
 import {mockStorageAndSetEnvironment, MockResult as StorageMock} from './mocks/mailFamiliarStorage';
+import stubExit, {exit} from './tools/stubExit';
 import {until, waitATick} from './tools/wait';
 
 const ROOT = process.cwd();
@@ -33,11 +41,13 @@ class BadProtocol extends Error {
   }
 }
 
+stubExit(before, after);
+
 beforeEach(() => {
   mockery.enable({
     useCleanCache: true,
     warnOnReplace: false,
-    warnOnUnregistered: false
+    warnOnUnregistered: false,
   });
 
   storageMock = mockStorageAndSetEnvironment();
@@ -48,7 +58,7 @@ beforeEach(() => {
   stub(process, 'on');
 });
 
-afterEach(async () => {
+async function cleanup() {
   if (server) {
     await server.stop();
     server = null;
@@ -56,8 +66,15 @@ afterEach(async () => {
 
   mockery.disable();
 
-  ((process.on as unknown) as sinon.SinonStub).restore();
-});
+  const on = (process.on as unknown) as sinon.SinonStub;
+  if (on.restore) {
+    on.restore();
+  }
+}
+
+afterEach(cleanup);
+
+after(cleanup);
 
 describe('startup', () => {
   describe('startServer', () => {
@@ -84,7 +101,7 @@ describe('startup', () => {
         eventHandlers[args[0]] = args[1];
       });
       const on: SinonStub = (process.on as unknown) as SinonStub;
-      on.getCalls().forEach(call => {
+      on.getCalls().forEach((call) => {
         if (call.args.length) {
           if (call.args[0] === 'uncaughtException') {
             uncaughtException = call.args[1];
@@ -138,37 +155,33 @@ describe('startup', () => {
             error: new Error(),
             kills: true,
             name: 'general uncaught exception',
-            uncaught: true
+            uncaught: true,
           },
           {
             error: new Error(),
             kills: true,
             name: 'general unhandled rejection',
-            uncaught: false
+            uncaught: false,
           },
           {
             error: badProtocol,
             kills: false,
             name: 'uncaught bad protocol error',
-            uncaught: true
+            uncaught: true,
           },
           {
             error: badProtocol,
             kills: false,
             name: 'unhandled bad protocol error',
-            uncaught: false
-          }
+            uncaught: false,
+          },
         ];
 
         beforeEach(async () => {
-          stub(process, 'exit');
+          exit().reset();
         });
 
-        afterEach(() => {
-          ((process.exit as unknown) as sinon.SinonStub).restore();
-        });
-
-        cases.forEach(c => {
+        cases.forEach((c) => {
           describe(c.name, () => {
             beforeEach(async () => {
               if (c.uncaught) {
@@ -176,7 +189,7 @@ describe('startup', () => {
               } else {
                 unhandledRejection(c.error);
               }
-              await new Promise(resolve => setTimeout(resolve, 20));
+              await new Promise((resolve) => setTimeout(resolve, 20));
             });
 
             if (c.kills) {
@@ -236,5 +249,3 @@ describe('startup logging', () => {
     });
   });
 });
-
-export {};
