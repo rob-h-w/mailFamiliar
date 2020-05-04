@@ -8,7 +8,7 @@ type ImapBox = Imap.Box;
 type ImapFolder = Imap.Folder;
 
 import Promisified from '../../../src/imap/promisified';
-import {Message} from 'types/message';
+import {Message} from '../../../src/types/message';
 
 const NAME = 'test';
 const NOW = new Date();

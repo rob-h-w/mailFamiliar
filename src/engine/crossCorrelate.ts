@@ -1,7 +1,7 @@
 import Box from './box';
 import Predictor from './predictor';
 import {crossCorrelateStrings} from '../tools/crossCorrelate';
-import Mistake from 'types/mistake';
+import Mistake from '../types/mistake';
 
 const MODE_SLOTS = 100;
 
@@ -90,7 +90,7 @@ export default class CrossCorrelate implements Predictor {
     for (const score of scores) {
       const modeRangeIndex = Math.max(
         0,
-        ranges.findIndex((range) => range.from < score && range.to >= score)
+        ranges.findIndex(range => range.from < score && range.to >= score)
       );
       const count = modeRangeIndexToCount.get(modeRangeIndex) || 0;
       modeRangeIndexToCount.set(modeRangeIndex, count + 1);

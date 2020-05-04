@@ -3,7 +3,7 @@ import _ = require('lodash');
 import Box from './box';
 import Mistake, {createMistake} from '../types/mistake';
 import Move from '../types/move';
-import {Message} from 'types/message';
+import {Message} from '../types/message';
 
 export type MistakesByHeader = _.Dictionary<Mistake>;
 export type MistakeObserver = (mistake: Mistake) => void;

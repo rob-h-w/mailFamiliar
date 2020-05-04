@@ -4,9 +4,10 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "npm",
-      "script": "build",
-      "problemMatcher": []
+      "label": "yarn build",
+      "type": "process",
+      "command": "yarn",
+      "args": ["build"]
     }
   ]
 }

@@ -1,7 +1,7 @@
 import _ = require('lodash');
 
 import Persistence from '../persistence/persistence';
-import User from 'persistence/user';
+import User from '../persistence/user';
 import UserConnection from './userConnection';
 
 export default class Synchronizer {
