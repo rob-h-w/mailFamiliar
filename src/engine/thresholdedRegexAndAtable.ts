@@ -1,7 +1,7 @@
 import Box from './box';
 import Predictor, {UndeclaredBoxError} from './predictor';
 import ThresholdedDiffAndAtables from './thresholdedDiffAndAtables';
-import Mistake from 'types/mistake';
+import Mistake from '../types/mistake';
 
 export default class ThresholdedRegexAndAtable implements Predictor {
   private boxMap: Map<string, ThresholdedDiffAndAtables> = new Map();
@@ -39,7 +39,7 @@ export default class ThresholdedRegexAndAtable implements Predictor {
   considerBox(box: Box): void {
     this.boxMap = this.boxMap.set(
       box.qualifiedName,
-      new ThresholdedDiffAndAtables(box.messages.map((messages) => messages.headers as string))
+      new ThresholdedDiffAndAtables(box.messages.map(messages => messages.headers as string))
     );
   }
 

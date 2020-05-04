@@ -1,5 +1,5 @@
 import Box from '../engine/box';
-import User from 'persistence/user';
+import User from '../persistence/user';
 import {TrialSettings} from '../persistence/user';
 
 let trialSettings: TrialSettings | undefined;

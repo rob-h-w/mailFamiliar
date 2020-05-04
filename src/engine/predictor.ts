@@ -1,5 +1,5 @@
 import Box from './box';
-import Mistake from 'types/mistake';
+import Mistake from '../types/mistake';
 
 export class UndeclaredBoxError extends Error {
   constructor(qualifiedBoxName: string) {

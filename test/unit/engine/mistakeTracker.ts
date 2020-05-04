@@ -6,14 +6,14 @@ const {beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script())
 
 import Box from '../../../src/engine/box';
 import MistakeTracker from '../../../src/engine/mistakeTracker';
+import Mistake from '../../../src/types/mistake';
 import Move, {createMove} from '../../../src/types/move';
-import Mistake from 'types/mistake';
 
 describe('MistakeTracker', () => {
   const headers: ReadonlyArray<string> = ['abc', 'def', 'ghi', 'jkl'];
-  const INBOX: string = 'INBOX';
-  const IMPORTANT: string = 'IMPORTANT';
-  const SPAM: string = 'SPAM';
+  const INBOX = 'INBOX';
+  const IMPORTANT = 'IMPORTANT';
+  const SPAM = 'SPAM';
   const date: Date = new Date();
 
   let boxen: Box[];

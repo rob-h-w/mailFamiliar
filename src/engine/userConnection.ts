@@ -1,23 +1,22 @@
 import * as Imap from 'imap';
 import * as _ from 'lodash';
-
-import Box from './box';
-import {BadStateException, BoxDeletedException} from './exceptions';
 import {canLearnFrom} from '../imap/boxFeatures';
 import {OnDisconnect} from '../imap/functions';
 import Promisified, {BoxListener, MessageBody} from '../imap/promisified';
 import logger from '../logger';
-import NewMailHandler from './newMailHandler';
 import {MissingDisconnectionCallback} from '../persistence/exceptions';
 import Persistence from '../persistence/persistence';
 import User from '../persistence/user';
+import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
+import {Message, messageFromBody} from '../types/message';
+import Mistake from '../types/mistake';
+import Move, {createMovesFromJson} from '../types/move';
+import Box from './box';
+import {BadStateException, BoxDeletedException} from './exceptions';
+import MistakeTracker from './mistakeTracker';
+import NewMailHandler from './newMailHandler';
 import Predictor from './predictor';
 import {create as createPredictors, PredictorType} from './predictors';
-import {getSyncedTo, withTrialSettings} from '../tools/trialSettings';
-import {messageFromBody, Message} from '../types/message';
-import Move, {createMovesFromJson} from '../types/move';
-import MistakeTracker from './mistakeTracker';
-import Mistake from 'types/mistake';
 
 const SECOND_IN_MS = 1000;
 const DAY_IN_MS = 24 * 60 * 60 * SECOND_IN_MS;

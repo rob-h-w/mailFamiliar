@@ -9,11 +9,11 @@
         "M_FAMILIAR_STORAGE": "${workspaceFolder}/tmp"
       },
       "name": "Trial",
-      "preLaunchTask": "npm: build",
       "port": 9229,
+      "preLaunchTask": "yarn build",
       "request": "launch",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run-script", "try:debug"],
+      "runtimeArgs": ["try:debug"],
+      "runtimeExecutable": "yarn",
       "type": "node"
     },
     {
@@ -21,29 +21,34 @@
         "M_FAMILIAR_STORAGE": "${workspaceFolder}/tmp"
       },
       "name": "Server",
-      "preLaunchTask": "npm: build",
       "port": 9229,
+      "preLaunchTask": "yarn build",
       "request": "launch",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run-script", "debug"],
+      "runtimeArgs": ["debug"],
+      "runtimeExecutable": "yarn",
       "type": "node"
     },
     {
-      "type": "node",
-      "request": "launch",
       "name": "test:api",
-      "preLaunchTask": "npm: build",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run-script", "test:api:debug"],
-      "port": 9229
+      "outFiles": ["${workspaceRoot}/dist/**/*.js"],
+      "port": 9229,
+      "preLaunchTask": "yarn build",
+      "request": "launch",
+      "runtimeArgs": ["test:api:debug"],
+      "runtimeExecutable": "yarn",
+      "sourceMaps": true,
+      "type": "node"
     },
     {
-      "type": "node",
-      "request": "launch",
       "name": "test:unit",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run-script", "test:unit:debug"],
-      "port": 9229
+      "outFiles": ["${workspaceRoot}/dist/**/*.js"],
+      "port": 9229,
+      "preLaunchTask": "yarn build",
+      "request": "launch",
+      "runtimeArgs": ["test:unit:debug"],
+      "runtimeExecutable": "yarn",
+      "sourceMaps": true,
+      "type": "node"
     }
   ]
 }
