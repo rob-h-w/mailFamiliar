@@ -1,17 +1,8 @@
 {
   "box": {
-    "flags": [
-      "\\Answered",
-      "\\Flagged",
-      "\\Deleted",
-      "\\Seen",
-      "\\Draft",
-      "NonJunk"
-    ],
+    "flags": ["\\Answered", "\\Flagged", "\\Deleted", "\\Seen", "\\Draft", "NonJunk"],
     "highestmodseq": "1",
-    "keywords": [
-      "NonJunk"
-    ],
+    "keywords": ["NonJunk"],
     "messages": {
       "new": 0,
       "total": 1418
@@ -19,13 +10,7 @@
     "name": "GitHub",
     "newKeywords": {},
     "nomodseq": {},
-    "permFlags": [
-      "\\Answered",
-      "\\Flagged",
-      "\\Deleted",
-      "\\Seen",
-      "\\Draft"
-    ],
+    "permFlags": ["\\Answered", "\\Flagged", "\\Deleted", "\\Seen", "\\Draft"],
     "persistentUIDs": {},
     "readOnly": {},
     "uidnext": 2104,

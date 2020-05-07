@@ -11,6 +11,10 @@ jobs:
     - stage: fail fast
       script: yarn lint
     - stage: fail fast
+      script: yarn prettier
+    - stage: fail fast
+      script: yarn prettier-test
+    - stage: fail fast
       script: yarn build
     - stage: test
       script: ./test_and_report.sh

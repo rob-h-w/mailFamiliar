@@ -127,10 +127,7 @@ describe('userConnection', () => {
       subscribeBox: sinon.stub(),
       waitForConnection: sinon.stub().resolves()
     };
-    Promisified = sinon
-      .stub()
-      .withArgs(imap)
-      .returns(promisified);
+    Promisified = sinon.stub().withArgs(imap).returns(promisified);
 
     mockery.registerMock('./box', {default: Box});
     mockery.registerMock('imap', Imap);

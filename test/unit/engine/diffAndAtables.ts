@@ -62,12 +62,8 @@ describe('DiffAndAtables', () => {
     it('has nonzero & non-1 confidence for similar string', () => {
       const theStringConfidence = DiffAndAtables.confidenceFor(daat, theString + 'a');
       const theOtherStringConfidence = DiffAndAtables.confidenceFor(daat, theOtherString + 'a');
-      expect(theStringConfidence)
-        .to.be.greaterThan(0)
-        .and.lessThan(1);
-      expect(theOtherStringConfidence)
-        .to.be.greaterThan(0)
-        .and.lessThan(1);
+      expect(theStringConfidence).to.be.greaterThan(0).and.lessThan(1);
+      expect(theOtherStringConfidence).to.be.greaterThan(0).and.lessThan(1);
     });
 
     it('increases its confidence for the string if another similar string is added', () => {

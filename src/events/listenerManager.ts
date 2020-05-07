@@ -13,7 +13,7 @@ export default class ListenerManager {
 
   public close(): void {
     Object.entries(this.listeners).forEach(([event, handlers]) => {
-      handlers.forEach((handler) => this.emitter.removeListener(event, handler));
+      handlers.forEach(handler => this.emitter.removeListener(event, handler));
     });
   }
 

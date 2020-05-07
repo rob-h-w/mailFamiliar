@@ -28,9 +28,7 @@ describe('ThresholdedDiffAndAtables', () => {
       );
 
       it('partly matches a string not shown to it', () => {
-        expect(tdaat.confidenceFor('mogg'))
-          .to.be.lessThan(1)
-          .and.to.be.greaterThan(0);
+        expect(tdaat.confidenceFor('mogg')).to.be.lessThan(1).and.to.be.greaterThan(0);
       });
     });
   });

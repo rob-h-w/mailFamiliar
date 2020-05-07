@@ -12,9 +12,7 @@ const TrashBoxValues = Union(Literal('TRASH'), Literal('RECYCLE'), Literal('DELE
 export type TrashBox = Static<typeof TrashBoxValues>;
 
 // Composite types
-const KnownBoxValues = DraftsBoxValues.Or(InboxValues)
-  .Or(SentBoxValues)
-  .Or(TrashBoxValues);
+const KnownBoxValues = DraftsBoxValues.Or(InboxValues).Or(SentBoxValues).Or(TrashBoxValues);
 export type KnownBox = Static<typeof KnownBoxValues>;
 const DoNotLearnFromValues = DraftsBoxValues.Or(SentBoxValues);
 export type DoNotLearnFrom = Static<typeof DoNotLearnFromValues>;

@@ -5,7 +5,7 @@ const {
   before,
   beforeEach,
   describe,
-  it,
+  it
 } = (exports.lab = require('@hapi/lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
@@ -35,12 +35,12 @@ describe('mail movement', () => {
     mockery.enable({
       useCleanCache: true,
       warnOnReplace: false,
-      warnOnUnregistered: false,
+      warnOnUnregistered: false
     });
 
     clock = sinon.useFakeTimers({
       now: new Date('2019-01-01T00:00:00.000Z'),
-      shouldAdvanceTime: true,
+      shouldAdvanceTime: true
     });
 
     bunyanMock = bunyan();
@@ -58,12 +58,12 @@ describe('mail movement', () => {
           date: new Date('2018-12-25T12:21:37.000Z'),
           flags: [],
           size: 1234,
-          uid: 40465,
+          uid: 40465
         },
         body: Buffer.from("This goes in the buffer. It's buffer food. Nomnom."),
         seqno: 40465,
-        synced: true,
-      },
+        synced: true
+      }
     ];
     const serverState = fromBoxes(boxes);
     const inboxState = serverState.folders.INBOX;

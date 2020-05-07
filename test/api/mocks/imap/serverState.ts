@@ -13,7 +13,7 @@ export default interface ServerState {
 
 export function fromBoxes(boxen: ReadonlyArray<Box>): ServerState {
   const folders: FolderMap = {};
-  (boxen as ReadonlyArray<Box>).forEach((box) => {
+  (boxen as ReadonlyArray<Box>).forEach(box => {
     folders[box.name] = {
       attribs: [],
       box: {
@@ -22,22 +22,22 @@ export function fromBoxes(boxen: ReadonlyArray<Box>): ServerState {
         messages: {
           new: 0,
           total: 0,
-          unseen: 0,
+          unseen: 0
         },
         permFlags: ['\\Answered', '\\Flagged', '\\Deleted', '\\Seen', '\\Draft'],
         persistentUIDs: true,
         readOnly: false,
         uidnext: 123,
-        uidvalidity: 456,
+        uidvalidity: 456
       },
       children: {},
       delimiter: '/',
       messages: [],
-      parent: null,
+      parent: null
     };
   });
   return {
     currentlyOpenBox: null,
-    folders,
+    folders
   };
 }
