@@ -5,7 +5,7 @@ const {
   before,
   beforeEach,
   describe,
-  it,
+  it
 } = (exports.lab = require('@hapi/lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
@@ -37,7 +37,7 @@ describe('periodic refresh', () => {
     mockery.enable({
       useCleanCache: true,
       warnOnReplace: false,
-      warnOnUnregistered: false,
+      warnOnUnregistered: false
     });
 
     mockStorageAndSetEnvironment();
@@ -52,7 +52,7 @@ describe('periodic refresh', () => {
 
     clock = sinon.useFakeTimers({
       now: 1547375767863,
-      shouldAdvanceTime: true,
+      shouldAdvanceTime: true
     });
     server = await startServerInHealthyState();
   });

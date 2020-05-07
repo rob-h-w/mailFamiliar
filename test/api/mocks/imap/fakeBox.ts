@@ -11,11 +11,11 @@ function mockMessage(message: string, index: number, now: number): MockMessage {
     attributes: {
       date: new Date(now - (seed % WEEK_MS)),
       flags: [] as string[],
-      uid: seed,
+      uid: seed
     },
     body: new Buffer(message),
     seqno: index + 1,
-    synced: false,
+    synced: false
   };
 }
 
@@ -29,17 +29,17 @@ export default function fakeBox(messages: ReadonlyArray<string>): FolderState {
       messages: {
         new: 0,
         total: 0,
-        unseen: 0,
+        unseen: 0
       },
       permFlags: [],
       persistentUIDs: true,
       readOnly: false,
       uidnext: 123,
-      uidvalidity: 456,
+      uidvalidity: 456
     },
     children: null,
     delimiter: '/',
     messages: messages.map((message, index) => mockMessage(message, index, now)),
-    parent: null,
+    parent: null
   };
 }

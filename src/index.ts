@@ -56,7 +56,7 @@ export async function startServer() {
   logger.info('creating HTTP server');
 
   const server: Hapi.Server = new Hapi.Server({
-    port: 8080,
+    port: 8080
   });
 
   serverEventsManager = new ServerEventsListenerManager(server.events);

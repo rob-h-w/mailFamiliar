@@ -104,9 +104,7 @@ function correlate1d(
 ): number {
   if (left.length !== right.length) {
     throw new RangeError(
-      `Left & right strings are not of equal length! ${left.length} & ${
-        right.length
-      }, respectively.`
+      `Left & right strings are not of equal length! ${left.length} & ${right.length}, respectively.`
     );
   }
 

@@ -6,7 +6,7 @@ const {
   before,
   beforeEach,
   describe,
-  it,
+  it
 } = (exports.lab = require('@hapi/lab').script());
 import * as _ from 'lodash';
 import * as mockery from 'mockery';
@@ -47,7 +47,7 @@ beforeEach(() => {
   mockery.enable({
     useCleanCache: true,
     warnOnReplace: false,
-    warnOnUnregistered: false,
+    warnOnUnregistered: false
   });
 
   storageMock = mockStorageAndSetEnvironment();
@@ -101,7 +101,7 @@ describe('startup', () => {
         eventHandlers[args[0]] = args[1];
       });
       const on: SinonStub = (process.on as unknown) as SinonStub;
-      on.getCalls().forEach((call) => {
+      on.getCalls().forEach(call => {
         if (call.args.length) {
           if (call.args[0] === 'uncaughtException') {
             uncaughtException = call.args[1];
@@ -155,33 +155,33 @@ describe('startup', () => {
             error: new Error(),
             kills: true,
             name: 'general uncaught exception',
-            uncaught: true,
+            uncaught: true
           },
           {
             error: new Error(),
             kills: true,
             name: 'general unhandled rejection',
-            uncaught: false,
+            uncaught: false
           },
           {
             error: badProtocol,
             kills: false,
             name: 'uncaught bad protocol error',
-            uncaught: true,
+            uncaught: true
           },
           {
             error: badProtocol,
             kills: false,
             name: 'unhandled bad protocol error',
-            uncaught: false,
-          },
+            uncaught: false
+          }
         ];
 
         beforeEach(async () => {
           exit().reset();
         });
 
-        cases.forEach((c) => {
+        cases.forEach(c => {
           describe(c.name, () => {
             beforeEach(async () => {
               if (c.uncaught) {
@@ -189,7 +189,7 @@ describe('startup', () => {
               } else {
                 unhandledRejection(c.error);
               }
-              await new Promise((resolve) => setTimeout(resolve, 20));
+              await new Promise(resolve => setTimeout(resolve, 20));
             });
 
             if (c.kills) {

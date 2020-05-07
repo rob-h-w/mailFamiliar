@@ -12,11 +12,7 @@ import User from './user';
 const MOVELIST_FILENAME = 'moveList.json';
 
 export function hashOf(value: string): string {
-  return crypto
-    .createHash('sha256')
-    .update(value)
-    .digest()
-    .toString('hex');
+  return crypto.createHash('sha256').update(value).digest().toString('hex');
 }
 
 function indent(depth: number, value: string): string {

@@ -5,7 +5,7 @@ const {
   before,
   beforeEach,
   describe,
-  it,
+  it
 } = (exports.lab = require('@hapi/lab').script());
 import * as mockery from 'mockery';
 import * as sinon from 'sinon';
@@ -39,12 +39,12 @@ describe('folder', () => {
         date: new Date('2018-12-25T12:21:37.000Z'),
         flags: [],
         size: 1234,
-        uid: 41,
+        uid: 41
       },
       body: Buffer.from('whut up?'),
       seqno: 41,
-      synced: true,
-    },
+      synced: true
+    }
   ];
   const interestingSpam = [
     {
@@ -52,12 +52,12 @@ describe('folder', () => {
         date: new Date('2018-12-26T01:09:55.000Z'),
         flags: [],
         size: 15711,
-        uid: 68,
+        uid: 68
       },
       body: Buffer.from('interesting spam like this'),
       seqno: 68,
-      synced: true,
-    },
+      synced: true
+    }
   ];
 
   let server: any;
@@ -67,12 +67,12 @@ describe('folder', () => {
     mockery.enable({
       useCleanCache: true,
       warnOnReplace: false,
-      warnOnUnregistered: false,
+      warnOnUnregistered: false
     });
 
     clock = sinon.useFakeTimers({
       now: new Date('2019-01-01T00:00:00.000Z'),
-      shouldAdvanceTime: true,
+      shouldAdvanceTime: true
     });
 
     bunyanMock = bunyan();
@@ -117,7 +117,7 @@ describe('folder', () => {
   describe('deletion', () => {
     beforeEach(async () => {
       const newBoxes: Box[] = [];
-      boxes.filter((box) => box.name !== INTERESTING_SPAM).forEach((box) => newBoxes.push(box));
+      boxes.filter(box => box.name !== INTERESTING_SPAM).forEach(box => newBoxes.push(box));
       const newState = fromBoxes(newBoxes);
       newState.currentlyOpenBox = INBOX;
       imapMock.setServerState(newState);
