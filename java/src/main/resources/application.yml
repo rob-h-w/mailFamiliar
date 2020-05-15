@@ -1,0 +1,12 @@
+url: 'jdbc:sqlite:mailfamiliar.db'
+username: 'whut'
+password: 'up'
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        dialect: com.robwilliamson.mailfamiliar.sqlite.Dialect
+        hbm2ddl:
+          auto: create-drop
+        show_sql: true
