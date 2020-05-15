@@ -1,0 +1,47 @@
+@startuml
+title Scan
+participant IMAP as i
+participant Engine as e
+participant Predictor as m
+participant Persistence as p
+
+activate e
+e -> i: Request Boxes
+i --> e: [b]
+alt Some Boxes removed
+    e -> p: Remove Boxes not in [b]
+    e -> m: Remove Boxes not in [b]
+    activate m
+    loop Each removed Box b
+        m -> p: Remove Box b
+    end
+    deactivate m
+else Some new Boxes
+    e -> p: Create Boxes
+end
+loop Each Box b
+    e -> i: Open b
+    group New Mails
+        i -> e: New Mails
+        e -> i: Get Headers
+        e -> p: Store Headers in b
+        e -> m: Add Headers to Box b
+        activate m
+        m -> p: Store added Headers
+        deactivate m
+        loop Each Mail m
+            e -> p: Get Move for m
+            p --> e: move
+            alt m was moved and not moved to b
+                e -> p: Store mistake for m, move and b
+            end
+        end
+    end
+    group Expunged Mails
+        i -> e: Expunge(index)
+        e -> p: Get headers for index
+        e -> m: Remove headers
+        e -> p: Remove headers at index
+    end
+end
+@enduml
