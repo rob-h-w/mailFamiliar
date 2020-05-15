@@ -1,0 +1,46 @@
+@startuml
+title Inbox Open
+participant IMAP as i
+participant Engine as e
+participant Predictor as m
+participant Persistence as p
+
+group New Mail
+    i -> e: New Mails
+    activate e
+    e -> i: Get Headers
+    e -> p: Store Message in Inbox
+    alt Mail is unread
+        e -> m: Predict Box
+        alt Box identified
+            e -> i: Move Message to Box
+            e -> p: Store Move
+        end
+    else Mail read or no other Box identified
+        e -> m: Add Headers to Box Inbox
+        m -> p: Store Headers
+    end
+    deactivate e
+end
+group Update
+    i -> e: Update (seq)
+    activate e
+    e -> p: Get Message
+    deactivate e
+end
+group Expunge
+    i -> e: Expunge (seq)
+    activate e
+    e -> p: Get Message at seq
+    p --> e: m
+    e -> p: Remove Headers at seq
+    e -> m: Remove Headers from Inbox
+    m -> p: Remove Headers
+    e -> p: Get Move for m
+    p --> e: move
+    alt Move not found
+        e -> e: Trigger scan
+        note right: The user moved the Mail
+    end
+end
+@enduml
