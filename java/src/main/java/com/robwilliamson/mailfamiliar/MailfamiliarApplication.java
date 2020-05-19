@@ -10,5 +10,4 @@ public class MailfamiliarApplication {
     SpringApplication.run(MailfamiliarApplication.class,
         args);
   }
-
 }

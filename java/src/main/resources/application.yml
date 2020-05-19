@@ -10,9 +10,19 @@ spring:
     tomcat:
       max-active: 1
   jpa:
+    generate-ddl: false
+    open-in-view: true
+    show-sql: true
     properties:
       hibernate:
         dialect: com.robwilliamson.mailfamiliar.sqlite.Dialect
         hbm2ddl:
-          auto: create-drop
+          auto: validate
         show_sql: true
+        format-sql: true
+  flyway:
+    baseline-on-migrate: true
+    enabled: true
+    password: ${password}
+    url: ${url}
+    user: ${username}
