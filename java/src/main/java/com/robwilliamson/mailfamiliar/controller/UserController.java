@@ -13,6 +13,6 @@ import java.util.Map;
 public class UserController {
   @GetMapping("/user")
   public Map<String, Object> user(@AuthenticationPrincipal AuthorizedUser principal) {
-    return Collections.checkedMap(principal.getAttributes(), String.class, Object.class);
+    return Collections.singletonMap("user ID", principal.user().getId());
   }
 }
