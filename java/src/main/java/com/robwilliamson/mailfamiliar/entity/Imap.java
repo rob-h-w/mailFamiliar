@@ -1,19 +1,17 @@
 package com.robwilliamson.mailfamiliar.entity;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.io.Serializable;
 
+@AllArgsConstructor
 @Builder
 @Data
 @Entity
 @Getter
 @IdClass(Imap.class)
-@Setter
+@NoArgsConstructor
 @Table(name = "imap", indexes = {@Index(columnList = "host,name", unique = true)})
 public class Imap implements Serializable {
   @Id

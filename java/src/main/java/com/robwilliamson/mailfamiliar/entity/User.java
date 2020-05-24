@@ -1,18 +1,16 @@
 package com.robwilliamson.mailfamiliar.entity;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.util.List;
 
+@AllArgsConstructor
 @Builder
 @Data
 @Entity
 @Getter
-@Setter
+@NoArgsConstructor
 @Table(name = "user")
 public class User {
   @Id

@@ -13,7 +13,7 @@
     <artifactId>mailfamiliar</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Mail Familiar</name>
-    <description>MailFamiliar on Spring Boot</description>
+    <description>MailFamiliar on Spring Boot with some UX.</description>
 
     <properties>
         <java.version>11</java.version>
@@ -62,6 +62,20 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>jquery</artifactId>
+            <version>3.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>bootstrap</artifactId>
+            <version>4.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>webjars-locator-core</artifactId>
         </dependency>
     </dependencies>
 
