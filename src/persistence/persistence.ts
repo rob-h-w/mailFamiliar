@@ -6,6 +6,8 @@ export interface InitializablePersistence<InitParams> extends Persistence {
   init(parameters: InitParams): Promise<void>;
 }
 
+export type PredictorId = string;
+
 export default interface Persistence {
   createUser(user: User): Promise<void>;
   listUsers(): Promise<Array<User>>;
@@ -17,4 +19,8 @@ export default interface Persistence {
 
   listMoves(user: User): Promise<Move[]>;
   recordMoves(user: User, moves: ReadonlyArray<Move>): Promise<void>;
+
+  getPredictorId(user: User, name: () => string): Promise<PredictorId>;
+
+  predictorFolderContains(predictorId: PredictorId, predictorFolderName: string): Promise<boolean>;
 }

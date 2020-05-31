@@ -1,6 +1,8 @@
-import Box from './box';
 import PersistenceModel from '../persistence/model';
+import Persistence from '../persistence/persistence';
+import User from '../persistence/user';
 import Mistake from '../types/mistake';
+import Box from './box';
 
 export class UndeclaredBoxError extends Error {
   constructor(qualifiedBoxName: string) {
@@ -12,11 +14,13 @@ export class UndeclaredBoxError extends Error {
 }
 
 export default interface Predictor {
-  addHeaders(header: string, qualifiedBoxName: string): void;
-  addMistake(mistake: Mistake): void;
-  considerBox(box: Box): void;
-  folderScore(headers: string): Map<string, number>;
+  addHeaders(header: string, qualifiedBoxName: string): Promise<void>;
+  addMistake(mistake: Mistake): Promise<void>;
+  considerBox(box: Box): Promise<void>;
+  folderScore(headers: string): Promise<Map<string, number>>;
+  init(user: User, persistence: Persistence): Promise<void>;
   persistenceModel(): PersistenceModel | undefined;
   name(): string;
-  removeHeaders(headers: string, qualifiedBoxName: string): void;
+  removeBox(qualifiedBoxName: string): Promise<void>;
+  removeHeaders(headers: string, qualifiedBoxName: string): Promise<void>;
 }

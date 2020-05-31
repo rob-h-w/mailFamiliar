@@ -6,6 +6,8 @@ import Diff from '../string/diff';
 import stringDiff, {DEFAULT_MIN_LENGTH} from '../string/stringDiff';
 import match from '../string/match';
 import {matches} from '../string/match';
+import User from '../persistence/user';
+import Box from './box';
 
 export interface DiffAndAtables {
   START: AdjacencyTable | null;
@@ -181,6 +183,12 @@ export const DiffAndAtables = {
       otherAtables: [],
       strings: []
     };
+  },
+
+  fromPersistence(user: User, persistence: Persistence, box: Box): DiffAndAtables {
+    const result = DiffAndAtables.emptyAtables();
+    const aTables = persistence.getAtables(user, box);
+    return result;
   },
 
   fromStrings: (

@@ -1,0 +1,6 @@
+enum PredictorPrimitives {
+  DIFF_STRINGS,
+  A_TABLE,
+  DIFF_AND_A_TABLE,
+  THRESHOLDED_DIFF_AND_A_TABLE
+}
