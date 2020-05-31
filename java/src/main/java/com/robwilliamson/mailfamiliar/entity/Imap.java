@@ -10,7 +10,6 @@ import java.io.Serializable;
 @Data
 @Entity
 @Getter
-@IdClass(Imap.class)
 @NoArgsConstructor
 @Table(name = "imap", indexes = {@Index(columnList = "host,name", unique = true)})
 public class Imap implements Serializable {
@@ -19,7 +18,7 @@ public class Imap implements Serializable {
   private float moveThreshold;
   @Id
   private String name;
-  private String password;
+  private int password;
   private int port;
   private int refreshPeriodMinutes;
   private int syncPeriodDays;

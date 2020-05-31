@@ -2,7 +2,7 @@ url: 'jdbc:sqlite:mailfamiliar.db'
 username: 'whut'
 password: 'up'
 
-"application-description": ${project.description}
+application-description: ${project.description}
 
 spring:
   data:

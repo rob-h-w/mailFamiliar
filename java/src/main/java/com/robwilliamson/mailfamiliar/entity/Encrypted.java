@@ -3,7 +3,7 @@ package com.robwilliamson.mailfamiliar.entity;
 import lombok.*;
 
 import javax.persistence.*;
-import java.util.List;
+import java.io.Serializable;
 
 @AllArgsConstructor
 @Builder
@@ -11,14 +11,13 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor
-@Table(name = "user")
-public class User {
+@Table(name = "encrypted")
+public class Encrypted implements Serializable {
+  public static final int GCM_NONCE_LENGTH = 12;
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Id
   private int id;
-  @OneToMany(mappedBy = "user")
-  private List<Imap> imaps;
-  private String name;
-  private String remoteId;
-  private int secret;
+  private byte[] ciphertext;
+  private byte[] nonce;
+  private byte[] salt;
 }
