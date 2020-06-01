@@ -16,7 +16,7 @@ public class User {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Id
   private int id;
-  @OneToMany(mappedBy = "user")
+  @OneToMany(fetch = FetchType.EAGER, mappedBy = "user")
   private List<Imap> imaps;
   private String name;
   private String remoteId;

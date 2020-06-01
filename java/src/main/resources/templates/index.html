@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8"/>
     <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
-    <title>Demo</title>
+    <title>Mail Familiar - IMAP Accounts</title>
     <meta content="" name="description"/>
     <meta content="width=device-width" name="viewport"/>
     <base href="/"/>
@@ -12,7 +12,9 @@
     <script src="/webjars/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
 </head>
 <body>
-<h1>Demo</h1>
-<div class="container"></div>
+<h1>Mail Familiar - IMAP Accounts</h1>
+<div class="container">
+    <p th:text="'Hello, ' + ${userName} + '. You have ' + ${imaps.size()} + ' accounts.'"/>
+</div>
 </body>
 </html>
