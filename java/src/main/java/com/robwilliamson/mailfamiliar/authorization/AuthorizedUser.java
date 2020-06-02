@@ -1,8 +1,7 @@
 package com.robwilliamson.mailfamiliar.authorization;
 
 import com.robwilliamson.mailfamiliar.entity.User;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.core.user.*;
 
 public class AuthorizedUser extends DefaultOAuth2User {
   public final AuthServer authorizationServer = AuthServer.GITHUB;

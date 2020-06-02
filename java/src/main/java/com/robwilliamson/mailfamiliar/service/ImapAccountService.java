@@ -1,8 +1,7 @@
 package com.robwilliamson.mailfamiliar.service;
 
 import com.robwilliamson.mailfamiliar.authorization.AuthorizedUser;
-import com.robwilliamson.mailfamiliar.entity.Encrypted;
-import com.robwilliamson.mailfamiliar.entity.User;
+import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.model.Imap;
 import com.robwilliamson.mailfamiliar.repository.EncryptedRepository;
 import lombok.RequiredArgsConstructor;

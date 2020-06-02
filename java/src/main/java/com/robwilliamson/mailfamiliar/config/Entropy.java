@@ -1,10 +1,8 @@
 package com.robwilliamson.mailfamiliar.config;
 
-import com.robwilliamson.mailfamiliar.entropy.RandomSource;
-import com.robwilliamson.mailfamiliar.entropy.SeedFromStrongSource;
+import com.robwilliamson.mailfamiliar.entropy.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.*;
 import org.springframework.core.task.TaskExecutor;
 
 @Configuration

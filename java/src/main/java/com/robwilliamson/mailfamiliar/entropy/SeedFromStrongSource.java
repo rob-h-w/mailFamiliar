@@ -2,13 +2,10 @@ package com.robwilliamson.mailfamiliar.entropy;
 
 import org.springframework.core.task.TaskExecutor;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
+import java.security.*;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.*;
 
 public class SeedFromStrongSource implements RandomSource {
   private static final int WEAK_PER_STRONG = 200;

@@ -2,15 +2,11 @@ package com.robwilliamson.mailfamiliar.config;
 
 import com.robwilliamson.mailfamiliar.authorization.AuthorizedUser;
 import com.robwilliamson.mailfamiliar.exceptions.UnsupportedAuthorizationServiceException;
-import com.robwilliamson.mailfamiliar.repository.EncryptedRepository;
-import com.robwilliamson.mailfamiliar.repository.UserRepository;
+import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.context.annotation.*;
+import org.springframework.security.oauth2.client.userinfo.*;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import javax.transaction.Transactional;
