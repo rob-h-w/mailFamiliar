@@ -21,4 +21,9 @@ public class AccountController {
     model.addAttribute("imaps", imaps);
     return "index";
   }
+
+  @GetMapping("/addImap")
+  public String addImap(@AuthenticationPrincipal AuthorizedUser principal, Model model) {
+    return "addImap";
+  }
 }
