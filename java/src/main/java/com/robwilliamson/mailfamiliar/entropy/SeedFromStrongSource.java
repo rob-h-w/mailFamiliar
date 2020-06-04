@@ -62,7 +62,7 @@ public class SeedFromStrongSource implements RandomSource {
   }
 
   private void decrementWeakReaderCount() {
-    if (weakReaderCount.decrementAndGet() == 0) {
+    if (weakReaderCount.decrementAndGet() < 1) {
       lock.lock();
       readingFinishedCondition.signal();
       lock.unlock();
@@ -113,6 +113,7 @@ public class SeedFromStrongSource implements RandomSource {
       entropyNeeded.signal();
       lock.unlock();
     }
+
     return result;
   }
 
