@@ -2,33 +2,44 @@ package com.robwilliamson.mailfamiliar.service;
 
 import com.robwilliamson.mailfamiliar.authorization.AuthorizedUser;
 import com.robwilliamson.mailfamiliar.entity.*;
-import com.robwilliamson.mailfamiliar.model.Imap;
-import com.robwilliamson.mailfamiliar.repository.EncryptedRepository;
+import com.robwilliamson.mailfamiliar.repository.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.Collection;
 import java.util.stream.Collectors;
+
+import static com.robwilliamson.mailfamiliar.CopyProperties.copy;
 
 @RequiredArgsConstructor
 @Service
 public class ImapAccountService {
   private final CryptoService cryptoService;
   private final EncryptedRepository encryptedRepository;
+  private final ImapAccountRepository imapAccountRepository;
 
-  public Collection<Imap> getAccounts(AuthorizedUser principal) {
+  public Collection<com.robwilliamson.mailfamiliar.model.Imap> getAccounts(
+      AuthorizedUser principal) {
     final User user = principal.user();
-    final Encrypted userSecret = encryptedRepository.findById(user.getSecret()).get();
-    return user.getImaps()
+    return imapAccountRepository.findByUserId(user.getId())
         .stream()
-        .map(imapEntity -> {
-          final Imap imapMode = new Imap();
-          final Encrypted imapSecret = encryptedRepository.findById(imapEntity.getPassword()).get();
-          BeanUtils.copyProperties(imapEntity, imapMode);
-          imapMode.setPassword(new String(cryptoService.decrypt(userSecret, imapSecret)));
-          return imapMode;
-        })
+        .map(imapEntity -> copy(imapEntity, new com.robwilliamson.mailfamiliar.model.Imap()))
         .collect(Collectors.toList());
+  }
+
+  @Transactional
+  public void saveAccount(
+      AuthorizedUser principal,
+      com.robwilliamson.mailfamiliar.model.Imap imapModel) {
+    final User user = principal.user();
+    final Imap entity = copy(imapModel, new Imap());
+    entity.setUserId(user.getId());
+    //noinspection OptionalGetWithoutIsPresent
+    final Encrypted userSecret = encryptedRepository.findById(user.getSecret()).get();
+    final Encrypted imapSecret = encryptedRepository.save(cryptoService.encrypt(userSecret,
+        imapModel.getPassword().getBytes()));
+    entity.setPassword(imapSecret.getId());
+    imapAccountRepository.save(entity);
   }
 }

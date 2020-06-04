@@ -1,13 +1,18 @@
 package com.robwilliamson.mailfamiliar.model;
 
-import com.robwilliamson.mailfamiliar.entity.User;
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
+import java.io.Serializable;
+
 @Data
-public class Imap {
+public class Imap implements Serializable {
+  @NotBlank
   private String host;
   private float moveThreshold;
+  @NotBlank
   private String name;
+  @NotBlank
   private String password;
   private int port;
   private int refreshPeriodMinutes;

@@ -9,7 +9,7 @@ import java.io.Serializable;
 @Builder
 @Data
 @Entity
-@Getter
+@IdClass(Imap.Index.class)
 @NoArgsConstructor
 @Table(name = "imap", indexes = {@Index(columnList = "host,name", unique = true)})
 public class Imap implements Serializable {
@@ -24,6 +24,15 @@ public class Imap implements Serializable {
   private int syncPeriodDays;
   private boolean tls;
   @Id
-  @ManyToOne(optional = false)
-  private User user;
+  private int userId;
+
+  @AllArgsConstructor
+  @Builder
+  @Data
+  @NoArgsConstructor
+  public static class Index implements Serializable {
+    private String host;
+    private String name;
+    private int userId;
+  }
 }
