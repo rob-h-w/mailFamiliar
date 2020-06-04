@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.util.Collection;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.robwilliamson.mailfamiliar.CopyProperties.copy;
@@ -41,5 +41,22 @@ public class ImapAccountService {
         imapModel.getPassword().getBytes()));
     entity.setPassword(imapSecret.getId());
     imapAccountRepository.save(entity);
+  }
+
+  @Transactional
+  public void deleteAccount(User user, String name, String host) {
+    final Optional<Imap> imapOptional = imapAccountRepository.findById(Imap.Index.builder()
+        .userId(user.getId())
+        .name(name)
+        .host(host)
+        .build());
+
+    if (imapOptional.isEmpty()) {
+      return;
+    }
+
+    Imap imap = imapOptional.get();
+    encryptedRepository.deleteById(imap.getPassword());
+    imapAccountRepository.delete(imap);
   }
 }

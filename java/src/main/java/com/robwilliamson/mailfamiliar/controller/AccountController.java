@@ -39,7 +39,17 @@ public class AccountController {
     return "create-imap";
   }
 
-  @PostMapping("/save-imap")
+  @GetMapping("/delete-imap")
+  public ModelAndView deleteImap(
+      @AuthenticationPrincipal AuthorizedUser principal,
+      @RequestParam String name,
+      @RequestParam String host,
+      ModelMap modelMap) {
+    accountService.deleteAccount(principal.user(), name, host);
+    return new ModelAndView("redirect:/", modelMap);
+  }
+
+  @PostMapping("/imap")
   public ModelAndView saveImap(
       @AuthenticationPrincipal AuthorizedUser principal,
       @ModelAttribute @Valid Imap imapModel, ModelMap modelMap) {

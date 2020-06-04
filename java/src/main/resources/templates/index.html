@@ -1,4 +1,5 @@
 <!doctype html>
+<!--suppress CheckEmptyScriptTag -->
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8"/>
@@ -10,6 +11,7 @@
     <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
     <script src="/webjars/jquery/jquery.min.js" type="text/javascript"></script>
     <script src="/webjars/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+    <script crossorigin="anonymous" src="https://kit.fontawesome.com/23d9cee44a.js"></script>
 </head>
 <body>
 <h1>Mail Familiar - IMAP Accounts</h1>
@@ -18,6 +20,22 @@
     <a href="/create-imap">
         <div class="button">Add an IMAP Account</div>
     </a>
+</div>
+<div class="container">
+    <table class="aaccount-list">
+        <tbody>
+        <tr th:each="imap: ${imaps}">
+            <td th:text="${imap.name}"/>
+            <td th:text="${imap.host}"/>
+            <td>
+                <a href="delete-imap.html"
+                   th:href="@{/delete-imap(host=${imap.host},name=${imap.name})}">
+                    <i class="fas fa-trash"></i>
+                </a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 </body>
 </html>
