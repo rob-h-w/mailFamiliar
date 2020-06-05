@@ -9,7 +9,6 @@ import java.io.Serializable;
 @Builder
 @Data
 @Entity
-@Getter
 @NoArgsConstructor
 @Table(name = "encrypted")
 public class Encrypted implements Serializable {
