@@ -19,6 +19,7 @@ public class ImapAccountService {
   private final CryptoService cryptoService;
   private final EncryptedRepository encryptedRepository;
   private final ImapAccountRepository imapAccountRepository;
+  private final MailboxRepository mailboxRepository;
 
   public Collection<com.robwilliamson.mailfamiliar.model.Imap> getAccounts(
       AuthorizedUser principal) {
@@ -60,5 +61,21 @@ public class ImapAccountService {
 
     encryptedRepository.deleteById(imap.getPassword());
     imapAccountRepository.delete(imap);
+  }
+
+  public Collection<Mailbox> mailboxenFor(User user, int imapAccountId) {
+    final Optional<Imap> imapOptional = imapAccountRepository.findById(imapAccountId);
+
+    if (imapOptional.isEmpty()) {
+      return List.of();
+    }
+
+    final Imap imap = imapOptional.get();
+
+    if (imap.getUserId() != user.getId()) {
+      throw new AnotherUsersAccountException();
+    }
+
+    return mailboxRepository.findByImapAccountId(imapAccountId);
   }
 }

@@ -22,15 +22,20 @@
     </a>
 </div>
 <div class="container">
-    <table class="aaccount-list">
+    <table class="account-list">
         <tbody>
         <tr th:each="imap: ${imaps}">
             <td th:text="${imap.name}"/>
             <td th:text="${imap.host}"/>
-            <td>
+            <td class="account-list-action">
                 <a href="delete-imap.html"
                    th:href="@{/delete-imap(id=${imap.id})}">
                     <i class="fas fa-trash"></i>
+                </a>
+            </td>
+            <td class="account-list-action">
+                <a th:href="@{/read-imap(id=${imap.id})}">
+                    <i class="fas fa-eye"></i>
                 </a>
             </td>
         </tr>

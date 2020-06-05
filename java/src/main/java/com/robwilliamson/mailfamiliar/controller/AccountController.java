@@ -48,6 +48,15 @@ public class AccountController {
     return new ModelAndView("redirect:/", modelMap);
   }
 
+  @GetMapping("/read-imap")
+  public String readImap(
+      @AuthenticationPrincipal AuthorizedUser principal,
+      @RequestParam int id,
+      Model model) {
+    model.addAttribute("boxen", accountService.mailboxenFor(principal.user(), id));
+    return "read-imap";
+  }
+
   @PostMapping("/imap")
   public ModelAndView saveImap(
       @AuthenticationPrincipal AuthorizedUser principal,
