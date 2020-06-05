@@ -1,4 +1,3 @@
-
 create table encrypted (
     id integer primary key autoincrement,
     ciphertext blob not null,

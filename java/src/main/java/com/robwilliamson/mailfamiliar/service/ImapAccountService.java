@@ -2,6 +2,7 @@ package com.robwilliamson.mailfamiliar.service;
 
 import com.robwilliamson.mailfamiliar.authorization.AuthorizedUser;
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.exceptions.AnotherUsersAccountException;
 import com.robwilliamson.mailfamiliar.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,18 +45,19 @@ public class ImapAccountService {
   }
 
   @Transactional
-  public void deleteAccount(User user, String name, String host) {
-    final Optional<Imap> imapOptional = imapAccountRepository.findById(Imap.Index.builder()
-        .userId(user.getId())
-        .name(name)
-        .host(host)
-        .build());
+  public void deleteAccount(User user, int id) {
+    final Optional<Imap> imapOptional = imapAccountRepository.findById(id);
 
     if (imapOptional.isEmpty()) {
       return;
     }
 
     Imap imap = imapOptional.get();
+
+    if (imap.getUserId() != user.getId()) {
+      throw new AnotherUsersAccountException();
+    }
+
     encryptedRepository.deleteById(imap.getPassword());
     imapAccountRepository.delete(imap);
   }

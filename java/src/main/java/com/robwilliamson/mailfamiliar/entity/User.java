@@ -19,3 +19,4 @@ public class User {
   private String remoteId;
   private int secret;
 }
+

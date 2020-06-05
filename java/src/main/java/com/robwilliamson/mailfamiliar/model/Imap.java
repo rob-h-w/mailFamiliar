@@ -7,6 +7,7 @@ import java.io.Serializable;
 
 @Data
 public class Imap implements Serializable {
+  private int id;
   @NotBlank
   private String host;
   private float moveThreshold;

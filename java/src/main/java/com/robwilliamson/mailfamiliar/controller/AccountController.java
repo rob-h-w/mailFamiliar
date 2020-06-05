@@ -42,10 +42,9 @@ public class AccountController {
   @GetMapping("/delete-imap")
   public ModelAndView deleteImap(
       @AuthenticationPrincipal AuthorizedUser principal,
-      @RequestParam String name,
-      @RequestParam String host,
+      @RequestParam int id,
       ModelMap modelMap) {
-    accountService.deleteAccount(principal.user(), name, host);
+    accountService.deleteAccount(principal.user(), id);
     return new ModelAndView("redirect:/", modelMap);
   }
 

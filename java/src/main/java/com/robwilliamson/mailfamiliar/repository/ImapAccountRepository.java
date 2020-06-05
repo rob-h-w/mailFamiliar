@@ -5,6 +5,6 @@ import org.springframework.data.repository.CrudRepository;
 
 import java.util.Collection;
 
-public interface ImapAccountRepository extends CrudRepository<Imap, Imap.Index> {
+public interface ImapAccountRepository extends CrudRepository<Imap, Integer> {
   Collection<Imap> findByUserId(int userId);
 }

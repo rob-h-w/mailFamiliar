@@ -29,7 +29,7 @@
             <td th:text="${imap.host}"/>
             <td>
                 <a href="delete-imap.html"
-                   th:href="@{/delete-imap(host=${imap.host},name=${imap.name})}">
+                   th:href="@{/delete-imap(id=${imap.id})}">
                     <i class="fas fa-trash"></i>
                 </a>
             </td>
