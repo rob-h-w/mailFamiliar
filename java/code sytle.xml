@@ -1,0 +1,65 @@
+<code_scheme name="Default" version="173">
+  <option name="RIGHT_MARGIN" value="100" />
+  <option name="WRAP_WHEN_TYPING_REACHES_RIGHT_MARGIN" value="true" />
+  <DBN-PSQL>
+    <case-options enabled="true">
+      <option name="KEYWORD_CASE" value="lower" />
+      <option name="FUNCTION_CASE" value="lower" />
+      <option name="PARAMETER_CASE" value="lower" />
+      <option name="DATATYPE_CASE" value="lower" />
+      <option name="OBJECT_CASE" value="preserve" />
+    </case-options>
+    <formatting-settings enabled="false" />
+  </DBN-PSQL>
+  <DBN-SQL>
+    <case-options enabled="true">
+      <option name="KEYWORD_CASE" value="lower" />
+      <option name="FUNCTION_CASE" value="lower" />
+      <option name="PARAMETER_CASE" value="lower" />
+      <option name="DATATYPE_CASE" value="lower" />
+      <option name="OBJECT_CASE" value="preserve" />
+    </case-options>
+    <formatting-settings enabled="false">
+      <option name="STATEMENT_SPACING" value="one_line" />
+      <option name="CLAUSE_CHOP_DOWN" value="chop_down_if_statement_long" />
+      <option name="ITERATION_ELEMENTS_WRAPPING" value="chop_down_if_not_single" />
+    </formatting-settings>
+  </DBN-SQL>
+  <JavaCodeStyleSettings>
+    <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="2" />
+    <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="2" />
+  </JavaCodeStyleSettings>
+  <DBN-PSQL>
+    <case-options enabled="true">
+      <option name="KEYWORD_CASE" value="lower" />
+      <option name="FUNCTION_CASE" value="lower" />
+      <option name="PARAMETER_CASE" value="lower" />
+      <option name="DATATYPE_CASE" value="lower" />
+      <option name="OBJECT_CASE" value="preserve" />
+    </case-options>
+    <formatting-settings enabled="false" />
+  </DBN-PSQL>
+  <DBN-SQL>
+    <case-options enabled="true">
+      <option name="KEYWORD_CASE" value="lower" />
+      <option name="FUNCTION_CASE" value="lower" />
+      <option name="PARAMETER_CASE" value="lower" />
+      <option name="DATATYPE_CASE" value="lower" />
+      <option name="OBJECT_CASE" value="preserve" />
+    </case-options>
+    <formatting-settings enabled="false">
+      <option name="STATEMENT_SPACING" value="one_line" />
+      <option name="CLAUSE_CHOP_DOWN" value="chop_down_if_statement_long" />
+      <option name="ITERATION_ELEMENTS_WRAPPING" value="chop_down_if_not_single" />
+    </formatting-settings>
+  </DBN-SQL>
+  <codeStyleSettings language="JAVA">
+    <option name="RIGHT_MARGIN" value="100" />
+    <option name="WRAP_ON_TYPING" value="1" />
+    <indentOptions>
+      <option name="INDENT_SIZE" value="2" />
+      <option name="CONTINUATION_INDENT_SIZE" value="4" />
+      <option name="TAB_SIZE" value="2" />
+    </indentOptions>
+  </codeStyleSettings>
+</code_scheme>
