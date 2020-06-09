@@ -9,7 +9,7 @@ import javax.sql.DataSource;
 
 @Configuration
 @RequiredArgsConstructor
-public class SqliteConfig {
+public class Sqlite {
   private final Environment environment;
 
   @Bean

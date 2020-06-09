@@ -14,7 +14,6 @@ import javax.transaction.Transactional;
 @Configuration
 @RequiredArgsConstructor
 public class User {
-  private static final int KEY_LENGTH = 128;
   private final CryptoService cryptoService;
   private final EncryptedRepository encryptedRepository;
   private final UserRepository userRepository;
@@ -24,9 +23,11 @@ public class User {
     final DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
     return oAuth2UserRequest -> {
       final OAuth2User user = delegate.loadUser(oAuth2UserRequest);
-      if (user.getAttributes().containsKey("url")
-          && user.getAttribute("url").toString().startsWith("https://api.github.com/users")) {
-        return gitHubUser(user);
+      if (user.getAttributes().containsKey("url")) {
+        Object url = user.getAttribute("url");
+        if (url != null && url.toString().startsWith("https://api.github.com/users")) {
+          return gitHubUser(user);
+        }
       }
 
       throw new UnsupportedAuthorizationServiceException();
@@ -34,7 +35,7 @@ public class User {
   }
 
   @Transactional
-  private AuthorizedUser gitHubUser(OAuth2User oAuth2User) {
+  AuthorizedUser gitHubUser(OAuth2User oAuth2User) {
     final String remoteId = "github.com" + oAuth2User.getAttribute("id");
 
     final com.robwilliamson.mailfamiliar.entity.User user = userRepository

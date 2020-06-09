@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class MailfamiliarApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(MailfamiliarApplication.class,
-        args);
+    SpringApplication.run(MailfamiliarApplication.class, args);
   }
 }
