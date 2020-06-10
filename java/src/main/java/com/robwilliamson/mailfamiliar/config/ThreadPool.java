@@ -10,7 +10,7 @@ public class ThreadPool {
   public TaskExecutor taskExecutor() {
     final ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
     taskExecutor.setCorePoolSize(2);
-    taskExecutor.setMaxPoolSize(10);
+    taskExecutor.setMaxPoolSize(Runtime.getRuntime().availableProcessors() + 2);
     taskExecutor.setThreadNamePrefix("default_task_executor_thread_");
     taskExecutor.initialize();
     return taskExecutor;
