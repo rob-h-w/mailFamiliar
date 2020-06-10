@@ -1,52 +1,80 @@
 package com.robwilliamson.mailfamiliar.service;
 
-import com.robwilliamson.mailfamiliar.authorization.AuthorizedUser;
+import com.robwilliamson.mailfamiliar.config.Integration;
 import com.robwilliamson.mailfamiliar.entity.*;
-import com.robwilliamson.mailfamiliar.exceptions.AnotherUsersAccountException;
+import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
+import com.robwilliamson.mailfamiliar.service.imap.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.integration.annotation.Publisher;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.stream.*;
 
 import static com.robwilliamson.mailfamiliar.CopyProperties.copy;
+import static com.robwilliamson.mailfamiliar.model.User.from;
 
 @RequiredArgsConstructor
 @Service
-public class ImapAccountService {
+public class ImapAccountService implements AccountProvider, UserAccountIdentifier {
   private final CryptoService cryptoService;
   private final EncryptedRepository encryptedRepository;
   private final ImapAccountRepository imapAccountRepository;
-  private final MailboxRepository mailboxRepository;
+  private final UserRepository userRepository;
 
-  public Collection<com.robwilliamson.mailfamiliar.model.Imap> getAccounts(
-      AuthorizedUser principal) {
-    final User user = principal.user();
+  public Collection<com.robwilliamson.mailfamiliar.model.Imap> getAccountsFor(
+      User user) {
     return imapAccountRepository.findByUserId(user.getId())
         .stream()
-        .map(imapEntity -> copy(imapEntity, new com.robwilliamson.mailfamiliar.model.Imap()))
+        .map(imapEntity -> {
+          var model = copy(imapEntity, new com.robwilliamson.mailfamiliar.model.Imap());
+          model.setUser(com.robwilliamson.mailfamiliar.model.User.from(user));
+          return model;
+        })
         .collect(Collectors.toList());
   }
 
+  @Override
+  public Stream<com.robwilliamson.mailfamiliar.model.Imap> getAccounts() {
+    return StreamSupport.stream(imapAccountRepository.findAll().spliterator(), false)
+        .map(entity -> {
+          var model = copy(entity, new com.robwilliamson.mailfamiliar.model.Imap());
+          var optionalUser = userRepository.findById(entity.getUserId());
+
+          if (optionalUser.isEmpty()) {
+            throw new IllegalStateException();
+          }
+
+          model.setUser(from(optionalUser.get()));
+          return model;
+        });
+  }
+
+  @Payload
+  @Publisher(channel = Integration.Channels.Constants.NEW_IMAP_ACCOUNT)
   @Transactional
-  public void saveAccount(
-      AuthorizedUser principal,
+  public com.robwilliamson.mailfamiliar.model.Imap saveAccount(
+      User user,
       com.robwilliamson.mailfamiliar.model.Imap imapModel) {
-    final User user = principal.user();
     final Imap entity = copy(imapModel, new Imap());
     entity.setUserId(user.getId());
     //noinspection OptionalGetWithoutIsPresent
     final Encrypted userSecret = encryptedRepository.findById(user.getSecret()).get();
-    final Encrypted imapSecret = encryptedRepository.save(cryptoService.encrypt(userSecret,
-        imapModel.getPassword().getBytes()));
+    final Encrypted imapSecret = encryptedRepository.save(
+        cryptoService.encrypt(
+            userSecret,
+            imapModel.getPassword().getBytes()));
     entity.setPassword(imapSecret.getId());
     imapAccountRepository.save(entity);
+    imapModel.setUser(from(user));
+    return imapModel;
   }
 
   @Transactional
-  public void deleteAccount(User user, int id) {
+  public void deleteAccount(int id) {
     final Optional<Imap> imapOptional = imapAccountRepository.findById(id);
 
     if (imapOptional.isEmpty()) {
@@ -55,27 +83,19 @@ public class ImapAccountService {
 
     Imap imap = imapOptional.get();
 
-    if (imap.getUserId() != user.getId()) {
-      throw new AnotherUsersAccountException();
-    }
-
     encryptedRepository.deleteById(imap.getPassword());
     imapAccountRepository.delete(imap);
   }
 
-  public Collection<Mailbox> mailboxenFor(User user, int imapAccountId) {
-    final Optional<Imap> imapOptional = imapAccountRepository.findById(imapAccountId);
-
+  @Override
+  public Optional<Id<com.robwilliamson.mailfamiliar.model.User>> ownerOf(Id<com.robwilliamson.mailfamiliar.model.Imap> imapAccountId) {
+    Optional<Imap> imapOptional = imapAccountRepository.findById(imapAccountId.getValue());
     if (imapOptional.isEmpty()) {
-      return List.of();
+      return Optional.empty();
     }
 
-    final Imap imap = imapOptional.get();
-
-    if (imap.getUserId() != user.getId()) {
-      throw new AnotherUsersAccountException();
-    }
-
-    return mailboxRepository.findByImapAccountId(imapAccountId);
+    return Optional.of(Id.of(
+        imapOptional.get().getUserId(),
+        com.robwilliamson.mailfamiliar.model.User.class));
   }
 }

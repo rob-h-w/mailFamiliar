@@ -1,19 +1,16 @@
 package com.robwilliamson.mailfamiliar.service;
 
-import com.robwilliamson.mailfamiliar.entity.*;
-import com.robwilliamson.mailfamiliar.entropy.*;
+import com.robwilliamson.mailfamiliar.entity.Encrypted;
+import com.robwilliamson.mailfamiliar.entropy.RandomSource;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.*;
-import org.springframework.beans.factory.annotation.*;
-import org.springframework.boot.test.context.*;
-import org.springframework.boot.test.mock.mockito.*;
-import org.springframework.test.context.junit.jupiter.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(SpringExtension.class)
 @SpringBootTest
 @Tag("Unit")
 public class CryptoServiceTest {

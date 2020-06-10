@@ -16,6 +16,7 @@
     <description>MailFamiliar on Spring Boot with some UX.</description>
 
     <properties>
+        <flyway.version>6.4.0</flyway.version>
         <java.version>11</java.version>
         <sqlite.version>3.31.1</sqlite.version>
     </properties>
@@ -72,6 +73,11 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.flywaydb.flyway-test-extensions</groupId>
+            <artifactId>flyway-spring-test</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.webjars</groupId>
             <artifactId>jquery</artifactId>
             <version>3.4.1</version>
@@ -111,7 +117,7 @@
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
-                <version>6.4.1</version>
+                <version>${flyway.version}</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.xerial</groupId>

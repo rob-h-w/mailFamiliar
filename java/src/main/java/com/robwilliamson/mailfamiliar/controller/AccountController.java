@@ -3,7 +3,9 @@ package com.robwilliamson.mailfamiliar.controller;
 import com.robwilliamson.mailfamiliar.authorization.AuthorizedUser;
 import com.robwilliamson.mailfamiliar.model.*;
 import com.robwilliamson.mailfamiliar.service.ImapAccountService;
+import com.robwilliamson.mailfamiliar.service.imap.UserAccountIdentifier;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.*;
@@ -11,17 +13,20 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.validation.Valid;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/")
 @RequiredArgsConstructor
 public class AccountController {
   private final ImapAccountService accountService;
+  private final UserAccountIdentifier userAccountIdentifier;
 
   @GetMapping
   public String index(@AuthenticationPrincipal AuthorizedUser principal, Model model) {
-    var imaps = accountService.getAccounts(principal);
-    model.addAttribute("userName", principal.user().getName());
+    final var user = principal.user();
+    final var imaps = accountService.getAccountsFor(user);
+    model.addAttribute("userName", user.getName());
     model.addAttribute("imaps", imaps);
     return "index";
   }
@@ -44,25 +49,27 @@ public class AccountController {
       @AuthenticationPrincipal AuthorizedUser principal,
       @RequestParam int id,
       ModelMap modelMap) {
-    accountService.deleteAccount(principal.user(), id);
+    assertOwnership(principal, id);
+    accountService.deleteAccount(id);
     return new ModelAndView("redirect:/", modelMap);
-  }
-
-  @GetMapping("/read-imap")
-  public String readImap(
-      @AuthenticationPrincipal AuthorizedUser principal,
-      @RequestParam int id,
-      Model model) {
-    model.addAttribute("boxen", accountService.mailboxenFor(principal.user(), id));
-    return "read-imap";
   }
 
   @PostMapping("/imap")
   public ModelAndView saveImap(
       @AuthenticationPrincipal AuthorizedUser principal,
       @ModelAttribute @Valid Imap imapModel, ModelMap modelMap) {
-    imapModel.setUser(User.from(principal.user()));
-    accountService.saveAccount(principal, imapModel);
+    final var user = principal.user();
+    imapModel.setUser(User.from(user));
+    accountService.saveAccount(user, imapModel);
     return new ModelAndView("redirect:/", modelMap);
+  }
+
+  private void assertOwnership(AuthorizedUser principal, int imapAccountId) {
+    Optional<Id<User>> userIdOptional = userAccountIdentifier
+        .ownerOf(Id.of(imapAccountId, Imap.class));
+    if (userIdOptional.isEmpty() || userIdOptional.get().getValue() != principal.user().getId()) {
+      throw new AccessDeniedException("This user cannot access the IMAP account with ID "
+          + imapAccountId);
+    }
   }
 }
