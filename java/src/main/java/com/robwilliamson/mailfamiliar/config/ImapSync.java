@@ -10,6 +10,6 @@ public class ImapSync {
 
   @Bean
   public SynchronizerFactory synchronizerFactory() {
-    return imapAccount -> new Synchronizer(imapAccount);
+    return Synchronizer::new;
   }
 }

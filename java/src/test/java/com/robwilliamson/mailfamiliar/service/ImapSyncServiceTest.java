@@ -1,7 +1,7 @@
 package com.robwilliamson.mailfamiliar.service;
 
+import com.robwilliamson.mailfamiliar.entity.Imap;
 import com.robwilliamson.mailfamiliar.exceptions.DuplicateAccountCreatedException;
-import com.robwilliamson.mailfamiliar.model.Imap;
 import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import com.robwilliamson.test.Wait;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @TestExecutionListeners({DependencyInjectionTestExecutionListener.class,
     FlywayTestExecutionListener.class})
-class ImapAccountSyncServiceTest {
+class ImapSyncServiceTest {
   ImapSyncService subject;
 
   @Mock

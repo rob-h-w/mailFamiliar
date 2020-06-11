@@ -7,6 +7,7 @@ import javax.validation.constraints.NotBlank;
 
 @Data
 @Entity
+@Table(name = "mailbox")
 public class Mailbox {
   @Id
   private int id;

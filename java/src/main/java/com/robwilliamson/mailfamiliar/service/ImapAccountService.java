@@ -14,9 +14,6 @@ import javax.transaction.Transactional;
 import java.util.*;
 import java.util.stream.*;
 
-import static com.robwilliamson.mailfamiliar.CopyProperties.copy;
-import static com.robwilliamson.mailfamiliar.model.User.from;
-
 @RequiredArgsConstructor
 @Service
 public class ImapAccountService implements AccountProvider, UserAccountIdentifier {
@@ -25,52 +22,33 @@ public class ImapAccountService implements AccountProvider, UserAccountIdentifie
   private final ImapAccountRepository imapAccountRepository;
   private final UserRepository userRepository;
 
-  public Collection<com.robwilliamson.mailfamiliar.model.Imap> getAccountsFor(
+  public Collection<Imap> getAccountsFor(
       User user) {
-    return imapAccountRepository.findByUserId(user.getId())
-        .stream()
-        .map(imapEntity -> {
-          var model = copy(imapEntity, new com.robwilliamson.mailfamiliar.model.Imap());
-          model.setUser(com.robwilliamson.mailfamiliar.model.User.from(user));
-          return model;
-        })
-        .collect(Collectors.toList());
+    return imapAccountRepository.findByUserId(user.getId());
   }
 
   @Override
-  public Stream<com.robwilliamson.mailfamiliar.model.Imap> getAccounts() {
-    return StreamSupport.stream(imapAccountRepository.findAll().spliterator(), false)
-        .map(entity -> {
-          var model = copy(entity, new com.robwilliamson.mailfamiliar.model.Imap());
-          var optionalUser = userRepository.findById(entity.getUserId());
-
-          if (optionalUser.isEmpty()) {
-            throw new IllegalStateException();
-          }
-
-          model.setUser(from(optionalUser.get()));
-          return model;
-        });
+  public Stream<Imap> getAccounts() {
+    return StreamSupport.stream(imapAccountRepository.findAll().spliterator(), false);
   }
 
   @Payload
   @Publisher(channel = Integration.Channels.Constants.NEW_IMAP_ACCOUNT)
   @Transactional
-  public com.robwilliamson.mailfamiliar.model.Imap saveAccount(
+  public Imap saveAccount(
       User user,
-      com.robwilliamson.mailfamiliar.model.Imap imapModel) {
-    final Imap entity = copy(imapModel, new Imap());
-    entity.setUserId(user.getId());
+      Imap imap,
+      String imapPassword) {
+    imap.setUserId(user.getId());
     //noinspection OptionalGetWithoutIsPresent
     final Encrypted userSecret = encryptedRepository.findById(user.getSecret()).get();
     final Encrypted imapSecret = encryptedRepository.save(
         cryptoService.encrypt(
             userSecret,
-            imapModel.getPassword().getBytes()));
-    entity.setPassword(imapSecret.getId());
-    imapAccountRepository.save(entity);
-    imapModel.setUser(from(user));
-    return imapModel;
+            imapPassword.getBytes()));
+    imap.setPassword(imapSecret.getId());
+    imapAccountRepository.save(imap);
+    return imap;
   }
 
   @Transactional
@@ -88,7 +66,7 @@ public class ImapAccountService implements AccountProvider, UserAccountIdentifie
   }
 
   @Override
-  public Optional<Id<com.robwilliamson.mailfamiliar.model.User>> ownerOf(Id<com.robwilliamson.mailfamiliar.model.Imap> imapAccountId) {
+  public Optional<Id<User>> ownerOf(Id<Imap> imapAccountId) {
     Optional<Imap> imapOptional = imapAccountRepository.findById(imapAccountId.getValue());
     if (imapOptional.isEmpty()) {
       return Optional.empty();
@@ -96,6 +74,6 @@ public class ImapAccountService implements AccountProvider, UserAccountIdentifie
 
     return Optional.of(Id.of(
         imapOptional.get().getUserId(),
-        com.robwilliamson.mailfamiliar.model.User.class));
+        User.class));
   }
 }

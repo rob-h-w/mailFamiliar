@@ -1,7 +1,7 @@
 package com.robwilliamson.mailfamiliar.service;
 
+import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.DuplicateAccountCreatedException;
-import com.robwilliamson.mailfamiliar.model.*;
 import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,8 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Stream;
-
-import static com.robwilliamson.mailfamiliar.CopyProperties.copy;
 
 @Service
 public class ImapSyncService {
@@ -33,12 +31,12 @@ public class ImapSyncService {
     taskExecutor.execute(this::initialize);
   }
 
-  public void onNewAccount(Imap account) {
-    addAccount(account);
+  public void onNewAccount(Imap imapAccount) {
+    addAccount(imapAccount);
   }
 
-  public synchronized void onAccountRemoved(Imap account) {
-    synchronizers.remove(account.getId());
+  public synchronized void onAccountRemoved(Imap imapAccount) {
+    synchronizers.remove(imapAccount.getId());
   }
 
   private void initialize() {
@@ -57,7 +55,6 @@ public class ImapSyncService {
 
   public Stream<Mailbox> mailboxenFor(int imapAccountId) {
     return mailboxRepository.findByImapAccountId(imapAccountId)
-        .stream()
-        .map(entity -> copy(entity, new Mailbox()));
+        .stream();
   }
 }

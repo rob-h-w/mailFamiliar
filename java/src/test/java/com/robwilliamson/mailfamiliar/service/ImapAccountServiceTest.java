@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 @FlywayTest
 @TestExecutionListeners({DependencyInjectionTestExecutionListener.class,
     FlywayTestExecutionListener.class})
-class ImapAccountAccountServiceTest {
+class ImapAccountServiceTest {
   @Autowired
   ImapAccountService subject;
 
@@ -77,7 +77,7 @@ class ImapAccountAccountServiceTest {
     var account = accounts.get(0);
     assertEquals("rob", account.getName());
     assertEquals("rob.com", account.getHost());
-    assertEquals(1, account.getUser().getId());
+    assertEquals(1, account.getUserId());
   }
 
   @Test
