@@ -4,13 +4,15 @@ import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.DuplicateAccountCreatedException;
 import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
 import com.robwilliamson.mailfamiliar.service.imap.*;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.stream.Stream;
 
+@RequiredArgsConstructor
 @Service
 public class ImapSyncService {
   final Map<Integer, Synchronizer> synchronizers = new HashMap<>();
@@ -19,16 +21,9 @@ public class ImapSyncService {
   private final SynchronizerFactory synchronizerFactory;
   private final TaskExecutor taskExecutor;
 
-  public ImapSyncService(
-      AccountProvider accountProvider,
-      MailboxRepository mailboxRepository,
-      SynchronizerFactory synchronizerFactory,
-      @Qualifier("taskExecutor") TaskExecutor taskExecutor) {
-    this.accountProvider = accountProvider;
-    this.mailboxRepository = mailboxRepository;
-    this.synchronizerFactory = synchronizerFactory;
-    this.taskExecutor = taskExecutor;
-    taskExecutor.execute(this::initialize);
+  @PostConstruct
+  public void initialize() {
+    taskExecutor.execute(() -> accountProvider.getAccounts().forEach(this::addAccount));
   }
 
   public void onNewAccount(Imap imapAccount) {
@@ -36,11 +31,12 @@ public class ImapSyncService {
   }
 
   public synchronized void onAccountRemoved(Imap imapAccount) {
-    synchronizers.remove(imapAccount.getId());
-  }
+    final Synchronizer toRemove = synchronizers.remove(imapAccount.getId());
+    if (toRemove == null) {
+      return;
+    }
 
-  private void initialize() {
-    accountProvider.getAccounts().forEach(this::addAccount);
+    toRemove.close();
   }
 
   private synchronized void addAccount(Imap imapAccount) {
@@ -48,7 +44,10 @@ public class ImapSyncService {
     if (synchronizers.containsKey(id)) {
       throw new DuplicateAccountCreatedException(id);
     }
-    final Synchronizer synchronizer = synchronizerFactory.apply(imapAccount);
+    final Synchronizer synchronizer;
+    synchronizer = synchronizerFactory
+        .create(
+            imapAccount);
     taskExecutor.execute(synchronizer);
     synchronizers.put(id, synchronizer);
   }

@@ -1,8 +1,11 @@
 package com.robwilliamson.mailfamiliar.service;
 
 import com.nimbusds.jose.util.Base64;
-import com.robwilliamson.mailfamiliar.entity.Encrypted;
+import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.entropy.RandomSource;
+import com.robwilliamson.mailfamiliar.exceptions.*;
+import com.robwilliamson.mailfamiliar.model.Id;
+import com.robwilliamson.mailfamiliar.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -11,6 +14,7 @@ import javax.crypto.*;
 import javax.crypto.spec.*;
 import java.security.*;
 import java.security.spec.*;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Service
@@ -20,8 +24,10 @@ public class CryptoService {
   public static final int ITERATION_COUNT = Short.MAX_VALUE * 2;
   private static final String PEPPER = "4w9508yhwknwj54hg. w54kg9ae az.ku 54etihu45t4i3t34uhlizsd" +
       ".'rsa][8t976tf'[09}POI`frm.SEn<";
+  private final EncryptedRepository encryptedRepository;
   private final Environment environment;
   private final RandomSource randomSource;
+  private final UserRepository userRepository;
   private SecretKeyFactory factory;
   private SecretKey masterSecret;
 
@@ -77,6 +83,19 @@ public class CryptoService {
 
   private char[] decryptKey(Encrypted encryptedKey) {
     return Base64.encode(decrypt(masterSecret(), encryptedKey)).toString().toCharArray();
+  }
+
+  public String decrypt(Id<User> userId, int encryptedObjectId) throws MissingSecretException, MissingUserException {
+    final User user =
+        userRepository.findById(userId.getValue()).orElseThrow(MissingUserException::new);
+    final Optional<Encrypted> userSecret = encryptedRepository.findById(user.getSecret());
+    final Optional<Encrypted> encryptedObject = encryptedRepository.findById(encryptedObjectId);
+
+    if (userSecret.isEmpty() || encryptedObject.isEmpty()) {
+      throw new MissingSecretException();
+    }
+
+    return Arrays.toString(decrypt(decryptKey(userSecret.get()), encryptedObject.get()));
   }
 
   public byte[] decrypt(Encrypted encryptedKey, Encrypted encrypted) {

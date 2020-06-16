@@ -20,7 +20,6 @@ public class ImapAccountService implements AccountProvider, UserAccountIdentifie
   private final CryptoService cryptoService;
   private final EncryptedRepository encryptedRepository;
   private final ImapAccountRepository imapAccountRepository;
-  private final UserRepository userRepository;
 
   public Collection<Imap> getAccountsFor(
       User user) {

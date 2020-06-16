@@ -66,6 +66,7 @@ class ImapSyncServiceTest {
         mailboxRepository,
         synchronizerFactory,
         taskExecutor);
+    subject.initialize();
     Wait.until(() -> !subject.synchronizers.isEmpty());
   }
 

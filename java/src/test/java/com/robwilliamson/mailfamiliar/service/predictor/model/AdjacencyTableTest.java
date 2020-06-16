@@ -105,6 +105,7 @@ class AdjacencyTableTest {
         @Test
         void probabilityOf_isCorrect() {
           assertEquals(0.75, subject.probabilityOf("a"), DELTA);
+          assert (subject.probabilityOf("abcöd") > 0.9);
         }
 
         @Test
