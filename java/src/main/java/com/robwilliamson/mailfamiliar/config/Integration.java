@@ -21,9 +21,15 @@ public class Integration {
     return new PublishSubscribeChannel();
   }
 
+  @Bean(name = Constants.IMAP_EVENT)
+  SubscribableChannel imapEventChannel() {
+    return new PublishSubscribeChannel();
+  }
+
   public enum Channels {
     NEW_IMAP_ACCOUNT(Constants.NEW_IMAP_ACCOUNT),
-    IMAP_ACCOUNT_REMOVED(Constants.IMAP_ACCOUNT_REMOVED);
+    IMAP_ACCOUNT_REMOVED(Constants.IMAP_ACCOUNT_REMOVED),
+    IMAP_EVENT(Constants.IMAP_EVENT);
     public final String value;
 
     Channels(String channel) {
@@ -33,6 +39,7 @@ public class Integration {
     public static class Constants {
       public static final String NEW_IMAP_ACCOUNT = "newImapAccount";
       public static final String IMAP_ACCOUNT_REMOVED = "imapAccountRemoved";
+      public static final String IMAP_EVENT = "imapEvent";
     }
   }
 }

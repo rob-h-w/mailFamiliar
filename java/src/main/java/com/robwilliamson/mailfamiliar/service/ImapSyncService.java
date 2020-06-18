@@ -5,6 +5,7 @@ import com.robwilliamson.mailfamiliar.exceptions.DuplicateAccountCreatedExceptio
 import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Lookup;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
@@ -14,11 +15,10 @@ import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 @Service
-public class ImapSyncService {
+public abstract class ImapSyncService {
   final Map<Integer, Synchronizer> synchronizers = new HashMap<>();
   private final AccountProvider accountProvider;
   private final MailboxRepository mailboxRepository;
-  private final SynchronizerFactory synchronizerFactory;
   private final TaskExecutor taskExecutor;
 
   @PostConstruct
@@ -31,13 +31,11 @@ public class ImapSyncService {
   }
 
   public synchronized void onAccountRemoved(Imap imapAccount) {
-    final Synchronizer toRemove = synchronizers.remove(imapAccount.getId());
-    if (toRemove == null) {
-      return;
-    }
-
-    toRemove.close();
+    synchronizers.remove(imapAccount.getId());
   }
+
+  @Lookup
+  public abstract Synchronizer getSynchronizer(Imap imap);
 
   private synchronized void addAccount(Imap imapAccount) {
     final int id = imapAccount.getId();
@@ -45,9 +43,7 @@ public class ImapSyncService {
       throw new DuplicateAccountCreatedException(id);
     }
     final Synchronizer synchronizer;
-    synchronizer = synchronizerFactory
-        .create(
-            imapAccount);
+    synchronizer = getSynchronizer(imapAccount);
     taskExecutor.execute(synchronizer);
     synchronizers.put(id, synchronizer);
   }

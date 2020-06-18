@@ -1,47 +1,22 @@
 package com.robwilliamson.mailfamiliar.config;
 
+import com.robwilliamson.mailfamiliar.entity.Imap;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
-import com.robwilliamson.mailfamiliar.service.imap.*;
+import com.robwilliamson.mailfamiliar.service.imap.Synchronizer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.*;
-import org.springframework.integration.mail.ImapMailReceiver;
-
-import javax.mail.*;
-import java.util.Properties;
+import org.springframework.messaging.MessageChannel;
 
 @Configuration
 @RequiredArgsConstructor
 public class ImapSync {
+  private final CryptoService cryptoService;
+  private final MessageChannel imapEvent;
 
-  @Bean
-  public MailReceiverFactory mailReceiverFactory() {
-    return (imap, password) -> {
-      final Properties properties = new Properties();
-      properties.put("mail.imap.port", imap.getPort());
-      properties.put("mail.imap.host", imap.getHost());
-      properties.put("mail.imap.peek", true);
-      if (imap.isTls()) {
-        properties.put("mail.imap.socketFactory", "javax.net.ssl.SSLSocketFactory");
-      }
-
-      final ImapMailReceiver imapMailReceiver = new ImapMailReceiver();
-      imapMailReceiver.setJavaMailAuthenticator(new Authenticator() {
-        @Override
-        protected PasswordAuthentication getPasswordAuthentication() {
-          return new PasswordAuthentication(imap.getName(), password);
-        }
-      });
-      imapMailReceiver.setJavaMailProperties(properties);
-      imapMailReceiver.setShouldMarkMessagesAsRead(false);
-      imapMailReceiver.setShouldDeleteMessages(false);
-      return imapMailReceiver;
-    };
-  }
-
-  @Bean
-  public SynchronizerFactory synchronizerFactory(
-      CryptoService cryptoService,
-      MailReceiverFactory mailReceiverFactory) {
-    return imap -> new Synchronizer(cryptoService, imap, mailReceiverFactory);
+  @Bean(name = "Synchronizer")
+  @Scope(BeanDefinition.SCOPE_PROTOTYPE)
+  public Synchronizer createSynchronizer(Imap imap) {
+    return new Synchronizer(cryptoService, imap, imapEvent);
   }
 }
