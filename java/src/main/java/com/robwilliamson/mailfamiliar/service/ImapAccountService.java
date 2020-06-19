@@ -2,6 +2,7 @@ package com.robwilliamson.mailfamiliar.service;
 
 import com.robwilliamson.mailfamiliar.config.Integration;
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.imap.*;
@@ -37,14 +38,10 @@ public class ImapAccountService implements AccountProvider, UserAccountIdentifie
   public Imap saveAccount(
       User user,
       Imap imap,
-      String imapPassword) {
+      String imapPassword) throws MissingSecretException, MissingUserException {
     imap.setUserId(user.getId());
-    //noinspection OptionalGetWithoutIsPresent
-    final Encrypted userSecret = encryptedRepository.findById(user.getSecret()).get();
     final Encrypted imapSecret = encryptedRepository.save(
-        cryptoService.encrypt(
-            userSecret,
-            imapPassword.getBytes()));
+        cryptoService.encrypt(Id.of(user.getId(), User.class), imapPassword));
     imap.setPassword(imapSecret.getId());
     imapAccountRepository.save(imap);
     return imap;

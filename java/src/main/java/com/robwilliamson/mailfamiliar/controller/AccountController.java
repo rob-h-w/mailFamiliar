@@ -2,6 +2,7 @@ package com.robwilliamson.mailfamiliar.controller;
 
 import com.robwilliamson.mailfamiliar.authorization.AuthorizedUser;
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.*;
 import com.robwilliamson.mailfamiliar.service.ImapAccountService;
 import com.robwilliamson.mailfamiliar.service.imap.UserAccountIdentifier;
@@ -62,7 +63,7 @@ public class AccountController {
   public ModelAndView saveImap(
       @AuthenticationPrincipal AuthorizedUser principal,
       @ModelAttribute @Valid ImapAccountDto imapAccount,
-      ModelMap modelMap) {
+      ModelMap modelMap) throws MissingUserException, MissingSecretException {
     final var user = principal.user();
     imapAccount.setUserDto(UserDto.from(user));
     accountService.saveAccount(user, copy(imapAccount, new Imap()), imapAccount.getPassword());

@@ -12,9 +12,10 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.*;
 import javax.crypto.spec.*;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.*;
-import java.util.*;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -85,17 +86,26 @@ public class CryptoService {
     return Base64.encode(decrypt(masterSecret(), encryptedKey)).toString().toCharArray();
   }
 
-  public String decrypt(Id<User> userId, int encryptedObjectId) throws MissingSecretException, MissingUserException {
-    final User user =
-        userRepository.findById(userId.getValue()).orElseThrow(MissingUserException::new);
-    final Optional<Encrypted> userSecret = encryptedRepository.findById(user.getSecret());
-    final Optional<Encrypted> encryptedObject = encryptedRepository.findById(encryptedObjectId);
+  public String decrypt(Id<User> userId, Id<Encrypted> encryptedObjectId)
+      throws MissingSecretException, MissingUserException {
+    final Encrypted userSecret = getUserSecret(userId);
+    final Optional<Encrypted> encryptedObject = encryptedRepository.findById(
+        encryptedObjectId.getValue());
 
-    if (userSecret.isEmpty() || encryptedObject.isEmpty()) {
+    if (encryptedObject.isEmpty()) {
       throw new MissingSecretException();
     }
 
-    return Arrays.toString(decrypt(decryptKey(userSecret.get()), encryptedObject.get()));
+    return new String(
+        decrypt(decryptKey(userSecret), encryptedObject.get()),
+        StandardCharsets.UTF_8);
+  }
+
+  private Encrypted getUserSecret(Id<User> userId) throws MissingSecretException,
+      MissingUserException {
+    final User user =
+        userRepository.findById(userId.getValue()).orElseThrow(MissingUserException::new);
+    return encryptedRepository.findById(user.getSecret()).orElseThrow(MissingSecretException::new);
   }
 
   public byte[] decrypt(Encrypted encryptedKey, Encrypted encrypted) {
@@ -117,6 +127,12 @@ public class CryptoService {
         | BadPaddingException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public Encrypted encrypt(Id<User> userId, String string) throws MissingUserException,
+      MissingSecretException {
+    final Encrypted userSecret = getUserSecret(userId);
+    return encrypt(userSecret, string.getBytes(StandardCharsets.UTF_8));
   }
 
   public Encrypted encrypt(Encrypted encryptedKey, byte[] value) {
