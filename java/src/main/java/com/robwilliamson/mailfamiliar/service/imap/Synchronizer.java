@@ -4,25 +4,36 @@ import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
+import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j;
 import org.springframework.messaging.MessageChannel;
 
 import javax.annotation.PostConstruct;
 import javax.mail.*;
+import javax.mail.event.*;
 import java.util.*;
+import java.util.concurrent.locks.*;
 import java.util.stream.Stream;
 
 import static javax.mail.Folder.*;
 
+@Log4j
 @RequiredArgsConstructor
-public class Synchronizer implements Runnable {
+public class Synchronizer implements
+    AutoCloseable,
+    FolderListener,
+    Runnable, StoreListener {
   private final CryptoService cryptoService;
   private final Imap imap;
   private final MessageChannel imapEventChannel;
+  private final Lock lock = new ReentrantLock();
+  private final Map<Folder, FolderObserver> folderObervers = new HashMap<>();
   private Id<Imap> imapAccountId;
+  private volatile boolean closing = false;
 
   @PostConstruct
-  private void quack() {
+  void init() {
     imapAccountId = Id.of(imap.getId(), Imap.class);
   }
 
@@ -35,6 +46,10 @@ public class Synchronizer implements Runnable {
           Id.of(imap.getUserId(), User.class),
           Id.of(imap.getPassword(), Encrypted.class));
     } catch (MissingSecretException | MissingUserException e) {
+      imapEventChannel.send(new SynchronizerException(
+          imapAccountId,
+          SynchronizerException.Reason.ProgrammerError,
+          Optional.of(e)));
       throw new RuntimeException(e);
     }
 
@@ -56,25 +71,125 @@ public class Synchronizer implements Runnable {
 
     try (Store store = session.getStore("imap")) {
       store.connect();
+      store.addFolderListener(this);
+      store.addStoreListener(this);
       final Folder defaultFolder = store.getDefaultFolder();
-      imapEventChannel.send(new DefaultFolderOpenedEvent(defaultFolder, imapAccountId));
+      defaultFolder.addFolderListener(this);
+      imapEventChannel.send(new DefaultFolderAvailable(defaultFolder, imapAccountId));
       sync(defaultFolder);
     } catch (MessagingException e) {
-      throw new RuntimeException(e);
+      imapEventChannel.send(new SynchronizerException(imapAccountId, e));
+    } catch (InterruptedException e) {
+      imapEventChannel.send(new SynchronizerException(imapAccountId));
     }
   }
 
-  private void sync(Folder folder) throws MessagingException {
-    for (Folder f : List.of(folder.list())) {
+  private void add(Folder folder) {
+    lock.lock();
+    try {
+      if (closing) {
+        return;
+      }
+
+      folder.open(READ_WRITE);
+      folderObervers.put(
+          folder,
+          new FolderObserver(folder, imapEventChannel, imapAccountId));
+    } catch (MessagingException e) {
+      imapEventChannel.send(new SynchronizerException(imapAccountId,
+          SynchronizerException.Reason.OpenFailed, Optional.of(e)));
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void sync(Folder folder) throws MessagingException, InterruptedException {
+    if (closing) {
+      throw new InterruptedException();
+    }
+
+    for (Folder f : folder.list()) {
       sync(f);
     }
 
     if ((folder.getType() & HOLDS_MESSAGES) != 0) {
-      folder.open(READ_WRITE);
+      add(folder);
       Stream.of(folder.getMessages())
-          .forEach(message -> imapEventChannel.send(new ImapMessageEvent(
+          .forEach(message -> imapEventChannel.send(new ImapMessage(
               imapAccountId,
               message)));
     }
+  }
+
+  @Override
+  public void close() {
+    closing = true;
+    lock.lock();
+    final var folders = new ArrayList<>(folderObervers.keySet());
+    try {
+      for (Folder folder : folders) {
+        remove(folder);
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  @Override
+  public void folderCreated(FolderEvent e) {
+    lock.lock();
+    try {
+      if (closing) {
+        return;
+      }
+      add(e.getNewFolder());
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  @Override
+  public void folderDeleted(FolderEvent e) {
+    if (closing) {
+      return;
+    }
+    lock.lock();
+    try {
+      if (closing) {
+        return;
+      }
+      remove(e.getFolder());
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void remove(Folder folder) {
+    lock.lock();
+    try {
+      if (!folderObervers.containsKey(folder)) {
+        return;
+      }
+
+      final FolderObserver observer = folderObervers.remove(folder);
+      observer.close();
+    } catch (MessagingException e) {
+      imapEventChannel.send(new SynchronizerException(
+          imapAccountId,
+          SynchronizerException.Reason.CloseError,
+          Optional.of(e)));
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  @Override
+  public void folderRenamed(FolderEvent e) {
+
+  }
+
+  @Override
+  public void notification(StoreEvent e) {
+
   }
 }
