@@ -54,11 +54,13 @@ public class Synchronizer implements
     }
 
     final Properties properties = new Properties();
-    final String protocol = imap.isTls() ? "imaps" : "imap";
-    properties.put("mail." + protocol + ".user", imap.getName());
-    properties.put("mail." + protocol + ".port", imap.getPort());
+    properties.put("mail.imap.user", imap.getName());
+    properties.put("mail.imap.port", imap.getPort());
     properties.put("mail.host", imap.getHost());
-    properties.put("mail." + protocol + ".peek", true);
+    properties.put("mail.imap.peek", true);
+    if (imap.isTls()) {
+      properties.put("mail.imap.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+    }
 
     final Session session = Session.getInstance(
         properties,
@@ -94,7 +96,7 @@ public class Synchronizer implements
       folder.open(READ_WRITE);
       folderObervers.put(
           folder,
-          new FolderObserver(folder, imapEventChannel, imapAccountId));
+          new FolderObserver(folder, imapAccountId, imapEventChannel));
     } catch (MessagingException e) {
       imapEventChannel.send(new SynchronizerException(imapAccountId,
           SynchronizerException.Reason.OpenFailed, Optional.of(e)));
@@ -185,11 +187,11 @@ public class Synchronizer implements
 
   @Override
   public void folderRenamed(FolderEvent e) {
-
+    log.info(e);
   }
 
   @Override
   public void notification(StoreEvent e) {
-
+    log.info(e);
   }
 }

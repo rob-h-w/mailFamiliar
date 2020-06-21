@@ -2,25 +2,26 @@ package com.robwilliamson.mailfamiliar.service.imap;
 
 import com.robwilliamson.mailfamiliar.entity.Imap;
 import com.robwilliamson.mailfamiliar.model.Id;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.messaging.MessageChannel;
 
-import javax.annotation.PostConstruct;
 import javax.mail.*;
 import javax.mail.event.*;
 
-@RequiredArgsConstructor
+@Log4j2
 public class FolderObserver implements
     AutoCloseable,
     ConnectionListener,
     MessageChangedListener,
     MessageCountListener {
   private final Folder folder;
-  private final MessageChannel imapEventChannel;
   private final Id<Imap> imapAccountId;
+  private final MessageChannel imapEventChannel;
 
-  @PostConstruct
-  void init() {
+  FolderObserver(Folder folder, Id<Imap> imapAccountId, MessageChannel imapEventChannel) {
+    this.folder = folder;
+    this.imapAccountId = imapAccountId;
+    this.imapEventChannel = imapEventChannel;
     folder.addConnectionListener(this);
     folder.addMessageChangedListener(this);
     folder.addMessageCountListener(this);
@@ -28,12 +29,12 @@ public class FolderObserver implements
 
   @Override
   public void opened(ConnectionEvent e) {
-
+    log.info(e);
   }
 
   @Override
   public void disconnected(ConnectionEvent e) {
-
+    log.info(e);
   }
 
   @Override
