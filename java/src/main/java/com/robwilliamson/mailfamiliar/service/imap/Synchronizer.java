@@ -6,7 +6,7 @@ import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
 import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.messaging.MessageChannel;
 
 import javax.annotation.PostConstruct;
@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 
 import static javax.mail.Folder.*;
 
-@Log4j
+@Log4j2
 @RequiredArgsConstructor
 public class Synchronizer implements
     AutoCloseable,
