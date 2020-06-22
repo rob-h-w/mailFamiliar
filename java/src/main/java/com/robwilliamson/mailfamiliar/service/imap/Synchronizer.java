@@ -3,6 +3,7 @@ package com.robwilliamson.mailfamiliar.service.imap;
 import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
+import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
 import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,8 @@ import java.util.*;
 import java.util.concurrent.locks.*;
 import java.util.stream.Stream;
 
-import static javax.mail.Folder.*;
+import static com.robwilliamson.mailfamiliar.service.imap.FolderMethods.*;
+import static javax.mail.Folder.READ_WRITE;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class Synchronizer implements
     Runnable, StoreListener {
   private final CryptoService cryptoService;
   private final Imap imap;
+  private final MailboxRepository mailboxRepository;
   private final MessageChannel imapEventChannel;
   private final Lock lock = new ReentrantLock();
   private final Map<Folder, FolderObserver> folderObervers = new HashMap<>();
@@ -80,26 +83,38 @@ public class Synchronizer implements
       imapEventChannel.send(new DefaultFolderAvailable(defaultFolder, imapAccountId));
       sync(defaultFolder);
     } catch (MessagingException e) {
-      imapEventChannel.send(new SynchronizerException(imapAccountId, e));
+      imapEventChannel.send(SynchronizerException
+          .builder(imapAccountId)
+          .throwable(e)
+          .build());
     } catch (InterruptedException e) {
-      imapEventChannel.send(new SynchronizerException(imapAccountId));
+      imapEventChannel.send(SynchronizerException
+          .builder(imapAccountId)
+          .closedIntentionally()
+          .build());
     }
   }
 
   private void add(Folder folder) {
     lock.lock();
     try {
-      if (closing) {
+      if (closing || !isStorable(folder)) {
         return;
       }
 
+      final Optional<Mailbox> optionalMailbox = mailboxRepository.findByNameAndImapAccountId(
+          fullyQualifiedName(folder),
+          imapAccountId.getValue());
+      if (optionalMailbox.isEmpty()) {
+        mailboxRepository.save(createMailbox(folder, imapAccountId));
+      }
       folder.open(READ_WRITE);
       folderObervers.put(
           folder,
           new FolderObserver(folder, imapAccountId, imapEventChannel));
     } catch (MessagingException e) {
       imapEventChannel.send(new SynchronizerException(imapAccountId,
-          SynchronizerException.Reason.OpenFailed, Optional.of(e)));
+          SynchronizerException.Reason.OpenError, Optional.of(e)));
     } finally {
       lock.unlock();
     }
@@ -114,7 +129,7 @@ public class Synchronizer implements
       sync(f);
     }
 
-    if ((folder.getType() & HOLDS_MESSAGES) != 0) {
+    if (isStorable(folder)) {
       add(folder);
       Stream.of(folder.getMessages())
           .forEach(message -> imapEventChannel.send(new ImapMessage(
@@ -176,10 +191,11 @@ public class Synchronizer implements
       final FolderObserver observer = folderObervers.remove(folder);
       observer.close();
     } catch (MessagingException e) {
-      imapEventChannel.send(new SynchronizerException(
-          imapAccountId,
-          SynchronizerException.Reason.CloseError,
-          Optional.of(e)));
+      imapEventChannel.send(SynchronizerException
+          .builder(imapAccountId)
+          .reason(SynchronizerException.Reason.CloseError)
+          .throwable(e)
+          .build());
     } finally {
       lock.unlock();
     }
@@ -188,6 +204,23 @@ public class Synchronizer implements
   @Override
   public void folderRenamed(FolderEvent e) {
     log.info(e);
+    try {
+      if (!isStorable(e.getFolder())) {
+        return;
+      }
+
+      final var optionalMailbox = mailboxRepository.findByNameAndImapAccountId(
+          fullyQualifiedName(e.getFolder()),
+          imapAccountId.getValue());
+      final var mailbox = optionalMailbox.orElse(createMailbox(e.getNewFolder(), imapAccountId));
+      mailbox.setName(fullyQualifiedName(e.getNewFolder()));
+      mailboxRepository.save(mailbox);
+    } catch (MessagingException messagingException) {
+      imapEventChannel.send(SynchronizerException
+          .builder(imapAccountId)
+          .throwable(messagingException)
+          .build());
+    }
   }
 
   @Override

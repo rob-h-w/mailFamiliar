@@ -9,6 +9,7 @@ import javax.validation.constraints.NotBlank;
 @Entity
 @Table(name = "mailbox")
 public class Mailbox {
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Id
   private int id;
   private int imapAccountId;

@@ -13,12 +13,8 @@ public class SynchronizerException extends ImapEvent<SynchronizerException.Reaso
   private final Reason reason;
   private final Optional<Throwable> throwable;
 
-  public SynchronizerException(Id<Imap> imapAccountId) {
-    this(imapAccountId, Reason.ClosedIntentionally, Optional.empty());
-  }
-
-  public SynchronizerException(Id<Imap> imapAccountId, Throwable throwable) {
-    this(imapAccountId, Reason.ClosedUnexpectedly, Optional.of(throwable));
+  public static Builder builder(Id<Imap> imapAccountId) {
+    return new Builder(imapAccountId);
   }
 
   @Override
@@ -30,8 +26,37 @@ public class SynchronizerException extends ImapEvent<SynchronizerException.Reaso
     ClosedIntentionally,
     ClosedUnexpectedly,
     CloseError,
-    OpenFailed,
+    Error,
+    OpenError,
     ProgrammerError
+  }
+
+  public static class Builder {
+    private final Id<Imap> imapAccountId;
+    private Reason reason = Reason.Error;
+    private Throwable throwable;
+
+    private Builder(Id<Imap> imapAccountId) {
+      this.imapAccountId = imapAccountId;
+    }
+
+    public Builder closedIntentionally() {
+      return reason(Reason.ClosedIntentionally);
+    }
+
+    public Builder throwable(Throwable throwable) {
+      this.throwable = throwable;
+      return this;
+    }
+
+    public SynchronizerException build() {
+      return new SynchronizerException(imapAccountId, reason, Optional.ofNullable(throwable));
+    }
+
+    public Builder reason(Reason reason) {
+      this.reason = reason;
+      return this;
+    }
   }
 }
 

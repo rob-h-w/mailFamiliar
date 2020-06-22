@@ -70,6 +70,7 @@ class ImapSyncServiceTest {
         return new Synchronizer(
             mock(CryptoService.class),
             imap,
+            mailboxRepository,
             imapEventChannel);
       }
     };
