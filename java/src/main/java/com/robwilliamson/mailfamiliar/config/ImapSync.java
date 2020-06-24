@@ -5,6 +5,7 @@ import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.*;
 import org.springframework.messaging.MessageChannel;
@@ -20,7 +21,7 @@ public class ImapSync {
 
   @Bean(name = "Synchronizer")
   @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-  public Synchronizer createSynchronizer(Imap imap, StoreFactory storeFactory) {
+  public Synchronizer createSynchronizer(Imap imap, @Autowired StoreFactory storeFactory) {
     return new Synchronizer(cryptoService, imap, mailboxRepository, imapEvent, storeFactory);
   }
 

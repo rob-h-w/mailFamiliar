@@ -14,6 +14,7 @@ import javax.annotation.PostConstruct;
 import javax.mail.*;
 import javax.mail.event.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.*;
 import java.util.stream.Stream;
 
@@ -32,6 +33,7 @@ public class Synchronizer implements
   private final MessageChannel imapEventChannel;
   private final StoreFactory storeFactory;
   private final Lock lock = new ReentrantLock();
+  private final Condition closed = lock.newCondition();
   private final Map<Folder, FolderObserver> folderObervers = new HashMap<>();
   private Id<Imap> imapAccountId;
   private volatile boolean closing = false;
@@ -80,17 +82,34 @@ public class Synchronizer implements
       final Folder defaultFolder = store.getDefaultFolder();
       defaultFolder.addFolderListener(this);
       imapEventChannel.send(new DefaultFolderAvailable(defaultFolder, imapAccountId));
-      sync(defaultFolder);
+      while (!closing) {
+        sync(defaultFolder);
+        lock.lock();
+        try {
+          closed.await(imap.getRefreshPeriodMinutes(), TimeUnit.MINUTES);
+        } finally {
+          lock.unlock();
+        }
+      }
     } catch (MessagingException e) {
       imapEventChannel.send(SynchronizerException
           .builder(imapAccountId)
           .throwable(e)
+          .reason(SynchronizerException.Reason.ClosedUnexpectedly)
           .build());
     } catch (InterruptedException e) {
-      imapEventChannel.send(SynchronizerException
-          .builder(imapAccountId)
-          .closedIntentionally()
-          .build());
+      if (closing) {
+        imapEventChannel.send(SynchronizerException
+            .builder(imapAccountId)
+            .throwable(e)
+            .reason(SynchronizerException.Reason.ClosedUnexpectedly)
+            .build());
+      } else {
+        imapEventChannel.send(SynchronizerException
+            .builder(imapAccountId)
+            .closedIntentionally()
+            .build());
+      }
     }
   }
 
@@ -144,8 +163,25 @@ public class Synchronizer implements
     final var folders = new ArrayList<>(folderObervers.keySet());
     try {
       for (Folder folder : folders) {
-        remove(folder);
+        close(folder);
       }
+      closed.signal();
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void close(Folder folder) {
+    lock.lock();
+    try {
+      final FolderObserver observer = folderObervers.remove(folder);
+      observer.close();
+    } catch (MessagingException e) {
+      imapEventChannel.send(SynchronizerException
+          .builder(imapAccountId)
+          .reason(SynchronizerException.Reason.CloseError)
+          .throwable(e)
+          .build());
     } finally {
       lock.unlock();
     }
@@ -190,12 +226,10 @@ public class Synchronizer implements
       mailboxRepository.findByNameAndImapAccountId(
           fullyQualifiedName(folder),
           imapAccountId.getValue()).ifPresent(mailboxRepository::delete);
-      final FolderObserver observer = folderObervers.remove(folder);
-      observer.close();
+      close(folder);
     } catch (MessagingException e) {
       imapEventChannel.send(SynchronizerException
           .builder(imapAccountId)
-          .reason(SynchronizerException.Reason.CloseError)
           .throwable(e)
           .build());
     } finally {
@@ -227,6 +261,6 @@ public class Synchronizer implements
 
   @Override
   public void notification(StoreEvent e) {
-    log.info(e);
+    log.info(e.getMessage());
   }
 }

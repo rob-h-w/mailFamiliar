@@ -9,9 +9,10 @@ import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.*;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
@@ -20,6 +21,7 @@ import javax.mail.*;
 import javax.mail.event.FolderEvent;
 
 import static com.robwilliamson.test.Data.*;
+import static com.robwilliamson.test.Wait.until;
 import static javax.mail.Folder.*;
 import static javax.mail.event.FolderEvent.CREATED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,6 +50,9 @@ class SynchronizerTest {
   Folder inbox;
   @Mock
   Store store;
+  @Qualifier("taskExecutor")
+  @Autowired
+  TaskExecutor taskExecutor;
   @Autowired
   private EncryptedRepository encryptedRepository;
   @Autowired
@@ -95,9 +100,16 @@ class SynchronizerTest {
 
   @Nested
   class Run {
+
     @BeforeEach
-    void setUp() {
-      subject.run();
+    void setUp() throws InterruptedException {
+      taskExecutor.execute(subject);
+      until(() -> mailboxRepository.count() > 0);
+    }
+
+    @AfterEach
+    void tearDown() {
+      subject.close();
     }
 
     @Test
