@@ -39,17 +39,16 @@ class ImapSyncServiceTest {
 
   @Autowired
   MailboxRepository mailboxRepository;
+  @Autowired
+  ThreadPoolTaskExecutor taskExecutor;
 
   Imap account1;
   Imap account2;
   Imap account3;
-  ThreadPoolTaskExecutor taskExecutor;
 
   @BeforeEach
   @FlywayTest
   void setUp() throws InterruptedException {
-    taskExecutor = new ThreadPoolTaskExecutor();
-    taskExecutor.initialize();
     account1 = new Imap();
     account1.setId(1);
 
@@ -71,7 +70,8 @@ class ImapSyncServiceTest {
             mock(CryptoService.class),
             imap,
             mailboxRepository,
-            imapEventChannel);
+            imapEventChannel,
+            mock(StoreFactory.class));
       }
     };
     subject.initialize();

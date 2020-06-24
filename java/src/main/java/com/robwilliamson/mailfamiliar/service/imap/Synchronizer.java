@@ -30,6 +30,7 @@ public class Synchronizer implements
   private final Imap imap;
   private final MailboxRepository mailboxRepository;
   private final MessageChannel imapEventChannel;
+  private final StoreFactory storeFactory;
   private final Lock lock = new ReentrantLock();
   private final Map<Folder, FolderObserver> folderObervers = new HashMap<>();
   private Id<Imap> imapAccountId;
@@ -65,16 +66,14 @@ public class Synchronizer implements
       properties.put("mail.imap.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
     }
 
-    final Session session = Session.getInstance(
+    try (Store store = storeFactory.getInstance(
         properties,
         new Authenticator() {
           @Override
           protected PasswordAuthentication getPasswordAuthentication() {
             return new PasswordAuthentication(imap.getName(), password);
           }
-        });
-
-    try (Store store = session.getStore("imap")) {
+        })) {
       store.connect();
       store.addFolderListener(this);
       store.addStoreListener(this);
@@ -188,6 +187,9 @@ public class Synchronizer implements
         return;
       }
 
+      mailboxRepository.findByNameAndImapAccountId(
+          fullyQualifiedName(folder),
+          imapAccountId.getValue()).ifPresent(mailboxRepository::delete);
       final FolderObserver observer = folderObervers.remove(folder);
       observer.close();
     } catch (MessagingException e) {

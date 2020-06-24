@@ -1,7 +1,10 @@
 package com.robwilliamson.test;
 
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.exceptions.*;
+import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
+import com.robwilliamson.mailfamiliar.service.CryptoService;
 
 import java.util.Random;
 
@@ -69,5 +72,30 @@ public class Data {
     }
 
     return str.toString();
+  }
+
+  public static User fakeUser(
+      CryptoService cryptoService,
+      EncryptedRepository encryptedRepository,
+      UserRepository userRepository) {
+    var secret = cryptoService.createEncryptedKey();
+    secret = encryptedRepository.save(secret);
+    var user = User.builder()
+        .name("Rob")
+        .remoteId("Rob's auth ID")
+        .secret(secret.getId())
+        .build();
+    return userRepository.save(user);
+  }
+
+  public static Encrypted fakeUserSecret(
+      User user,
+      CryptoService cryptoService,
+      EncryptedRepository encryptedRepository) throws MissingSecretException, MissingUserException {
+    var secret = cryptoService.encrypt(Id.of(
+        user.getId(),
+        User.class),
+        base62(new Random(), 12));
+    return encryptedRepository.save(secret);
   }
 }

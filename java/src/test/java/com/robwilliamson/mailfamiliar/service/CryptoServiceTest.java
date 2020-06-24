@@ -5,18 +5,25 @@ import com.robwilliamson.mailfamiliar.entropy.RandomSource;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
+import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.*;
+import org.springframework.test.context.TestExecutionListeners;
+import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
+import static com.robwilliamson.test.Data.fakeUser;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 @FlywayTest
 @SpringBootTest
+@TestExecutionListeners({DependencyInjectionTestExecutionListener.class,
+    MockitoTestExecutionListener.class,
+    FlywayTestExecutionListener.class})
 @Tag("Unit")
 public class CryptoServiceTest {
   private static final String PLAINTEXT = "plaintext";
@@ -62,19 +69,11 @@ public class CryptoServiceTest {
 
   @Nested
   class StringEncryption {
-    private Encrypted secret;
     private User user;
 
     @BeforeEach
     void setUp() {
-      secret = cryptoService.createEncryptedKey();
-      secret = encryptedRepository.save(secret);
-      user = User.builder()
-          .name("Rob")
-          .remoteId("Rob's auth ID")
-          .secret(secret.getId())
-          .build();
-      user = userRepository.save(user);
+      user = fakeUser(cryptoService, encryptedRepository, userRepository);
     }
 
     @Test

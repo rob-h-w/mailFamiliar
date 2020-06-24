@@ -21,9 +21,9 @@ import static com.robwilliamson.test.Data.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
 @FlywayTestExtension
 @FlywayTest
+@SpringBootTest
 @TestExecutionListeners({DependencyInjectionTestExecutionListener.class,
     FlywayTestExecutionListener.class})
 class ImapAccountServiceTest {
