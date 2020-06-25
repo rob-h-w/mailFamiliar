@@ -112,7 +112,7 @@ describe('folder selection', () => {
 
   after(cleanup);
 
-  PredictorTypeValues.alternatives.forEach(predictorType =>
+  for (const predictorType of PredictorTypeValues.alternatives) {
     describe(`with predictor ${predictorType.value}`, () => {
       beforeEach(async () => {
         await useFixture();
@@ -226,8 +226,8 @@ describe('folder selection', () => {
           });
         });
       });
-    })
-  );
+    });
+  }
 
   describe('when mail is moved', () => {
     let SORTED;
