@@ -2,7 +2,7 @@ package com.robwilliamson.mailfamiliar.service;
 
 import com.robwilliamson.mailfamiliar.entity.Imap;
 import com.robwilliamson.mailfamiliar.exceptions.DuplicateAccountCreatedException;
-import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
+import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import com.robwilliamson.test.Wait;
 import org.flywaydb.test.FlywayTestExecutionListener;
@@ -38,7 +38,13 @@ class ImapSyncServiceTest {
   MessageChannel imapEventChannel;
 
   @Autowired
+  HeaderNameRepository headerNameRepository;
+  @Autowired
+  HeaderRepository headerRepository;
+  @Autowired
   MailboxRepository mailboxRepository;
+  @Autowired
+  MessageRepository messageRepository;
   @Autowired
   ThreadPoolTaskExecutor taskExecutor;
 
@@ -68,10 +74,14 @@ class ImapSyncServiceTest {
       public Synchronizer getSynchronizer(Imap imap) {
         return new Synchronizer(
             mock(CryptoService.class),
+            headerNameRepository,
+            headerRepository,
             imap,
-            mailboxRepository,
             imapEventChannel,
-            mock(StoreFactory.class));
+            mailboxRepository,
+            messageRepository,
+            mock(StoreFactory.class),
+            mock(SyncRepository.class));
       }
     };
     subject.initialize();

@@ -1,5 +1,6 @@
 package com.robwilliamson.mailfamiliar.service.imap;
 
+import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.User;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.repository.*;
@@ -39,6 +40,8 @@ class SynchronizerTest {
   @Autowired
   CryptoService cryptoService;
   @Autowired
+  ImapSync imapSync;
+  @Autowired
   MailboxRepository mailboxRepository;
   @MockBean(name = "imapEvent")
   MessageChannel imapEventChannel;
@@ -64,7 +67,6 @@ class SynchronizerTest {
     when(folder.getMessages()).thenReturn(new Message[0]);
     when(folder.getName()).thenReturn(name);
     when(folder.getParent()).thenReturn(defaultFolder);
-
   }
 
   @BeforeEach
@@ -82,12 +84,7 @@ class SynchronizerTest {
     when(defaultFolder.getName()).thenReturn("");
     when(store.getDefaultFolder()).thenReturn(defaultFolder);
     doReturn(store).when(storeFactory).getInstance(any(), any());
-    subject = new Synchronizer(
-        cryptoService,
-        imap,
-        mailboxRepository,
-        imapEventChannel,
-        storeFactory);
+    subject = imapSync.createSynchronizer(imap);
     subject.init();
     assertEquals(0, mailboxRepository.count());
   }

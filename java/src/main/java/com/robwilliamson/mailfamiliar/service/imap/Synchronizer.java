@@ -1,9 +1,10 @@
 package com.robwilliamson.mailfamiliar.service.imap;
 
+import com.robwilliamson.mailfamiliar.entity.Message;
 import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
-import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
+import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
 import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
@@ -13,10 +14,10 @@ import org.springframework.messaging.MessageChannel;
 import javax.annotation.PostConstruct;
 import javax.mail.*;
 import javax.mail.event.*;
+import javax.transaction.Transactional;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.*;
-import java.util.stream.Stream;
 
 import static com.robwilliamson.mailfamiliar.service.imap.FolderMethods.*;
 import static javax.mail.Folder.READ_WRITE;
@@ -27,11 +28,16 @@ public class Synchronizer implements
     AutoCloseable,
     FolderListener,
     Runnable, StoreListener {
+  private static final long MILLIS_IN_DAY = 1000 * 60 * 60 * 24;
   private final CryptoService cryptoService;
+  private final HeaderNameRepository headerNameRepository;
+  private final HeaderRepository headerRepository;
   private final Imap imap;
-  private final MailboxRepository mailboxRepository;
   private final MessageChannel imapEventChannel;
+  private final MailboxRepository mailboxRepository;
+  private final MessageRepository messageRepository;
   private final StoreFactory storeFactory;
+  private final SyncRepository syncRepository;
   private final Lock lock = new ReentrantLock();
   private final Condition closed = lock.newCondition();
   private final Map<Folder, FolderObserver> folderObervers = new HashMap<>();
@@ -91,7 +97,7 @@ public class Synchronizer implements
           lock.unlock();
         }
       }
-    } catch (MessagingException e) {
+    } catch (MessagingException | Message.FromMissingException e) {
       imapEventChannel.send(SynchronizerException
           .builder(imapAccountId)
           .throwable(e)
@@ -113,32 +119,43 @@ public class Synchronizer implements
     }
   }
 
-  private void add(Folder folder) {
+  private Mailbox add(Folder folder) throws MessagingException, InterruptedException {
     lock.lock();
     try {
       if (closing || !isStorable(folder)) {
-        return;
+        throw new InterruptedException();
       }
 
       final Optional<Mailbox> optionalMailbox = mailboxRepository.findByNameAndImapAccountId(
           fullyQualifiedName(folder),
           imapAccountId.getValue());
+      final Mailbox mailbox;
       if (optionalMailbox.isEmpty()) {
-        mailboxRepository.save(createMailbox(folder, imapAccountId));
+        mailbox = mailboxRepository.save(createMailbox(folder, imapAccountId));
+      } else {
+        mailbox = optionalMailbox.get();
       }
       folder.open(READ_WRITE);
       folderObervers.put(
           folder,
-          new FolderObserver(folder, imapAccountId, imapEventChannel));
+          new FolderObserver(
+              folder,
+              headerNameRepository,
+              headerRepository,
+              imapAccountId,
+              imapEventChannel,
+              messageRepository));
+      return mailbox;
     } catch (MessagingException e) {
       imapEventChannel.send(new SynchronizerException(imapAccountId,
           SynchronizerException.Reason.OpenError, Optional.of(e)));
+      throw e;
     } finally {
       lock.unlock();
     }
   }
 
-  private void sync(Folder folder) throws MessagingException, InterruptedException {
+  private void sync(Folder folder) throws MessagingException, InterruptedException, Message.FromMissingException {
     if (closing) {
       throw new InterruptedException();
     }
@@ -148,12 +165,26 @@ public class Synchronizer implements
     }
 
     if (isStorable(folder)) {
-      add(folder);
-      Stream.of(folder.getMessages())
-          .forEach(message -> imapEventChannel.send(new ImapMessage(
-              imapAccountId,
-              message)));
+      syncMessages(folder, add(folder));
     }
+  }
+
+  @Transactional
+  void syncMessages(Folder folder, Mailbox mailbox) throws MessagingException, Message.FromMissingException {
+    final Optional<Sync> syncRecord = syncRepository.findByMailboxId(mailbox.getId());
+    final Date limit;
+    if (syncRecord.isPresent()) {
+      limit = syncRecord.get().lastSynced();
+    } else {
+      limit = new Date(System.currentTimeMillis() - imap.getSyncPeriodDays() * MILLIS_IN_DAY);
+    }
+
+    final Date lastSynced = folderObervers.get(folder).syncMessages(folder, mailbox, limit);
+
+    final Sync updatedRecord = syncRecord.orElse(new Sync());
+    updatedRecord.setLastSynced(lastSynced);
+    updatedRecord.setMailboxId(mailbox.getId());
+    syncRepository.save(updatedRecord);
   }
 
   @Override
@@ -195,6 +226,11 @@ public class Synchronizer implements
         return;
       }
       add(e.getNewFolder());
+    } catch (InterruptedException | MessagingException interruptedException) {
+      imapEventChannel.send(SynchronizerException
+          .builder(imapAccountId)
+          .throwable(interruptedException)
+          .build());
     } finally {
       lock.unlock();
     }

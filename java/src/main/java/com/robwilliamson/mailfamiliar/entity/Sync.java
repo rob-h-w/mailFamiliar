@@ -3,8 +3,9 @@ package com.robwilliamson.mailfamiliar.entity;
 import lombok.Data;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.Date;
+
+import static com.robwilliamson.mailfamiliar.repository.Time.*;
 
 @Data
 @Entity
@@ -16,16 +17,11 @@ public class Sync {
   private int mailboxId;
   private String lastSynced;
 
-  public void setLastSynced(LocalDateTime lastSynced) {
-    this.lastSynced =
-        lastSynced
-            .format(DateTimeFormatter.ISO_DATE_TIME)
-            .toUpperCase()
-            .replace('T', ' ');
+  public void setLastSynced(Date lastSynced) {
+    this.lastSynced = from(lastSynced);
   }
 
-  public LocalDateTime lastSynced() {
-    return LocalDateTime.parse(lastSynced
-        .replace(' ', 'T'));
+  public Date lastSynced() {
+    return parseDate(lastSynced);
   }
 }
