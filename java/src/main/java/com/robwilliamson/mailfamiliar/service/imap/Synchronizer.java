@@ -231,8 +231,11 @@ public class Synchronizer implements
       if (closing) {
         return;
       }
-      add(e.getNewFolder());
-    } catch (InterruptedException | MessagingException interruptedException) {
+      sync(e.getNewFolder());
+    } catch (
+        InterruptedException
+            | MessagingException
+            | Message.FromMissingException interruptedException) {
       imapEventChannel.send(SynchronizerException
           .builder(imapAccountId)
           .throwable(interruptedException)
