@@ -1,6 +1,7 @@
 package com.robwilliamson.mailfamiliar.config;
 
 import org.springframework.context.annotation.*;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.integration.channel.PublishSubscribeChannel;
 import org.springframework.integration.config.*;
 import org.springframework.messaging.SubscribableChannel;
@@ -11,19 +12,21 @@ import static com.robwilliamson.mailfamiliar.config.Integration.Channels.Constan
 @EnableIntegration
 @EnablePublisher
 public class Integration {
+  TaskExecutor taskExecutor;
+
   @Bean(name = Constants.NEW_IMAP_ACCOUNT)
   SubscribableChannel newAccountChannel() {
-    return new PublishSubscribeChannel();
+    return new PublishSubscribeChannel(taskExecutor);
   }
 
   @Bean(name = Constants.IMAP_ACCOUNT_REMOVED)
   SubscribableChannel accountRemovedChannel() {
-    return new PublishSubscribeChannel();
+    return new PublishSubscribeChannel(taskExecutor);
   }
 
   @Bean(name = Constants.IMAP_EVENT)
   SubscribableChannel imapEventChannel() {
-    return new PublishSubscribeChannel();
+    return new PublishSubscribeChannel(taskExecutor);
   }
 
   public enum Channels {
