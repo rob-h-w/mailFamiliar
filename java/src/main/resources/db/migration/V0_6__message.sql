@@ -6,7 +6,6 @@ create table "message"
     received_date text                              not null,
     sent_date     text                              not null,
     constraint message_mailbox_id_FK foreign key (mailbox_id) references mailbox (id)
-        on update cascade on delete cascade
 );
 create index message_from_hash_received_sent_IDX on "message" (from_hash, received_date, sent_date);
 

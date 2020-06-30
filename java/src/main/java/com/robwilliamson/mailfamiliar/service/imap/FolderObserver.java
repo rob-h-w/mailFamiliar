@@ -3,10 +3,12 @@ package com.robwilliamson.mailfamiliar.service.imap;
 import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
-import com.robwilliamson.mailfamiliar.service.imap.events.ImapMessage;
+import com.robwilliamson.mailfamiliar.service.imap.events.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.messaging.MessageChannel;
 
+import javax.annotation.PostConstruct;
 import javax.mail.Header;
 import javax.mail.Message;
 import javax.mail.*;
@@ -15,9 +17,10 @@ import javax.transaction.Transactional;
 import java.util.*;
 import java.util.stream.*;
 
-import static com.robwilliamson.mailfamiliar.repository.Time.from;
+import static javax.mail.event.MessageChangedEvent.ENVELOPE_CHANGED;
 
 @Log4j2
+@RequiredArgsConstructor
 public class FolderObserver implements
     AutoCloseable,
     ConnectionListener,
@@ -26,35 +29,24 @@ public class FolderObserver implements
   private final Folder folder;
   private final HeaderNameRepository headerNameRepository;
   private final HeaderRepository headerRepository;
-  private final Id<Imap> imapAccountId;
   private final MessageChannel imapEventChannel;
+  private final Mailbox mailbox;
   private final MessageRepository messageRepository;
 
   private final Map<String, Integer> headerNameIds = new HashMap<>();
 
-  FolderObserver(Folder folder,
-                 HeaderNameRepository headerNameRepository,
-                 HeaderRepository headerRepository,
-                 Id<Imap> imapAccountId,
-                 MessageChannel imapEventChannel,
-                 MessageRepository messageRepository) {
-    this.folder = folder;
-    this.headerNameRepository = headerNameRepository;
-    this.headerRepository = headerRepository;
-    this.imapAccountId = imapAccountId;
-    this.imapEventChannel = imapEventChannel;
-    this.messageRepository = messageRepository;
+  @PostConstruct
+  void init() {
     folder.addConnectionListener(this);
     folder.addMessageChangedListener(this);
     folder.addMessageCountListener(this);
   }
 
   @Transactional
-  Date syncMessages(Folder folder, Mailbox mailbox, Date limit) throws MessagingException, com.robwilliamson.mailfamiliar.entity.Message.FromMissingException {
+  public Date syncMessages(Folder folder, Date limit) throws MessagingException,
+      com.robwilliamson.mailfamiliar.entity.Message.FromMissingException {
     final int messageCount = folder.getMessageCount();
     Date lastSynced = limit;
-
-    final var imapMessages = new LinkedList<ImapMessage>();
 
     for (int seqNumber = messageCount; seqNumber > 0; seqNumber--) {
       final Message message = folder.getMessage(seqNumber);
@@ -62,71 +54,100 @@ public class FolderObserver implements
       if (receivedDate.before(limit)) {
         break;
       }
-      final var messageIterator = message.getAllHeaders().asIterator();
-      final Map<String, List<String>> headers = StreamSupport.stream(
-          ((Iterable<Header>) () -> messageIterator).spliterator(),
-          false)
-          .collect(Collectors.groupingBy(
-              header -> header.getName().toLowerCase(),
-              Collectors.mapping(Header::getValue, Collectors.toList())));
-      headers.entrySet()
-          .stream()
-          .forEach(entry -> headerNameIds.computeIfAbsent(
-              entry.getKey(),
-              name -> (headerNameRepository.findByName(entry.getKey()).orElseGet(() -> {
-                var headerName = new HeaderName();
-                headerName.setName(entry.getKey());
-                return headerNameRepository.save(headerName);
-              })).getId()));
-      final int fromHash = com.robwilliamson.mailfamiliar.entity.Message.fromHashOf(headers);
-      final Date sentDate = message.getSentDate();
-      final com.robwilliamson.mailfamiliar.entity.Message messageEntity =
-          messageRepository.findByFromHashAndMailboxIdAndReceivedDateAndSentDate(
-              fromHash,
-              mailbox.getId(),
-              from(receivedDate),
-              from(sentDate))
-              .orElseGet(() -> {
-                final var entity =
-                    new com.robwilliamson.mailfamiliar.entity.Message();
-                entity.setFromHash(fromHash);
-                entity.setMailboxId(mailbox.getId());
-                entity.setReceivedDate(receivedDate);
-                entity.setSentDate(sentDate);
-                return messageRepository.save(entity);
-              });
-      headers.entrySet()
-          .stream()
-          .forEach(header -> {
-            final int nameId = headerNameIds.get(header.getKey());
-            header.getValue()
-                .stream()
-                .forEach(value -> headerRepository.findByHeaderNameIdAndMessageId(
-                    nameId,
-                    messageEntity.getId())
-                    .orElseGet(() -> {
-                      final var entity =
-                          new com.robwilliamson.mailfamiliar.entity.Header();
-                      entity.setHeaderNameId(nameId);
-                      entity.setMessageId(messageEntity.getId());
-                      entity.setValue(value);
-                      return headerRepository.save(entity);
-                    }));
-          });
-      imapMessages.add(new ImapMessage(
-          headers,
-          imapAccountId,
-          messageEntity));
+
+      upsertMessage(message);
+
       if (receivedDate.after(lastSynced)) {
         lastSynced = receivedDate;
       }
     }
 
-    imapMessages
-        .stream()
-        .forEach(imapEventChannel::send);
-
     return lastSynced;
+  }
+
+  private void upsertMessageReportThrow(Message message) {
+    try {
+      upsertMessage(message);
+    } catch (
+        MessagingException
+            | com.robwilliamson.mailfamiliar.entity.Message.FromMissingException e) {
+      imapEventChannel.send(SynchronizerException.builder(mailbox.getImapAccountIdObject())
+          .throwable(e)
+          .build());
+    }
+  }
+
+  private void upsertMessage(Message message) throws
+      MessagingException,
+      com.robwilliamson.mailfamiliar.entity.Message.FromMissingException {
+    final var headerIterator = message.getAllHeaders().asIterator();
+    final Map<String, List<String>> headers = StreamSupport.stream(
+        ((Iterable<Header>) () -> headerIterator).spliterator(),
+        false)
+        .collect(Collectors.groupingBy(
+            header -> header.getName().toLowerCase(),
+            Collectors.mapping(Header::getValue, Collectors.toList())));
+    headers.entrySet()
+        .stream()
+        .forEach(entry -> headerNameIds.computeIfAbsent(
+            entry.getKey(),
+            name -> (headerNameRepository.findByName(entry.getKey()).orElseGet(() -> {
+              var headerName = new HeaderName();
+              headerName.setName(entry.getKey());
+              return headerNameRepository.save(headerName);
+            })).getId()));
+    final var newMessageEntity = com.robwilliamson.mailfamiliar.entity.Message
+        .from(message, mailbox.getId());
+    final com.robwilliamson.mailfamiliar.entity.Message messageEntity =
+        messageRepository.findByExample(newMessageEntity)
+            .orElseGet(() -> messageRepository.save(newMessageEntity));
+    headerRepository.deleteAllByMessageId(messageEntity.getId());
+    headers.entrySet()
+        .stream()
+        .forEach(header -> {
+          final int nameId = headerNameIds.get(header.getKey());
+          header.getValue()
+              .stream()
+              .forEach(value -> headerRepository.findByHeaderNameIdAndMessageId(
+                  nameId,
+                  messageEntity.getId())
+                  .orElseGet(() -> {
+                    final var entity =
+                        new com.robwilliamson.mailfamiliar.entity.Header();
+                    entity.setHeaderNameId(nameId);
+                    entity.setMessageId(messageEntity.getId());
+                    entity.setValue(value);
+                    return headerRepository.save(entity);
+                  }));
+        });
+    imapEventChannel.send(new ImapMessage(
+        headers,
+        Id.of(mailbox.getImapAccountId(), Imap.class),
+        messageEntity));
+  }
+
+  private void removeMessageReportThrow(Message message) {
+    try {
+      removeMessage(message);
+    } catch (
+        MessagingException
+            | com.robwilliamson.mailfamiliar.entity.Message.FromMissingException e) {
+      imapEventChannel.send(SynchronizerException.builder(mailbox.getImapAccountIdObject())
+          .throwable(e)
+          .build());
+    }
+  }
+
+  private void removeMessage(Message message) throws
+      MessagingException,
+      com.robwilliamson.mailfamiliar.entity.Message.FromMissingException {
+    messageRepository.findByExample(
+        com.robwilliamson.mailfamiliar.entity.Message
+            .from(message, mailbox.getId()))
+        .ifPresent(messageEntity -> {
+          headerRepository.deleteAllByMessageId(messageEntity.getId());
+          messageRepository.deleteById(messageEntity.getId());
+        });
   }
 
   @Override
@@ -141,22 +162,33 @@ public class FolderObserver implements
 
   @Override
   public void closed(ConnectionEvent e) {
-
+    log.info(e);
   }
 
   @Override
+  @Transactional
   public void messageChanged(MessageChangedEvent e) {
+    if ((e.getMessageChangeType() & ENVELOPE_CHANGED) == 0) {
+      return;
+    }
 
+    upsertMessageReportThrow(e.getMessage());
   }
 
   @Override
-  public void messagesAdded(MessageCountEvent e) {
-
+  @Transactional
+  public void messagesAdded(MessageCountEvent messageCountEvent) {
+    for (final var message : messageCountEvent.getMessages()) {
+      upsertMessageReportThrow(message);
+    }
   }
 
   @Override
-  public void messagesRemoved(MessageCountEvent e) {
-
+  @Transactional
+  public void messagesRemoved(MessageCountEvent messageCountEvent) {
+    for (final var message : messageCountEvent.getMessages()) {
+      removeMessageReportThrow(message);
+    }
   }
 
   @Override

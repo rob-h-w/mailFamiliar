@@ -21,7 +21,6 @@ import org.springframework.test.context.support.DependencyInjectionTestExecution
 
 import javax.mail.*;
 import javax.mail.event.FolderEvent;
-import java.util.*;
 
 import static com.robwilliamson.test.Data.*;
 import static com.robwilliamson.test.Wait.until;
@@ -37,7 +36,6 @@ import static org.mockito.Mockito.*;
     MockitoTestExecutionListener.class,
     FlywayTestExecutionListener.class})
 class SynchronizerTest {
-  private static final int HOUR_IN_MS = 60 * 60 * 1000;
   Synchronizer subject;
   User user;
   @Autowired
@@ -54,7 +52,6 @@ class SynchronizerTest {
   Folder defaultFolder;
   @Mock
   Folder inbox;
-  @Mock
   Message message1;
   @Mock
   Store store;
@@ -100,7 +97,6 @@ class SynchronizerTest {
           return null;
         });
     subject = imapSync.createSynchronizer(imap);
-    subject.init();
     assertEquals(0, mailboxRepository.count());
   }
 
@@ -165,12 +161,7 @@ class SynchronizerTest {
       void setUp() throws MessagingException, InterruptedException {
         folderSynchronized = null;
         mockFolder(storable, "storable");
-        when(message1.getReceivedDate()).thenReturn(
-            new Date(System.currentTimeMillis() - HOUR_IN_MS));
-        when(message1.getAllHeaders()).thenReturn(Collections.enumeration(
-            List.of(new Header("from", "e@mail.com"))));
-        when(message1.getSentDate()).thenReturn(
-            new Date(System.currentTimeMillis() - 2 * HOUR_IN_MS));
+        message1 = mockMessage("from@mail.com", "to@mail.com");
         when(storable.getMessageCount()).thenReturn(1);
         when(storable.getMessage(1)).thenReturn(message1);
         subject.folderCreated(new FolderEvent(new Object(), storable, CREATED));

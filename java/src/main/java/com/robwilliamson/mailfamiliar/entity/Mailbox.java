@@ -15,4 +15,8 @@ public class Mailbox {
   private int imapAccountId;
   @NotBlank
   private String name;
+
+  public com.robwilliamson.mailfamiliar.model.Id<Imap> getImapAccountIdObject() {
+    return com.robwilliamson.mailfamiliar.model.Id.of(getImapAccountId(), Imap.class);
+  }
 }

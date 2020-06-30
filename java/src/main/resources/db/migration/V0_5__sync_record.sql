@@ -4,6 +4,5 @@ create table "sync"
     mailbox_id  integer                           not null unique,
     last_synced text                              not null,
     constraint sync_mailbox_id_FK foreign key (mailbox_id) references mailbox (id)
-        on update cascade on delete cascade
 );
 create index sync_mailbox_IDX on "sync" (mailbox_id);

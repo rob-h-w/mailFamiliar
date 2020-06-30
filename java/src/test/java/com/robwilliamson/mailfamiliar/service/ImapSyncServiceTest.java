@@ -1,5 +1,6 @@
 package com.robwilliamson.mailfamiliar.service;
 
+import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.Imap;
 import com.robwilliamson.mailfamiliar.exceptions.DuplicateAccountCreatedException;
 import com.robwilliamson.mailfamiliar.repository.*;
@@ -42,6 +43,8 @@ class ImapSyncServiceTest {
   @Autowired
   HeaderRepository headerRepository;
   @Autowired
+  ImapSync imapSync;
+  @Autowired
   MailboxRepository mailboxRepository;
   @Autowired
   MessageRepository messageRepository;
@@ -77,6 +80,7 @@ class ImapSyncServiceTest {
             headerNameRepository,
             headerRepository,
             imap,
+            imapSync,
             imapEventChannel,
             mailboxRepository,
             messageRepository,

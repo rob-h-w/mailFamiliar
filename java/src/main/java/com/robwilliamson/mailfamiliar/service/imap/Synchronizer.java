@@ -1,5 +1,6 @@
 package com.robwilliamson.mailfamiliar.service.imap;
 
+import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.Message;
 import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
@@ -33,6 +34,7 @@ public class Synchronizer implements
   private final HeaderNameRepository headerNameRepository;
   private final HeaderRepository headerRepository;
   private final Imap imap;
+  private final ImapSync imapSync;
   private final MessageChannel imapEventChannel;
   private final MailboxRepository mailboxRepository;
   private final MessageRepository messageRepository;
@@ -144,13 +146,7 @@ public class Synchronizer implements
       folder.open(READ_WRITE);
       folderObervers.put(
           folder,
-          new FolderObserver(
-              folder,
-              headerNameRepository,
-              headerRepository,
-              imapAccountId,
-              imapEventChannel,
-              messageRepository));
+          imapSync.createFolderObserver(folder, mailbox));
       return mailbox;
     } catch (MessagingException e) {
       imapEventChannel.send(new SynchronizerException(imapAccountId,
@@ -176,7 +172,9 @@ public class Synchronizer implements
   }
 
   @Transactional
-  void syncMessages(Folder folder, Mailbox mailbox) throws MessagingException, Message.FromMissingException {
+  void syncMessages(Folder folder, Mailbox mailbox) throws
+      MessagingException,
+      Message.FromMissingException {
     final Optional<Sync> syncRecord = syncRepository.findByMailboxId(mailbox.getId());
     final Date limit;
     if (syncRecord.isPresent()) {
@@ -185,7 +183,7 @@ public class Synchronizer implements
       limit = new Date(System.currentTimeMillis() - imap.getSyncPeriodDays() * MILLIS_IN_DAY);
     }
 
-    final Date lastSynced = folderObervers.get(folder).syncMessages(folder, mailbox, limit);
+    final Date lastSynced = folderObervers.get(folder).syncMessages(folder, limit);
 
     final Sync updatedRecord = syncRecord.orElse(new Sync());
     updatedRecord.setLastSynced(lastSynced);

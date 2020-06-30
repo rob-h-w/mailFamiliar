@@ -6,9 +6,17 @@ import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
 
-import java.util.Random;
+import javax.mail.Header;
+import javax.mail.Message;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import java.util.*;
+
+import static org.mockito.Mockito.*;
 
 public class Data {
+  private static final int HOUR_IN_MS = 60 * 60 * 1000;
+
   private Data() {
   }
 
@@ -97,5 +105,25 @@ public class Data {
         User.class),
         base62(new Random(), 12));
     return encryptedRepository.save(secret);
+  }
+
+  public static Message mockMessage(String from, String to) throws MessagingException {
+    final var result = mock(Message.class);
+    when(result.getFrom()).thenReturn(new Address[]{new InternetAddress(from)});
+    when(result.getReceivedDate()).thenReturn(
+        new Date(System.currentTimeMillis() - HOUR_IN_MS));
+    when(result.getAllHeaders()).thenReturn(mockHeaders(from, to));
+    when(result.getSentDate()).thenReturn(
+        new Date(System.currentTimeMillis() - 2 * HOUR_IN_MS));
+    return result;
+  }
+
+  public static Enumeration<Header> mockHeaders(String from, String to) {
+    return Collections.enumeration(
+        List.of(
+            new Header("from", from),
+            new Header("subject", "subject at " + new Date()),
+            new Header("to", to),
+            new Header("x-original-to", to)));
   }
 }
