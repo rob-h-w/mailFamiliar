@@ -191,6 +191,7 @@ public class Synchronizer implements
     updatedRecord.setLastSynced(lastSynced);
     updatedRecord.setMailboxId(mailbox.getId());
     syncRepository.save(updatedRecord);
+    imapEventChannel.send(new FolderSynchronized(mailbox));
   }
 
   @Override
