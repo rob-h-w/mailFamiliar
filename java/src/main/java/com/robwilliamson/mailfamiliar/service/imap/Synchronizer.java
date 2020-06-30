@@ -116,6 +116,12 @@ public class Synchronizer implements
             .closedIntentionally()
             .build());
       }
+    } catch (Throwable e) {
+      imapEventChannel.send(SynchronizerException
+          .builder(imapAccountId)
+          .throwable(e)
+          .build());
+      throw e;
     }
   }
 
