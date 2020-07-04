@@ -32,3 +32,4 @@ build/
 
 ### DB ###
 *.db
+*.db-journal
