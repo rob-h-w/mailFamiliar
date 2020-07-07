@@ -12,6 +12,7 @@ public class Header {
   @Id
   private int id;
   private int messageId;
-  private int headerNameId;
+  @ManyToOne(optional = false)
+  private HeaderName headerName;
   private String value;
 }

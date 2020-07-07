@@ -34,13 +34,10 @@ public class ImapSync {
   public Synchronizer createSynchronizer(Imap imap) {
     return new Synchronizer(
         cryptoService,
-        headerNameRepository,
-        headerRepository,
         imap,
         this,
         imapEvent,
         mailboxRepository,
-        messageRepository,
         createStoreFactory(),
         syncRepository);
   }

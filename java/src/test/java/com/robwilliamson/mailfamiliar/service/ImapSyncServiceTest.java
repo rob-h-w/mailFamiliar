@@ -77,13 +77,10 @@ class ImapSyncServiceTest {
       public Synchronizer getSynchronizer(Imap imap) {
         return new Synchronizer(
             mock(CryptoService.class),
-            headerNameRepository,
-            headerRepository,
             imap,
             imapSync,
             imapEventChannel,
             mailboxRepository,
-            messageRepository,
             mock(StoreFactory.class),
             mock(SyncRepository.class));
       }

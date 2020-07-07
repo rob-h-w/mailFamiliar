@@ -15,6 +15,7 @@ import org.springframework.messaging.MessageChannel;
 import javax.annotation.PostConstruct;
 import javax.mail.*;
 import javax.mail.event.*;
+import javax.persistence.*;
 import javax.transaction.Transactional;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -31,13 +32,10 @@ public class Synchronizer implements
     Runnable, StoreListener {
   private static final long MILLIS_IN_DAY = 1000 * 60 * 60 * 24;
   private final CryptoService cryptoService;
-  private final HeaderNameRepository headerNameRepository;
-  private final HeaderRepository headerRepository;
   private final Imap imap;
   private final ImapSync imapSync;
   private final MessageChannel imapEventChannel;
   private final MailboxRepository mailboxRepository;
-  private final MessageRepository messageRepository;
   private final StoreFactory storeFactory;
   private final SyncRepository syncRepository;
   private final Lock lock = new ReentrantLock();
@@ -45,6 +43,9 @@ public class Synchronizer implements
   private final Map<Folder, FolderObserver> folderObervers = new HashMap<>();
   private Id<Imap> imapAccountId;
   private volatile boolean closing = false;
+
+  @PersistenceContext
+  private EntityManager entityManager;
 
   @PostConstruct
   void init() {
@@ -224,6 +225,7 @@ public class Synchronizer implements
   }
 
   @Override
+  @Transactional
   public void folderCreated(FolderEvent e) {
     lock.lock();
     try {
@@ -245,6 +247,7 @@ public class Synchronizer implements
   }
 
   @Override
+  @Transactional
   public void folderDeleted(FolderEvent e) {
     if (closing) {
       return;
@@ -267,9 +270,22 @@ public class Synchronizer implements
         return;
       }
 
-      mailboxRepository.findByNameAndImapAccountId(
+      final Optional<Mailbox> optionalMailbox = mailboxRepository.findByNameAndImapAccountId(
           fullyQualifiedName(folder),
-          imapAccountId.getValue()).ifPresent(mailboxRepository::delete);
+          imapAccountId.getValue());
+      if (optionalMailbox.isPresent()) {
+        final var mailbox = optionalMailbox.get();
+        entityManager
+            .createQuery("delete from Header where messageId in (" +
+                "select id from Message where mailboxId = :mailboxId)")
+            .setParameter("mailboxId", mailbox.getId())
+            .executeUpdate();
+        entityManager.createQuery("delete from Message where id = :mailboxId")
+            .setParameter("mailboxId", mailbox.getId())
+            .executeUpdate();
+        mailboxRepository.delete(mailbox);
+        imapEventChannel.send(new FolderRemoved(mailbox));
+      }
       close(folder);
     } catch (MessagingException e) {
       imapEventChannel.send(SynchronizerException
@@ -282,6 +298,7 @@ public class Synchronizer implements
   }
 
   @Override
+  @Transactional
   public void folderRenamed(FolderEvent e) {
     log.info(e);
     try {

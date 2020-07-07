@@ -25,7 +25,7 @@ import javax.mail.event.FolderEvent;
 import static com.robwilliamson.test.Data.*;
 import static com.robwilliamson.test.Wait.until;
 import static javax.mail.Folder.*;
-import static javax.mail.event.FolderEvent.CREATED;
+import static javax.mail.event.FolderEvent.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -43,7 +43,11 @@ class SynchronizerTest {
   @Autowired
   ImapSync imapSync;
   @Autowired
+  HeaderRepository headerRepository;
+  @Autowired
   MailboxRepository mailboxRepository;
+  @Autowired
+  MessageRepository messageRepository;
   @MockBean(name = "imapEvent")
   MessageChannel imapEventChannel;
   @MockBean
@@ -58,6 +62,7 @@ class SynchronizerTest {
   @Qualifier("taskExecutor")
   @Autowired
   TaskExecutor taskExecutor;
+  FolderRemoved folderRemoved;
   FolderSynchronized folderSynchronized;
   @Autowired
   private EncryptedRepository encryptedRepository;
@@ -93,6 +98,14 @@ class SynchronizerTest {
           final var event = invocationOnMock.getArguments()[0];
           if (event instanceof FolderSynchronized) {
             folderSynchronized = (FolderSynchronized) event;
+          }
+          return null;
+        });
+    when(imapEventChannel.send(any(FolderRemoved.class)))
+        .thenAnswer((Answer<Void>) invocationOnMock -> {
+          final var event = invocationOnMock.getArguments()[0];
+          if (event instanceof FolderRemoved) {
+            folderRemoved = (FolderRemoved) event;
           }
           return null;
         });
@@ -175,6 +188,12 @@ class SynchronizerTest {
       }
 
       @Test
+      void storesTheMessage() {
+        assertEquals(1, messageRepository.count());
+        assertEquals(4, headerRepository.count());
+      }
+
+      @Test
       void synchronizesTheMessages() {
         verify(imapEventChannel, times(1))
             .send(any(ImapMessage.class));
@@ -184,6 +203,22 @@ class SynchronizerTest {
       void doesNotReportExceptions() {
         verify(imapEventChannel, times(0))
             .send(any(SynchronizerException.class));
+      }
+
+      @Nested
+      class ThenStorableFolderDeleted {
+        @BeforeEach
+        void setUp() throws InterruptedException {
+          folderRemoved = null;
+          subject.folderDeleted(new FolderEvent(new Object(), storable, DELETED));
+          until(() -> folderRemoved != null);
+        }
+
+        @Test
+        void removesTheMessage() {
+          assertEquals(0, messageRepository.count());
+          assertEquals(0, headerRepository.count());
+        }
       }
     }
   }

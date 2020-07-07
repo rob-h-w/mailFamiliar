@@ -33,7 +33,7 @@ public class FolderObserver implements
   private final Mailbox mailbox;
   private final MessageRepository messageRepository;
 
-  private final Map<String, Integer> headerNameIds = new HashMap<>();
+  private final Map<String, HeaderName> headerNames = new HashMap<>();
 
   @PostConstruct
   void init() {
@@ -89,13 +89,13 @@ public class FolderObserver implements
             Collectors.mapping(Header::getValue, Collectors.toList())));
     headers.entrySet()
         .stream()
-        .forEach(entry -> headerNameIds.computeIfAbsent(
+        .forEach(entry -> headerNames.computeIfAbsent(
             entry.getKey(),
-            name -> (headerNameRepository.findByName(entry.getKey()).orElseGet(() -> {
-              var headerName = new HeaderName();
+            name -> headerNameRepository.findByName(entry.getKey()).orElseGet(() -> {
+              final var headerName = new HeaderName();
               headerName.setName(entry.getKey());
               return headerNameRepository.save(headerName);
-            })).getId()));
+            })));
     final var newMessageEntity = com.robwilliamson.mailfamiliar.entity.Message
         .from(message, mailbox.getId());
     final com.robwilliamson.mailfamiliar.entity.Message messageEntity =
@@ -105,16 +105,16 @@ public class FolderObserver implements
     headers.entrySet()
         .stream()
         .forEach(header -> {
-          final int nameId = headerNameIds.get(header.getKey());
+          final HeaderName headerName = headerNames.get(header.getKey());
           header.getValue()
               .stream()
               .forEach(value -> headerRepository.findByHeaderNameIdAndMessageId(
-                  nameId,
+                  headerName.getId(),
                   messageEntity.getId())
                   .orElseGet(() -> {
                     final var entity =
                         new com.robwilliamson.mailfamiliar.entity.Header();
-                    entity.setHeaderNameId(nameId);
+                    entity.setHeaderName(headerName);
                     entity.setMessageId(messageEntity.getId());
                     entity.setValue(value);
                     return headerRepository.save(entity);

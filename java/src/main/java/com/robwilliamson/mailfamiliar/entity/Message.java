@@ -23,6 +23,8 @@ public class Message {
   private int fromHash;
   private String receivedDate;
   private String sentDate;
+  @OneToMany(mappedBy = "messageId", cascade = CascadeType.ALL)
+  private Set<Header> headers;
 
   public static Message from(javax.mail.Message message, int mailboxId) throws
       MessagingException,
