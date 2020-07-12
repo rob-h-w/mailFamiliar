@@ -9,8 +9,9 @@ public class ThreadPool {
   @Bean
   public TaskExecutor taskExecutor() {
     final ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
-    taskExecutor.setCorePoolSize(2);
-    taskExecutor.setMaxPoolSize(Runtime.getRuntime().availableProcessors() + 2);
+    taskExecutor.setCorePoolSize(1);
+    taskExecutor.setQueueCapacity(0);
+    taskExecutor.setMaxPoolSize(Integer.MAX_VALUE);
     taskExecutor.setThreadNamePrefix("default_task_executor_thread_");
     taskExecutor.initialize();
     return taskExecutor;

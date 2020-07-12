@@ -4,14 +4,16 @@ import com.robwilliamson.mailfamiliar.MailfamiliarApplication;
 import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.Mailbox;
 import com.robwilliamson.mailfamiliar.repository.*;
+import com.robwilliamson.mailfamiliar.service.imap.events.ImapMessage;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
+import org.mockito.stubbing.Answer;
 import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener;
+import org.springframework.boot.test.mock.mockito.*;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
@@ -23,6 +25,7 @@ import java.util.stream.*;
 
 import static com.robwilliamson.test.Assertions.assertContains;
 import static com.robwilliamson.test.Data.*;
+import static com.robwilliamson.test.Wait.until;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
@@ -36,20 +39,30 @@ class FolderObserverTest {
   HeaderNameRepository headerNameRepository;
   @Autowired
   HeaderRepository headerRepository;
+  @MockBean(name = "imapEvent")
+  MessageChannel imapEventChannel;
   @Autowired
   ImapSync imapSync;
   @Autowired
   MessageRepository messageRepository;
   @Mock
   Folder folder;
-  @Mock
-  MessageChannel messageChannel;
+  ImapMessage imapMessage;
   private FolderObserver subject;
   private Mailbox mailbox;
 
   @BeforeEach
   @FlywayTest
   void setUp() {
+    imapMessage = null;
+    when(imapEventChannel.send(any(ImapMessage.class)))
+        .thenAnswer((Answer<Void>) invocationOnMock -> {
+          final var event = invocationOnMock.getArguments()[0];
+          if (event instanceof ImapMessage) {
+            imapMessage = (ImapMessage) event;
+          }
+          return null;
+        });
     mailbox = new Mailbox();
     mailbox.setId(1);
     subject = imapSync.createFolderObserver(folder, mailbox);
@@ -113,7 +126,7 @@ class FolderObserverTest {
       Enumeration<Header> unchangedHeaders;
 
       @BeforeEach
-      void setUp() throws MessagingException {
+      void setUp() throws MessagingException, InterruptedException {
         unchangedHeaders = message1.getAllHeaders();
 
         when(message1.getAllHeaders()).thenReturn(mockHeaders("from@from.com", "<to@to.com>"));
@@ -122,6 +135,7 @@ class FolderObserverTest {
                 folder,
                 MessageChangedEvent.ENVELOPE_CHANGED,
                 message1));
+        until(() -> imapMessage != null);
       }
 
       @Test

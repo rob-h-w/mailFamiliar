@@ -1,6 +1,6 @@
 package com.robwilliamson.mailfamiliar.service.predictor;
 
-import com.robwilliamson.mailfamiliar.entity.Mailbox;
+import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import lombok.Data;
 

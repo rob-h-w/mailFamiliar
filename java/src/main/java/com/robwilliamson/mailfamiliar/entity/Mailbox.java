@@ -1,12 +1,15 @@
 package com.robwilliamson.mailfamiliar.entity;
 
-import lombok.Data;
+import lombok.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 
+@AllArgsConstructor
+@Builder
 @Data
 @Entity
+@NoArgsConstructor
 @Table(name = "mailbox")
 public class Mailbox {
   @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,9 +1,11 @@
 package com.robwilliamson.mailfamiliar.entity;
 
+import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.repository.Time;
 import lombok.*;
 
 import javax.mail.*;
+import javax.mail.search.*;
 import javax.persistence.*;
 import java.util.*;
 
@@ -23,7 +25,7 @@ public class Message {
   private int fromHash;
   private String receivedDate;
   private String sentDate;
-  @OneToMany(mappedBy = "messageId", cascade = CascadeType.ALL)
+  @OneToMany(mappedBy = "messageId", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
   private Set<Header> headers;
 
   public static Message from(javax.mail.Message message, int mailboxId) throws
@@ -51,6 +53,43 @@ public class Message {
 
   public static EnhancedBuilder enhancedBuilder() {
     return new EnhancedBuilder();
+  }
+
+  public String getFrom() throws FromMissingException {
+    return headers.stream()
+        .filter(header -> Objects.equals(header.getHeaderName().getName(), "from"))
+        .findFirst()
+        .orElseThrow(FromMissingException::new)
+        .getValue();
+  }
+
+  public javax.mail.Message getSelfIn(Folder folder) throws
+      FromMissingException,
+      MessagingException,
+      MessageNotFoundException,
+      MultipleMessagesFoundException {
+    return findSelfIn(folder)
+        .orElseThrow(() -> new MessageNotFoundException(this));
+  }
+
+  public Optional<javax.mail.Message> findSelfIn(Folder folder) throws
+      MultipleMessagesFoundException,
+      FromMissingException,
+      MessagingException {
+    final var result = folder.search(
+        new AndTerm(
+            new SearchTerm[]{
+                new ReceivedDateTerm(ComparisonTerm.EQ, Time.parseDate(receivedDate)),
+                new FromStringTerm(getFrom()),
+                new SentDateTerm(ComparisonTerm.EQ, Time.parseDate(sentDate))
+            }));
+    if (result.length == 0) {
+      return Optional.empty();
+    }
+    if (result.length > 1) {
+      throw new MultipleMessagesFoundException(this, result);
+    }
+    return Optional.ofNullable(result[0]);
   }
 
   public static class EnhancedBuilder extends Message.MessageBuilder {
@@ -100,6 +139,4 @@ public class Message {
     }
   }
 
-  public static class FromMissingException extends Throwable {
-  }
 }

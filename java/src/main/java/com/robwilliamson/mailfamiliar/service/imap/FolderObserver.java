@@ -1,6 +1,7 @@
 package com.robwilliamson.mailfamiliar.service.imap;
 
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.exceptions.FromMissingException;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.imap.events.*;
@@ -44,7 +45,7 @@ public class FolderObserver implements
 
   @Transactional
   public Date syncMessages(Folder folder, Date limit) throws MessagingException,
-      com.robwilliamson.mailfamiliar.entity.Message.FromMissingException {
+      FromMissingException {
     final int messageCount = folder.getMessageCount();
     Date lastSynced = limit;
 
@@ -70,7 +71,7 @@ public class FolderObserver implements
       upsertMessage(message);
     } catch (
         MessagingException
-            | com.robwilliamson.mailfamiliar.entity.Message.FromMissingException e) {
+            | FromMissingException e) {
       imapEventChannel.send(SynchronizerException.builder(mailbox.getImapAccountIdObject())
           .throwable(e)
           .build());
@@ -79,7 +80,7 @@ public class FolderObserver implements
 
   private void upsertMessage(Message message) throws
       MessagingException,
-      com.robwilliamson.mailfamiliar.entity.Message.FromMissingException {
+      FromMissingException {
     final var headerIterator = message.getAllHeaders().asIterator();
     final Map<String, List<String>> headers = StreamSupport.stream(
         ((Iterable<Header>) () -> headerIterator).spliterator(),
@@ -87,13 +88,13 @@ public class FolderObserver implements
         .collect(Collectors.groupingBy(
             header -> header.getName().toLowerCase(),
             Collectors.mapping(Header::getValue, Collectors.toList())));
-    headers.entrySet()
+    headers.keySet()
         .stream()
-        .forEach(entry -> headerNames.computeIfAbsent(
-            entry.getKey(),
-            name -> headerNameRepository.findByName(entry.getKey()).orElseGet(() -> {
+        .forEach(key -> headerNames.computeIfAbsent(
+            key,
+            name -> headerNameRepository.findByName(key).orElseGet(() -> {
               final var headerName = new HeaderName();
-              headerName.setName(entry.getKey());
+              headerName.setName(key);
               return headerNameRepository.save(headerName);
             })));
     final var newMessageEntity = com.robwilliamson.mailfamiliar.entity.Message
@@ -102,24 +103,23 @@ public class FolderObserver implements
         messageRepository.findByExample(newMessageEntity)
             .orElseGet(() -> messageRepository.save(newMessageEntity));
     headerRepository.deleteAllByMessageId(messageEntity.getId());
-    headers.entrySet()
+    final var headerEntities = headers.entrySet()
         .stream()
-        .forEach(header -> {
+        .flatMap(header -> {
           final HeaderName headerName = headerNames.get(header.getKey());
-          header.getValue()
+          return header.getValue()
               .stream()
-              .forEach(value -> headerRepository.findByHeaderNameIdAndMessageId(
-                  headerName.getId(),
-                  messageEntity.getId())
-                  .orElseGet(() -> {
-                    final var entity =
-                        new com.robwilliamson.mailfamiliar.entity.Header();
-                    entity.setHeaderName(headerName);
-                    entity.setMessageId(messageEntity.getId());
-                    entity.setValue(value);
-                    return headerRepository.save(entity);
-                  }));
-        });
+              .map(value -> {
+                final var entity = new com.robwilliamson.mailfamiliar.entity.Header();
+                entity.setHeaderName(headerName);
+                entity.setMessageId(messageEntity.getId());
+                entity.setValue(value);
+                return entity;
+              });
+        })
+        .collect(Collectors.toSet());
+    messageEntity.setHeaders(headerEntities);
+    messageRepository.save(messageEntity);
     imapEventChannel.send(new ImapMessage(
         headers,
         Id.of(mailbox.getImapAccountId(), Imap.class),
@@ -131,7 +131,7 @@ public class FolderObserver implements
       removeMessage(message);
     } catch (
         MessagingException
-            | com.robwilliamson.mailfamiliar.entity.Message.FromMissingException e) {
+            | FromMissingException e) {
       imapEventChannel.send(SynchronizerException.builder(mailbox.getImapAccountIdObject())
           .throwable(e)
           .build());
@@ -140,7 +140,7 @@ public class FolderObserver implements
 
   private void removeMessage(Message message) throws
       MessagingException,
-      com.robwilliamson.mailfamiliar.entity.Message.FromMissingException {
+      FromMissingException {
     messageRepository.findByExample(
         com.robwilliamson.mailfamiliar.entity.Message
             .from(message, mailbox.getId()))

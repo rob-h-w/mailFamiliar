@@ -20,7 +20,7 @@ public class Assertions {
         .collect(Collectors.toSet());
 
     if (!missing.isEmpty()) {
-      fail("expected " + expected + ", but actual is missing " + missing);
+      fail("expected " + actual + " to contain " + expected + ", it is missing " + missing);
     }
   }
 

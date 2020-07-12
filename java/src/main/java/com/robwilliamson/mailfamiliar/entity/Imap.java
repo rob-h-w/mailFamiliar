@@ -1,12 +1,16 @@
 package com.robwilliamson.mailfamiliar.entity;
 
-import lombok.Data;
+import lombok.*;
 
 import javax.persistence.*;
 import java.io.Serializable;
 
+@AllArgsConstructor
+@Builder
 @Data
 @Entity
+@Getter
+@NoArgsConstructor
 @Table(name = "imap", indexes = {@Index(columnList = "host,name", unique = true)})
 public class Imap implements Serializable {
   @GeneratedValue(strategy = GenerationType.IDENTITY)

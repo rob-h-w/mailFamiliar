@@ -1,7 +1,6 @@
 package com.robwilliamson.mailfamiliar.service.imap;
 
 import com.robwilliamson.mailfamiliar.config.ImapSync;
-import com.robwilliamson.mailfamiliar.entity.Message;
 import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
@@ -13,6 +12,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.messaging.MessageChannel;
 
 import javax.annotation.PostConstruct;
+import javax.mail.Message;
 import javax.mail.*;
 import javax.mail.event.*;
 import javax.persistence.*;
@@ -38,9 +38,11 @@ public class Synchronizer implements
   private final MailboxRepository mailboxRepository;
   private final StoreFactory storeFactory;
   private final SyncRepository syncRepository;
-  private final Lock lock = new ReentrantLock();
-  private final Condition closed = lock.newCondition();
+  private final Lock folderLock = new ReentrantLock();
+  private final Condition closed = folderLock.newCondition();
+  private final Lock inconsistencyLock = new ReentrantLock();
   private final Map<Folder, FolderObserver> folderObervers = new HashMap<>();
+  private final Map<String, Folder> foldersByName = new HashMap<>();
   private Id<Imap> imapAccountId;
   private volatile boolean closing = false;
 
@@ -93,14 +95,14 @@ public class Synchronizer implements
       imapEventChannel.send(new DefaultFolderAvailable(defaultFolder, imapAccountId));
       while (!closing) {
         sync(defaultFolder);
-        lock.lock();
+        folderLock.lock();
         try {
           closed.await(imap.getRefreshPeriodMinutes(), TimeUnit.MINUTES);
         } finally {
-          lock.unlock();
+          folderLock.unlock();
         }
       }
-    } catch (MessagingException | Message.FromMissingException e) {
+    } catch (MessagingException | FromMissingException e) {
       imapEventChannel.send(SynchronizerException
           .builder(imapAccountId)
           .throwable(e)
@@ -129,7 +131,7 @@ public class Synchronizer implements
   }
 
   private Mailbox add(Folder folder) throws MessagingException, InterruptedException {
-    lock.lock();
+    folderLock.lock();
     try {
       if (closing || !isStorable(folder)) {
         throw new InterruptedException();
@@ -148,17 +150,19 @@ public class Synchronizer implements
       folderObervers.put(
           folder,
           imapSync.createFolderObserver(folder, mailbox));
+      foldersByName.put(fullyQualifiedName(folder), folder);
       return mailbox;
     } catch (MessagingException e) {
+      folderObervers.remove(folder);
       imapEventChannel.send(new SynchronizerException(imapAccountId,
           SynchronizerException.Reason.OpenError, Optional.of(e)));
       throw e;
     } finally {
-      lock.unlock();
+      folderLock.unlock();
     }
   }
 
-  private void sync(Folder folder) throws MessagingException, InterruptedException, Message.FromMissingException {
+  private void sync(Folder folder) throws MessagingException, InterruptedException, FromMissingException {
     if (closing) {
       throw new InterruptedException();
     }
@@ -175,7 +179,7 @@ public class Synchronizer implements
   @Transactional
   void syncMessages(Folder folder, Mailbox mailbox) throws
       MessagingException,
-      Message.FromMissingException {
+      FromMissingException {
     final Optional<Sync> syncRecord = syncRepository.findByMailboxId(mailbox.getId());
     final Date limit;
     if (syncRecord.isPresent()) {
@@ -196,7 +200,7 @@ public class Synchronizer implements
   @Override
   public void close() {
     closing = true;
-    lock.lock();
+    folderLock.lock();
     final var folders = new ArrayList<>(folderObervers.keySet());
     try {
       for (Folder folder : folders) {
@@ -204,15 +208,17 @@ public class Synchronizer implements
       }
       closed.signal();
     } finally {
-      lock.unlock();
+      foldersByName.clear();
+      folderLock.unlock();
     }
   }
 
   private void close(Folder folder) {
-    lock.lock();
+    folderLock.lock();
     try {
       final FolderObserver observer = folderObervers.remove(folder);
       observer.close();
+      foldersByName.remove(fullyQualifiedName(folder));
     } catch (MessagingException e) {
       imapEventChannel.send(SynchronizerException
           .builder(imapAccountId)
@@ -220,14 +226,14 @@ public class Synchronizer implements
           .throwable(e)
           .build());
     } finally {
-      lock.unlock();
+      folderLock.unlock();
     }
   }
 
   @Override
   @Transactional
   public void folderCreated(FolderEvent e) {
-    lock.lock();
+    folderLock.lock();
     try {
       if (closing) {
         return;
@@ -236,13 +242,13 @@ public class Synchronizer implements
     } catch (
         InterruptedException
             | MessagingException
-            | Message.FromMissingException interruptedException) {
+            | FromMissingException interruptedException) {
       imapEventChannel.send(SynchronizerException
           .builder(imapAccountId)
           .throwable(interruptedException)
           .build());
     } finally {
-      lock.unlock();
+      folderLock.unlock();
     }
   }
 
@@ -252,19 +258,19 @@ public class Synchronizer implements
     if (closing) {
       return;
     }
-    lock.lock();
+    folderLock.lock();
     try {
       if (closing) {
         return;
       }
       remove(e.getFolder());
     } finally {
-      lock.unlock();
+      folderLock.unlock();
     }
   }
 
   private void remove(Folder folder) {
-    lock.lock();
+    folderLock.lock();
     try {
       if (!folderObervers.containsKey(folder)) {
         return;
@@ -293,7 +299,7 @@ public class Synchronizer implements
           .throwable(e)
           .build());
     } finally {
-      lock.unlock();
+      folderLock.unlock();
     }
   }
 
@@ -323,5 +329,35 @@ public class Synchronizer implements
   @Override
   public void notification(StoreEvent e) {
     log.info(e.getMessage());
+  }
+
+  public Optional<Folder> folderFor(Mailbox mailbox) {
+    return Optional.ofNullable(foldersByName.get(mailbox.getName()));
+  }
+
+  public Folder getFolder(Mailbox mailbox) throws FolderMissingException {
+    return folderFor(mailbox)
+        .orElseThrow(() -> new FolderMissingException(mailbox));
+  }
+
+  public void handleFolderMissing(FolderMissingException e) {
+    // TODO
+  }
+
+  public void handleMessageMissing(MessageNotFoundException e) {
+    // TODO
+  }
+
+  public void handleMultipleMessages(MultipleMessagesFoundException e) {
+    inconsistencyLock.lock();
+    try {
+      for (Message message : e.getExcess()) {
+        message.setFlag(Flags.Flag.DELETED, true);
+      }
+    } catch (MessagingException messagingException) {
+      log.warn("Could not clean up excess messages.", messagingException);
+    } finally {
+      inconsistencyLock.unlock();
+    }
   }
 }

@@ -7,5 +7,5 @@ import lombok.Data;
 @Data
 public class Mistake {
   private final Id<Mailbox> correctDestination;
-  private final Move erranMove;
+  private final Move errantMove;
 }

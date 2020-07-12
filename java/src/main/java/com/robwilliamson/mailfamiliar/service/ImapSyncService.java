@@ -1,7 +1,8 @@
 package com.robwilliamson.mailfamiliar.service;
 
 import com.robwilliamson.mailfamiliar.entity.*;
-import com.robwilliamson.mailfamiliar.exceptions.DuplicateAccountCreatedException;
+import com.robwilliamson.mailfamiliar.exceptions.*;
+import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,10 @@ public abstract class ImapSyncService {
     synchronizers.remove(imapAccount.getId());
   }
 
+  public synchronized void handleAccountMissing(ImapAccountMissingException e) {
+    // TODO
+  }
+
   @Lookup
   public abstract Synchronizer getSynchronizer(Imap imap);
 
@@ -51,5 +56,14 @@ public abstract class ImapSyncService {
   public Stream<Mailbox> mailboxenFor(int imapAccountId) {
     return mailboxRepository.findByImapAccountId(imapAccountId)
         .stream();
+  }
+
+  public Optional<Synchronizer> synchronizerFor(Id<Imap> imapId) {
+    return Optional.ofNullable(synchronizers.get(imapId.getValue()));
+  }
+
+  public Synchronizer getSynchronizer(Id<Imap> imapId) throws ImapAccountMissingException {
+    return synchronizerFor(imapId)
+        .orElseThrow(() -> new ImapAccountMissingException(imapId));
   }
 }
