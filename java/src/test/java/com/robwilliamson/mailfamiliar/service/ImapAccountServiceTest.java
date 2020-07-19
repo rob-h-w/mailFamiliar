@@ -80,14 +80,6 @@ class ImapAccountServiceTest {
     assertEquals(1, account.getUserId());
   }
 
-  @Test
-  void saveAccount() {
-  }
-
-  @Test
-  void deleteAccount() {
-  }
-
   @Nested
   class DeleteAccount {
     @BeforeEach

@@ -1,7 +1,7 @@
 package com.robwilliamson.mailfamiliar.service;
 
 import com.robwilliamson.mailfamiliar.config.ImapSync;
-import com.robwilliamson.mailfamiliar.entity.Imap;
+import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.DuplicateAccountCreatedException;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.imap.*;
@@ -20,7 +20,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
-import java.util.stream.Stream;
+import java.util.List;
+import java.util.stream.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -36,6 +37,7 @@ class ImapSyncServiceTest {
 
   @Mock
   AccountProvider accountProvider;
+  @Mock
   MessageChannel imapEventChannel;
 
   @Autowired
@@ -55,17 +57,22 @@ class ImapSyncServiceTest {
   Imap account2;
   Imap account3;
 
+  private Imap makeAccount(int number) {
+    var result = new Imap();
+    result.setId(number);
+    result.setName("Account number " + number);
+    result.setPort(number);
+    result.setHost("host.number." + number);
+    result.setTls(true);
+    return result;
+  }
+
   @BeforeEach
   @FlywayTest
   void setUp() throws InterruptedException {
-    account1 = new Imap();
-    account1.setId(1);
-
-    account2 = new Imap();
-    account2.setId(2);
-
-    account3 = new Imap();
-    account3.setId(3);
+    account1 = makeAccount(1);
+    account2 = makeAccount(2);
+    account3 = makeAccount(3);
 
     when(accountProvider.getAccounts()).thenReturn(Stream.of(account3));
 
@@ -75,14 +82,7 @@ class ImapSyncServiceTest {
         taskExecutor) {
       @Override
       public Synchronizer getSynchronizer(Imap imap) {
-        return new Synchronizer(
-            mock(CryptoService.class),
-            imap,
-            imapSync,
-            imapEventChannel,
-            mailboxRepository,
-            mock(StoreFactory.class),
-            mock(SyncRepository.class));
+        return mock(Synchronizer.class);
       }
     };
     subject.initialize();
@@ -115,6 +115,25 @@ class ImapSyncServiceTest {
       void othersCanBeAdded() {
         assertDoesNotThrow(() -> subject.onNewAccount(account2));
       }
+    }
+  }
+
+  @Nested
+  class MailBoxenFor {
+    @BeforeEach
+    void setUp() {
+      mailboxRepository.save(new Mailbox(
+          0,
+          account3.getId(),
+          "mailbox for account 3"
+      ));
+    }
+
+    @Test
+    void returnsCorrectMailboxen() {
+      final List<Mailbox> mailboxen = subject.mailboxenFor(account3.getId())
+          .collect(Collectors.toList());
+      assertEquals(1, mailboxen.size());
     }
   }
 }
