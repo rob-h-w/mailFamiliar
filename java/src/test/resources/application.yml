@@ -25,6 +25,8 @@ spring:
     password: ${password}
     url: ${url}
     user: ${username}
+  main:
+    allow-bean-definition-overriding: true
   security:
     oauth2:
       client:

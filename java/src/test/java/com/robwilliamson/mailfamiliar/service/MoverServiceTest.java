@@ -10,7 +10,7 @@ import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.*;
 import org.springframework.core.task.TaskExecutor;
@@ -21,7 +21,6 @@ import javax.mail.Message;
 import javax.mail.*;
 import javax.mail.event.MessageCountEvent;
 import javax.mail.search.AndTerm;
-import javax.transaction.Transactional;
 import java.util.stream.Collectors;
 
 import static com.robwilliamson.mailfamiliar.entity.MoveState.State.*;
@@ -129,10 +128,8 @@ class MoverServiceTest {
         })
             .when(javaxMessage)
             .setFlag(Flags.Flag.DELETED, true);
-        var flags = mock(javax.mail.Flags.class);
-        doAnswer(answer -> {
-          return wasDeleted;
-        })
+        var flags = mock(Flags.class);
+        doAnswer(answer -> wasDeleted)
             .when(flags)
             .contains(Flags.Flag.DELETED);
         doReturn(flags)
@@ -247,7 +244,6 @@ class MoverServiceTest {
     @Nested
     class WhenFromMissingException {
       @BeforeEach
-      @Transactional
       public void setUp() throws
           FolderMissingException,
           ImapAccountMissingException,

@@ -7,6 +7,8 @@ import org.springframework.data.repository.CrudRepository;
 import java.util.*;
 
 public interface MailboxRepository extends CrudRepository<Mailbox, Integer> {
+  void deleteByImapAccountId(int imapAccountId);
+
   Collection<Mailbox> findByImapAccountId(int imapAccountId);
 
   Optional<Mailbox> findByNameAndImapAccountId(String name, int value);

@@ -52,6 +52,8 @@ public class Synchronizer implements
   @PostConstruct
   void init() {
     imapAccountId = Id.of(imap.getId(), Imap.class);
+    Thread runner = new Thread(this);
+    runner.start();
   }
 
   @Override
@@ -177,7 +179,7 @@ public class Synchronizer implements
   }
 
   @Transactional
-  void syncMessages(Folder folder, Mailbox mailbox) throws
+  public void syncMessages(Folder folder, Mailbox mailbox) throws
       MessagingException,
       FromMissingException {
     final Optional<Sync> syncRecord = syncRepository.findByMailboxId(mailbox.getId());
@@ -340,10 +342,12 @@ public class Synchronizer implements
         .orElseThrow(() -> new FolderMissingException(mailbox));
   }
 
+  @Transactional
   public void handleFolderMissing(FolderMissingException e) {
     // TODO
   }
 
+  @Transactional
   public void handleMessageMissing(MessageNotFoundException e) {
     // TODO
   }

@@ -11,8 +11,11 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import javax.transaction.Transactional;
 import java.util.*;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
 
 @RequiredArgsConstructor
 @Service
@@ -24,25 +27,51 @@ public abstract class ImapSyncService {
 
   @PostConstruct
   public void initialize() {
-    taskExecutor.execute(() -> accountProvider.getAccounts().forEach(this::addAccount));
+    discoverAccounts();
   }
+
+  void discoverAccounts() {
+    final var accounts = accountProvider.getAccounts().collect(toList());
+    taskExecutor.execute(() -> accounts.forEach(this::addAccount));
+  }
+
+  ////
+  // For testing.
+  int synchronizerCount() {
+    return synchronizers.size();
+  }
+
+  void reset() {
+    synchronizers.values().forEach(Synchronizer::close);
+    synchronizers.clear();
+  }
+  ////
 
   public void onNewAccount(Imap imapAccount) {
     addAccount(imapAccount);
   }
 
-  public synchronized void onAccountRemoved(Imap imapAccount) {
-    synchronizers.remove(imapAccount.getId());
+  @Transactional
+  public void onAccountRemoved(Imap imapAccount) {
+    removeAccount(imapAccount.getId());
   }
 
-  public synchronized void handleAccountMissing(ImapAccountMissingException e) {
-    // TODO
+  @Transactional
+  public void handleAccountMissing(ImapAccountMissingException e) {
+    removeAccount(e.getImapAccountId().getValue());
+  }
+
+  private void removeAccount(int imapAccountId) {
+    Optional.ofNullable(synchronizers.get(imapAccountId))
+        .ifPresent(Synchronizer::close);
+    mailboxRepository.deleteByImapAccountId(imapAccountId);
+    synchronizers.remove(imapAccountId);
   }
 
   @Lookup
   public abstract Synchronizer getSynchronizer(Imap imap);
 
-  private synchronized void addAccount(Imap imapAccount) {
+  private void addAccount(Imap imapAccount) {
     final int id = imapAccount.getId();
     if (synchronizers.containsKey(id)) {
       throw new DuplicateAccountCreatedException(id);

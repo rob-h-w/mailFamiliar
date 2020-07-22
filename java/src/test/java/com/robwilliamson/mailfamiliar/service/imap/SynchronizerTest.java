@@ -110,7 +110,6 @@ class SynchronizerTest {
           return null;
         });
     subject = imapSync.createSynchronizer(imap);
-    assertEquals(0, mailboxRepository.count());
   }
 
   @AfterEach
@@ -124,7 +123,6 @@ class SynchronizerTest {
 
     @BeforeEach
     void setUp() throws InterruptedException {
-      taskExecutor.execute(subject);
       until(() -> mailboxRepository.count() > 0);
     }
 

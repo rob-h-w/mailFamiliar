@@ -5,42 +5,36 @@ import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
-import com.robwilliamson.mailfamiliar.service.imap.*;
+import com.robwilliamson.mailfamiliar.service.imap.Synchronizer;
 import com.robwilliamson.test.Wait;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.flywaydb.test.junit5.annotation.FlywayTestExtension;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.messaging.MessageChannel;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.boot.test.context.*;
+import org.springframework.boot.test.mock.mockito.*;
+import org.springframework.context.annotation.*;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
+import javax.mail.Folder;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-@FlywayTestExtension
 @FlywayTest
 @SpringBootTest
-@TestExecutionListeners({DependencyInjectionTestExecutionListener.class,
-    FlywayTestExecutionListener.class})
+@TestExecutionListeners({
+    DependencyInjectionTestExecutionListener.class,
+    FlywayTestExecutionListener.class,
+    MockitoTestExecutionListener.class})
 class ImapSyncServiceTest {
-  ImapSyncService subject;
-
-  @Mock
-  AccountProvider accountProvider;
-  @Mock
-  MessageChannel imapEventChannel;
-
+  @MockBean
+  ImapAccountService imapAccountService;
   @Autowired
   HeaderNameRepository headerNameRepository;
   @Autowired
@@ -50,14 +44,12 @@ class ImapSyncServiceTest {
   @Autowired
   MailboxRepository mailboxRepository;
   @Autowired
-  MessageRepository messageRepository;
+  Config config;
   @Autowired
-  ThreadPoolTaskExecutor taskExecutor;
-
+  ImapSyncService subject;
   Imap account1;
   Imap account2;
   Imap account3;
-  Map<Integer, Synchronizer> synchronizersByImapAccountId;
 
   private Imap makeAccount(int number) {
     var result = new Imap();
@@ -69,35 +61,31 @@ class ImapSyncServiceTest {
     return result;
   }
 
+  @AfterEach
+  void tearDown() {
+    subject.reset();
+    reset(imapAccountService);
+  }
+
   @BeforeEach
   @FlywayTest
   void setUp() throws InterruptedException {
     account1 = makeAccount(1);
     account2 = makeAccount(2);
     account3 = makeAccount(3);
-    synchronizersByImapAccountId = new HashMap<>();
+    config.synchronizersByImapAccountId = new ConcurrentHashMap<>();
 
-    when(accountProvider.getAccounts()).thenReturn(Stream.of(account3));
+    when(imapAccountService.getAccounts()).thenAnswer(answer -> Stream.of(account3));
 
-    subject = new ImapSyncService(
-        accountProvider,
-        mailboxRepository,
-        taskExecutor) {
-      @Override
-      public Synchronizer getSynchronizer(Imap imap) {
-        return synchronizersByImapAccountId.computeIfAbsent(
-            imap.getId(),
-            id -> mock(Synchronizer.class));
-      }
-    };
-    subject.initialize();
-    Wait.until(() -> !subject.synchronizers.isEmpty());
+    assertEquals(0, subject.synchronizerCount());
+    subject.discoverAccounts();
+    Wait.until(() -> subject.synchronizerCount() > 0);
   }
 
   @Test
   void onAccountRemoved() {
     subject.onAccountRemoved(account3);
-    assertEquals(0, subject.synchronizers.size());
+    assertEquals(0, subject.synchronizerCount());
   }
 
   @Test
@@ -113,9 +101,22 @@ class ImapSyncServiceTest {
         Id.of(account2.getId(), Imap.class)));
   }
 
+  @TestConfiguration
+  public static class Config {
+    Map<Integer, Synchronizer> synchronizersByImapAccountId;
+
+    @Bean(name = "Synchronizer")
+    @Scope(BeanDefinition.SCOPE_PROTOTYPE)
+    public Synchronizer createSynchronizer(Imap imap) throws FolderMissingException {
+      final Synchronizer synchronizer = mock(Synchronizer.class);
+      when(synchronizer.getFolder(any())).thenReturn(mock(Folder.class));
+      synchronizersByImapAccountId.put(imap.getId(), synchronizer);
+      return synchronizer;
+    }
+  }
+
   @Nested
   class OnNewAccount {
-
     @Nested
     class AlreadyExists {
       @BeforeEach
@@ -155,11 +156,39 @@ class ImapSyncServiceTest {
     }
 
     @Test
-    void getSynchronizer_providesTheCorrectSynchronizer() throws ImapAccountMissingException {
+    void getSynchronizer_providesTheCorrectSynchronizer() throws ImapAccountMissingException, FolderMissingException {
       assertEquals(
-          synchronizersByImapAccountId.get(account3.getId()),
+          config.synchronizersByImapAccountId.get(account3.getId()).getFolder(null),
           subject.getSynchronizer(
-              Id.of(account3.getId(), Imap.class)));
+              Id.of(account3.getId(), Imap.class)).getFolder(null));
+    }
+
+    @Nested
+    class HandleAccountMissing {
+
+      @BeforeEach
+      public void setUp() {
+        assertEquals(1, mailboxRepository.count());
+        subject.handleAccountMissing(new ImapAccountMissingException(
+            Id.of(account3.getId(), Imap.class)));
+      }
+
+      @Test
+      void removesSynchronizer() {
+        assertEquals(0, subject.synchronizerCount());
+      }
+
+      @Test
+      void removesMailbox() {
+        assertEquals(0, mailboxRepository.count());
+      }
+
+      @Test
+      void closesTheSynchronizer() {
+        verify(config.synchronizersByImapAccountId.values().iterator().next(), times(1))
+            .close();
+      }
     }
   }
 }
+
