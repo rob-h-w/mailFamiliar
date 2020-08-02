@@ -10,10 +10,34 @@ public class AdjacencyTable {
       (key, oldValue) -> oldValue == null ? 1 : oldValue + 1;
   private static final BiFunction<String, Integer, Integer> REMOVE_KEY =
       (key, oldValue) -> oldValue == null ? 0 : Math.max(0, oldValue - 1);
-
+  private static final Function<String, BiFunction<String, HashSet<String>, HashSet<String>>>
+      ADD_PAIR = (pair) -> (part, existing) -> {
+    if (existing == null) {
+      return new HashSet<>(List.of(pair));
+    }
+    existing.add(pair);
+    return existing;
+  };
+  private static final BiFunction<String, Integer, BiFunction<String, HashSet<String>,
+      HashSet<String>>> REMOVE_PAIR = (pair, count) -> (part, existing) -> {
+    if (count == 0) {
+      existing.remove(pair);
+    }
+    return existing;
+  };
+  private static final double LOG_2 = Math.log(2);
   long total;
   Map<String, Integer> count = new HashMap<>();
   Map<String, Integer> individualTotals = new HashMap<>();
+  Map<String, HashSet<String>> pairByFirst = new HashMap<>();
+
+  private static double log2(double value) {
+    return Math.log(value) / LOG_2;
+  }
+
+  private static String secondSymbol(String firstSymbol, String pair) {
+    return pair.substring(firstSymbol.length());
+  }
 
   public void add(String string) {
     mutate(string, this::increment);
@@ -50,6 +74,7 @@ public class AdjacencyTable {
   private void increment(String key, String individual) {
     count.compute(key, ADD_KEY);
     individualTotals.compute(individual, ADD_KEY);
+    pairByFirst.compute(individual, ADD_PAIR.apply(key));
     total++;
 
     if (key.endsWith(END)) {
@@ -60,6 +85,7 @@ public class AdjacencyTable {
   private void decrement(String key, String individual) {
     count.compute(key, REMOVE_KEY);
     individualTotals.compute(individual, REMOVE_KEY);
+    pairByFirst.compute(individual, REMOVE_PAIR.apply(key, count.get(key)));
     total--;
 
     if (key.endsWith(END)) {
@@ -121,17 +147,40 @@ public class AdjacencyTable {
 
   public double probabilityOf(String string) {
     List<Double> pairScores = visit(string,
-        (key, individual) -> {
-          double denominator = individualTotals.getOrDefault(individual, 0);
-          if (denominator == 0) {
-            return 0d;
-          }
-
-          return countFor(key) / denominator;
-        });
+        (key, individual) -> pOf(individual, key));
     return pairScores.isEmpty()
         ? 0d
         : pairScores.stream().reduce(Double::sum).orElse(0d) / pairScores.size();
+  }
+
+  public double entropyBits() {
+    if (individualTotals.isEmpty()) {
+      return 0;
+    }
+    if (total - individualTotals.get(START) <= 0) {
+      return 0;
+    }
+    return -(individualTotals.keySet()
+        .stream()
+        .flatMapToDouble(first -> pairByFirst.getOrDefault(first, new HashSet<>())
+            .stream()
+            .mapToDouble(pair -> {
+              final double p = Math.min(1.0, pOf(first, pair));
+              if (p == 0) {
+                return 0;
+              }
+              return p * log2(p);
+            }))
+        .reduce(0, Double::sum));
+  }
+
+  private double pOf(String first, String pair) {
+    double denominator = individualTotals.getOrDefault(first, 0);
+    if (denominator == 0) {
+      return 0d;
+    }
+
+    return countFor(pair) / denominator;
   }
 
   public static class StringAbsentException extends Throwable {

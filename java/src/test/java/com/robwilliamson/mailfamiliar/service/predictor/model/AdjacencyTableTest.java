@@ -47,6 +47,11 @@ class AdjacencyTableTest {
 
       assertEquals(0L, subject.getTotal());
     }
+
+    @Test
+    void entropy_returns0() {
+      assertEquals(0, subject.entropyBits(), 0);
+    }
   }
 
   @Nested
@@ -81,6 +86,24 @@ class AdjacencyTableTest {
       @Test
       void getTotal_returns2() {
         assertEquals(2L, subject.getTotal());
+      }
+
+      @Test
+      void entropy_returns0() {
+        assertEquals(0, subject.entropyBits(), 0);
+      }
+
+      @Nested
+      class ThenNextCharacter {
+        @BeforeEach
+        void setUp() {
+          subject.add("b");
+        }
+
+        @Test
+        void entropy_isCorrect() {
+          assertEquals(1, subject.entropyBits(), 0);
+        }
       }
 
       @Nested
@@ -118,6 +141,11 @@ class AdjacencyTableTest {
           assertEquals(8L, subject.getTotal());
         }
 
+        @Test
+        void entropy_isCorrect() {
+          assertEquals(1, subject.entropyBits(), 0);
+        }
+
         @Nested
         class ThenRemove {
           @BeforeEach
@@ -128,6 +156,11 @@ class AdjacencyTableTest {
           @Test
           void getTotal_returns4() {
             assertEquals(4L, subject.getTotal());
+          }
+
+          @Test
+          void entropy_isCorrect() {
+            assertEquals(1, subject.entropyBits(), 0);
           }
         }
 
@@ -164,6 +197,11 @@ class AdjacencyTableTest {
             assertThrows(
                 AdjacencyTable.StringAbsentException.class,
                 () -> subject.removeStrict("bcd"));
+          }
+
+          @Test
+          void entropy_isCorrect() {
+            assertEquals(0, subject.entropyBits(), 0);
           }
         }
       }
