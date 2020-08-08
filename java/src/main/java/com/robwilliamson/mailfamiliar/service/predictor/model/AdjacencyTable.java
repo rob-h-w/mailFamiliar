@@ -1,9 +1,11 @@
 package com.robwilliamson.mailfamiliar.service.predictor.model;
 
+import com.robwilliamson.mailfamiliar.exceptions.StringAbsentException;
+
 import java.util.*;
 import java.util.function.*;
 
-public class AdjacencyTable {
+public class AdjacencyTable implements EntropyMeasured, StringAnalyzer {
   public static final String START = "Start";
   public static final String END = "End";
   private static final BiFunction<String, Integer, Integer> ADD_KEY =
@@ -35,10 +37,7 @@ public class AdjacencyTable {
     return Math.log(value) / LOG_2;
   }
 
-  private static String secondSymbol(String firstSymbol, String pair) {
-    return pair.substring(firstSymbol.length());
-  }
-
+  @Override
   public void add(String string) {
     mutate(string, this::increment);
   }
@@ -117,11 +116,8 @@ public class AdjacencyTable {
     return total;
   }
 
-  public void remove(String string) {
-    mutate(string, this::decrement);
-  }
-
-  public void removeStrict(String string) throws StringAbsentException {
+  @Override
+  public void remove(String string) throws StringAbsentException {
     if (string == null || string.isEmpty()) {
       return;
     }
@@ -142,7 +138,7 @@ public class AdjacencyTable {
       throw new StringAbsentException();
     }
 
-    remove(string);
+    mutate(string, this::decrement);
   }
 
   public double probabilityOf(String string) {
@@ -153,6 +149,7 @@ public class AdjacencyTable {
         : pairScores.stream().reduce(Double::sum).orElse(0d) / pairScores.size();
   }
 
+  @Override
   public double entropyBits() {
     if (individualTotals.isEmpty()) {
       return 0;
@@ -183,6 +180,4 @@ public class AdjacencyTable {
     return countFor(pair) / denominator;
   }
 
-  public static class StringAbsentException extends Throwable {
-  }
 }

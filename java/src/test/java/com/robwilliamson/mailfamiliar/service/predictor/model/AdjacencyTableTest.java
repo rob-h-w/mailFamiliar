@@ -1,5 +1,6 @@
 package com.robwilliamson.mailfamiliar.service.predictor.model;
 
+import com.robwilliamson.mailfamiliar.exceptions.StringAbsentException;
 import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -149,26 +150,8 @@ class AdjacencyTableTest {
         @Nested
         class ThenRemove {
           @BeforeEach
-          void setUp() {
-            subject.remove("bcd");
-          }
-
-          @Test
-          void getTotal_returns4() {
-            assertEquals(4L, subject.getTotal());
-          }
-
-          @Test
-          void entropy_isCorrect() {
-            assertEquals(1, subject.entropyBits(), 0);
-          }
-        }
-
-        @Nested
-        class ThenStrictRemove {
-          @BeforeEach
-          void setUp() throws AdjacencyTable.StringAbsentException {
-            subject.removeStrict("a");
+          void setUp() throws StringAbsentException {
+            subject.remove("a");
           }
 
           @Test
@@ -195,8 +178,8 @@ class AdjacencyTableTest {
           @Test
           void strictRemoveOfAbsent_throws() {
             assertThrows(
-                AdjacencyTable.StringAbsentException.class,
-                () -> subject.removeStrict("bcd"));
+                StringAbsentException.class,
+                () -> subject.remove("bcd"));
           }
 
           @Test
