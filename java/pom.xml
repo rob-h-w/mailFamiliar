@@ -102,6 +102,11 @@
             <artifactId>spring-integration-core</artifactId>
             <version>5.2.6.RELEASE</version>
         </dependency>
+        <dependency>
+            <groupId>com.googlecode.java-diff-utils</groupId>
+            <artifactId>diffutils</artifactId>
+            <version>1.3.0</version>
+        </dependency>
     </dependencies>
 
     <build>
