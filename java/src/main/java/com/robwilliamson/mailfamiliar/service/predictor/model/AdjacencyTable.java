@@ -5,7 +5,7 @@ import com.robwilliamson.mailfamiliar.exceptions.StringAbsentException;
 import java.util.*;
 import java.util.function.*;
 
-public class AdjacencyTable implements EntropyMeasured, StringAnalyzer {
+public class AdjacencyTable implements EntropyMeasured, StringAnalyzer, StringProbability {
   public static final String START = "Start";
   public static final String END = "End";
   private static final BiFunction<String, Integer, Integer> ADD_KEY =
@@ -141,6 +141,7 @@ public class AdjacencyTable implements EntropyMeasured, StringAnalyzer {
     mutate(string, this::decrement);
   }
 
+  @Override
   public double probabilityOf(String string) {
     List<Double> pairScores = visit(string,
         (key, individual) -> pOf(individual, key));
