@@ -3,6 +3,12 @@ username: 'whut'
 password: 'up'
 
 spring:
+  data:
+    rest:
+      base-path: /api
+  datasource:
+    tomcat:
+      max-active: 1
   jpa:
     properties:
       hibernate:
