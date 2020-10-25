@@ -1,0 +1,214 @@
+package com.robwilliamson.mailfamiliar.service.predictor.model;
+
+import com.robwilliamson.mailfamiliar.exceptions.StringAbsentException;
+import lombok.*;
+
+import java.util.*;
+import java.util.function.BiFunction;
+import java.util.stream.*;
+
+import static org.springframework.data.util.StreamUtils.zip;
+
+@RequiredArgsConstructor
+@Getter(AccessLevel.PACKAGE)
+public class Ngram implements StringAnalyzer {
+  public static final String END = "end";
+  public static final String START = "st";
+  private static final BiFunction<String, Integer, Integer> ADD =
+      (String key, Integer count) -> count == null ? 1 : ++count;
+  private static final BiFunction<String, Integer, Integer> REMOVE =
+      (String key, Integer count) -> count == null ? 0 : --count;
+
+  @Getter(AccessLevel.NONE)
+  private final int n;
+  @Getter(AccessLevel.NONE)
+  private final StringStore stringStore;
+
+  long total;
+  Map<String, Integer> count = new HashMap<>();
+  Map<String, Integer> leadingTotals = new HashMap<>();
+  Map<String, HashSet<String>> gramByLeading = new HashMap<>();
+
+  private static String makePad(int length) {
+    final String pad = length < 0 ? START : END;
+    return IntStream
+        .range(0, Math.abs(length))
+        .mapToObj(i -> pad)
+        .collect(Collectors.joining());
+  }
+
+  @Override
+  public void add(String string) {
+    paddedConvolutionOf(string)
+        .forEach(this::addGram);
+    total += string.length();
+  }
+
+  private void addGram(String gram) {
+    count.compute(gram, ADD);
+
+    final String leading = padAwareSubstring(gram, 0, n - 1);
+    leadingTotals.compute(leading, ADD);
+    gramByLeading.compute(leading, (String key, HashSet<String> set) -> {
+      if (set == null) {
+        return new HashSet<>(List.of(gram));
+      }
+
+      set.add(gram);
+      return set;
+    });
+  }
+
+  String padAwareSubstring(String string, int startIndex, int endIndex) {
+    if (string.length() == n) {
+      return string.substring(startIndex, endIndex);
+    }
+
+    final boolean padIsStart = string.startsWith(START);
+    final boolean padIsEnd = string.endsWith(END);
+
+    if (!padIsEnd && !padIsStart) {
+      throw new IllegalArgumentException(string + " must be either a start or end string.");
+    }
+
+    if (padIsEnd) {
+      final int endCount = countEnds(string);
+      final int endLength = endCount * END.length();
+      final int nonEndCharacterStringLength = string.length() - endLength;
+
+      if (nonEndCharacterStringLength > endIndex) {
+        return string.substring(startIndex, endIndex);
+      }
+
+      if (startIndex > nonEndCharacterStringLength) {
+        return IntStream.range(0, endIndex - startIndex)
+            .mapToObj(i -> END)
+            .collect(Collectors.joining());
+      }
+
+      return string.substring(startIndex, nonEndCharacterStringLength)
+          + IntStream.range(0, endIndex - nonEndCharacterStringLength)
+          .mapToObj(i -> END)
+          .collect(Collectors.joining());
+    }
+
+    final int startCount = countStarts(string);
+    if (endIndex <= startCount) {
+      return IntStream.range(0, endIndex - startIndex)
+          .mapToObj(i -> START)
+          .collect(Collectors.joining());
+    }
+
+    final int startLength = startCount * START.length();
+    final int startDiff = startLength - startCount;
+    if (startCount <= startIndex) {
+      return string.substring(startLength + startIndex - startCount, endIndex + startDiff);
+    }
+
+    return IntStream.range(0, startCount - startIndex)
+        .mapToObj(i -> START)
+        .collect(Collectors.joining())
+        + string.substring(startLength, endIndex + startDiff);
+  }
+
+  private int countStarts(String string) {
+    if (string.length() < n) {
+      return 0;
+    }
+
+    return string.startsWith(START)
+        ? 1 + countStarts(string.substring(START.length()))
+        : 0;
+  }
+
+  private int countEnds(String string) {
+    if (string.length() < n) {
+      return 0;
+    }
+
+    return string.endsWith(END)
+        ? 1 + countEnds(string.substring(0, string.length() - END.length()))
+        : 0;
+  }
+
+  Stream<String> paddedConvolutionOf(String string) {
+    final int length = string.length();
+    return zip(
+        convolutionOf(string),
+        IntStream
+            .range(1 - n, length)
+            .map(i -> {
+              if (i < 0) {
+                return i;
+              }
+
+              if (i < length - n) {
+                return 0;
+              }
+
+              return i - length + n;
+            })
+            .boxed(),
+        (String gram, Integer padCount) -> {
+          if (padCount == 0) {
+            return gram;
+          }
+
+          if (padCount < 0) {
+            String result = makePad(padCount) + gram;
+            final int starts = countStarts(result);
+            final int remainder = result.length() - START.length() * starts;
+            final int resultLength = starts + remainder;
+
+            if (resultLength < n) {
+              result += makePad(n - resultLength);
+            }
+
+            return result;
+          }
+
+          return gram + makePad(padCount);
+        });
+  }
+
+  Stream<String> convolutionOf(String string) {
+    final int length = string.length();
+    return IntStream
+        .range(1 - n, length)
+        .mapToObj(i -> {
+          int start = Math.max(i, 0);
+          int end = Math.min(i + n, string.length());
+          return string.substring(start, end);
+        });
+  }
+
+  @Override
+  public void remove(String string) throws StringAbsentException {
+    if (!stringStore.stringExists(string)) {
+      throw new StringAbsentException();
+    }
+
+    paddedConvolutionOf(string)
+        .forEach(this::removeGram);
+    total -= string.length();
+  }
+
+  private void removeGram(String gram) {
+    count.compute(gram, REMOVE);
+
+    final String leading = padAwareSubstring(gram, 0, n - 1);
+    leadingTotals.compute(leading, REMOVE);
+    gramByLeading.compute(leading, (String key, HashSet<String> set) -> {
+      if (set == null) {
+        return new HashSet<>();
+      }
+
+      if (count.getOrDefault(gram, 0) == 0) {
+        set.remove(gram);
+        count.remove(gram);
+      }
+
+      return set;
+    });
+  }
+}
