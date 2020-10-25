@@ -11,7 +11,9 @@ import static org.springframework.data.util.StreamUtils.zip;
 
 @RequiredArgsConstructor
 @Getter(AccessLevel.PACKAGE)
-public class Ngram implements StringAnalyzer {
+public class Ngram implements
+    StringAnalyzer,
+    StringProbability {
   public static final String END = "end";
   public static final String START = "st";
   private static final BiFunction<String, Integer, Integer> ADD =
@@ -210,5 +212,22 @@ public class Ngram implements StringAnalyzer {
 
       return set;
     });
+  }
+
+  @Override
+  public double probabilityOf(String string) {
+    return paddedConvolutionOf(string)
+        .mapToDouble(gram -> {
+          final int leadingTotal = leadingTotals.getOrDefault(padAwareSubstring(gram, 0, n - 1), 1);
+
+          if (leadingTotal == 0) {
+            return 0;
+          }
+
+          return ((double) count.getOrDefault(gram, 0))
+              / leadingTotal;
+        })
+        .average()
+        .orElse(0);
   }
 }

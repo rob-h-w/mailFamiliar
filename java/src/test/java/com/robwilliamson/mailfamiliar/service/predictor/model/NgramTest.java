@@ -1,6 +1,7 @@
 package com.robwilliamson.mailfamiliar.service.predictor.model;
 
 import com.robwilliamson.mailfamiliar.exceptions.StringAbsentException;
+import org.assertj.core.data.Percentage;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -57,6 +58,18 @@ class NgramTest {
           "cend", 1
       ));
       assertThat(ngram.getTotal()).isEqualTo(3L);
+    }
+
+    @Test
+    void probabilityOf_works() {
+      assertThat(ngram.probabilityOf("anything")).isEqualTo(0);
+
+      ngram.add("abc");
+      assertThat(ngram.probabilityOf("abc")).isEqualTo(1);
+      ngram.add("abc");
+      assertThat(ngram.probabilityOf("abc")).isEqualTo(1);
+      ngram.add("ab");
+      assertThat(ngram.probabilityOf("abc")).isCloseTo(1.0, Percentage.withPercentage(10));
     }
   }
 
