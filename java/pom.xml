@@ -100,7 +100,7 @@
         <dependency>
             <groupId>org.springframework.integration</groupId>
             <artifactId>spring-integration-core</artifactId>
-            <version>5.2.6.RELEASE</version>
+            <version>5.2.9.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.java-diff-utils</groupId>
