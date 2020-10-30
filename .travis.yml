@@ -10,8 +10,13 @@ jobs:
         - chmod +x ./cc-test-reporter
 
       script:
-          - yarn lint
-          - yarn prettier
-          - yarn prettier-test
-          - yarn build
-          - ./test_and_report.sh
+        - yarn lint
+        - yarn prettier
+        - yarn prettier-test
+        - yarn build
+        - ./test_and_report.sh
+    - language: java
+      jdk: openjdk11
+
+      script:
+        - pushd java && ./mvnw test -B
