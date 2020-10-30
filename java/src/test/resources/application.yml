@@ -1,0 +1,36 @@
+url: 'jdbc:sqlite:test.db'
+username: 'user'
+password: 'password'
+
+application-description: ${project.description}
+
+spring:
+  data:
+    rest:
+      base-path: /api
+  jpa:
+    generate-ddl: false
+    open-in-view: true
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: com.robwilliamson.mailfamiliar.sqlite.Dialect
+        hbm2ddl:
+          auto: validate
+        show_sql: true
+        format-sql: true
+  flyway:
+    baseline-on-migrate: true
+    enabled: true
+    password: ${password}
+    url: ${url}
+    user: ${username}
+  main:
+    allow-bean-definition-overriding: true
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            clientId: ${GITHUB_CLIENT_ID}
+            clientSecret: ${GITHUB_CLIENT_SECRET}

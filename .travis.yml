@@ -1,20 +1,22 @@
-language: node_js
-
-before_script:
-  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-  - chmod +x ./cc-test-reporter
-
-script: skip
-
+os: linux
+dist: xenial
+language: shell
 jobs:
   include:
-    - stage: fail fast
-      script: yarn lint
-    - stage: fail fast
-      script: yarn prettier
-    - stage: fail fast
-      script: yarn prettier-test
-    - stage: fail fast
-      script: yarn build
-    - stage: test
-      script: ./test_and_report.sh
+    - language: node_js
+
+      before_script:
+        - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+        - chmod +x ./cc-test-reporter
+
+      script:
+        - yarn lint
+        - yarn prettier
+        - yarn prettier-test
+        - yarn build
+        - ./test_and_report.sh
+    - language: java
+      jdk: openjdk11
+
+      script:
+        - pushd java && ./mvnw test -B
