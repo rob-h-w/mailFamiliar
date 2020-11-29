@@ -1,7 +1,8 @@
 package com.robwilliamson.mailfamiliar.config;
 
 import org.springframework.context.annotation.*;
-import org.springframework.core.task.TaskExecutor;
+import org.springframework.context.event.*;
+import org.springframework.core.task.*;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration
@@ -15,5 +16,13 @@ public class ThreadPool {
     taskExecutor.setThreadNamePrefix("default_task_executor_thread_");
     taskExecutor.initialize();
     return taskExecutor;
+  }
+
+  @Bean(name = "applicationEventMulticaster")
+  public ApplicationEventMulticaster simpleApplicationEventMulticaster() {
+    final SimpleApplicationEventMulticaster simpleApplicationEventMulticaster =
+        new SimpleApplicationEventMulticaster();
+    simpleApplicationEventMulticaster.setTaskExecutor(new SimpleAsyncTaskExecutor());
+    return simpleApplicationEventMulticaster;
   }
 }
