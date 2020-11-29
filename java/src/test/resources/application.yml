@@ -8,6 +8,9 @@ spring:
   data:
     rest:
       base-path: /api
+  datasource:
+    tomcat:
+      max-active: 1
   jpa:
     generate-ddl: false
     open-in-view: true
