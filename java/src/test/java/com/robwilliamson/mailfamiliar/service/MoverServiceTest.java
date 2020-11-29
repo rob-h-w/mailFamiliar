@@ -10,7 +10,7 @@ import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.*;
 import org.springframework.core.task.TaskExecutor;
@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @FlywayTest
-@SpringBootTest
+@SpringBootTest("spring.datasource.tomcat.max-active=1")
 @TestExecutionListeners({
     DependencyInjectionTestExecutionListener.class,
     MockitoTestExecutionListener.class,
