@@ -2,20 +2,19 @@ package com.robwilliamson.mailfamiliar.service.imap;
 
 import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.User;
+import com.robwilliamson.mailfamiliar.event.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
-import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
-import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.*;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.messaging.MessageChannel;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
@@ -48,8 +47,8 @@ class SynchronizerTest {
   MailboxRepository mailboxRepository;
   @Autowired
   MessageRepository messageRepository;
-  @MockBean(name = "imapEvent")
-  MessageChannel imapEventChannel;
+  @MockBean
+  ApplicationEventPublisher applicationEventPublisher;
   @MockBean
   StoreFactory storeFactory;
   @Mock
@@ -93,28 +92,26 @@ class SynchronizerTest {
     when(defaultFolder.getName()).thenReturn("");
     when(store.getDefaultFolder()).thenReturn(defaultFolder);
     doReturn(store).when(storeFactory).getInstance(any(), any());
-    when(imapEventChannel.send(any(FolderSynchronized.class)))
-        .thenAnswer((Answer<Void>) invocationOnMock -> {
-          final var event = invocationOnMock.getArguments()[0];
-          if (event instanceof FolderSynchronized) {
-            folderSynchronized = (FolderSynchronized) event;
-          }
-          return null;
-        });
-    when(imapEventChannel.send(any(FolderRemoved.class)))
-        .thenAnswer((Answer<Void>) invocationOnMock -> {
-          final var event = invocationOnMock.getArguments()[0];
-          if (event instanceof FolderRemoved) {
-            folderRemoved = (FolderRemoved) event;
-          }
-          return null;
-        });
+    doAnswer(invocation -> {
+      final var event = invocation.getArguments()[0];
+      if (event instanceof FolderSynchronized) {
+        folderSynchronized = (FolderSynchronized) event;
+      }
+      return null;
+    }).when(applicationEventPublisher).publishEvent(any(FolderSynchronized.class));
+    doAnswer(invocation -> {
+      final var event = invocation.getArguments()[0];
+      if (event instanceof FolderRemoved) {
+        folderRemoved = (FolderRemoved) event;
+      }
+      return null;
+    }).when(applicationEventPublisher).publishEvent(any(FolderRemoved.class));
     subject = imapSync.createSynchronizer(imap);
   }
 
   @AfterEach
   void tearDown() {
-    reset(imapEventChannel);
+    reset(applicationEventPublisher);
     reset(storeFactory);
   }
 
@@ -139,8 +136,8 @@ class SynchronizerTest {
 
     @Test
     void signalsThatTheDefaultFolderIsAvailable() {
-      verify(imapEventChannel, times(1))
-          .send(any(DefaultFolderAvailable.class));
+      verify(applicationEventPublisher, times(1))
+          .publishEvent(any(DefaultFolderAvailable.class));
     }
   }
 
@@ -193,14 +190,14 @@ class SynchronizerTest {
 
       @Test
       void synchronizesTheMessages() {
-        verify(imapEventChannel, times(1))
-            .send(any(ImapMessage.class));
+        verify(applicationEventPublisher, times(1))
+            .publishEvent(any(ImapMessage.class));
       }
 
       @Test
       void doesNotReportExceptions() {
-        verify(imapEventChannel, times(0))
-            .send(any(SynchronizerException.class));
+        verify(applicationEventPublisher, times(0))
+            .publishEvent(any(SynchronizerFailureEvent.class));
       }
 
       @Nested

@@ -3,18 +3,17 @@ package com.robwilliamson.mailfamiliar.service.imap;
 import com.robwilliamson.mailfamiliar.MailfamiliarApplication;
 import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.Mailbox;
+import com.robwilliamson.mailfamiliar.event.ImapMessage;
 import com.robwilliamson.mailfamiliar.repository.*;
-import com.robwilliamson.mailfamiliar.service.imap.events.ImapMessage;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
-import org.mockito.stubbing.Answer;
 import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.*;
-import org.springframework.messaging.MessageChannel;
+import org.springframework.boot.test.mock.mockito.MockitoTestExecutionListener;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
@@ -39,8 +38,8 @@ class FolderObserverTest {
   HeaderNameRepository headerNameRepository;
   @Autowired
   HeaderRepository headerRepository;
-  @MockBean(name = "imapEvent")
-  MessageChannel imapEventChannel;
+  @Autowired
+  ApplicationEventPublisher applicationEventPublisher;
   @Autowired
   ImapSync imapSync;
   @Autowired
@@ -55,14 +54,6 @@ class FolderObserverTest {
   @FlywayTest
   void setUp() {
     imapMessage = null;
-    when(imapEventChannel.send(any(ImapMessage.class)))
-        .thenAnswer((Answer<Void>) invocationOnMock -> {
-          final var event = invocationOnMock.getArguments()[0];
-          if (event instanceof ImapMessage) {
-            imapMessage = (ImapMessage) event;
-          }
-          return null;
-        });
     mailbox = new Mailbox();
     mailbox.setId(1);
     subject = imapSync.createFolderObserver(folder, mailbox);

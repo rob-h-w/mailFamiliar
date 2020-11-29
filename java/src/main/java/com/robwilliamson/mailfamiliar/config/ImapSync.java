@@ -6,20 +6,20 @@ import com.robwilliamson.mailfamiliar.service.CryptoService;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.*;
-import org.springframework.messaging.MessageChannel;
 
 import javax.mail.*;
 
 @Configuration
 @RequiredArgsConstructor
 public class ImapSync {
+  private final ApplicationEventPublisher applicationEventPublisher;
   private final CryptoService cryptoService;
   private final HeaderNameRepository headerNameRepository;
   private final HeaderRepository headerRepository;
   private final MailboxRepository mailboxRepository;
   private final MessageRepository messageRepository;
-  private final MessageChannel imapEvent;
   private final SyncRepository syncRepository;
 
   @Bean
@@ -33,10 +33,10 @@ public class ImapSync {
   @Scope(BeanDefinition.SCOPE_PROTOTYPE)
   public Synchronizer createSynchronizer(Imap imap) {
     return new Synchronizer(
+        applicationEventPublisher,
         cryptoService,
         imap,
         this,
-        imapEvent,
         mailboxRepository,
         createStoreFactory(),
         syncRepository);
@@ -48,10 +48,10 @@ public class ImapSync {
       Folder folder,
       Mailbox mailbox) {
     return new FolderObserver(
+        applicationEventPublisher,
         folder,
         headerNameRepository,
         headerRepository,
-        imapEvent,
         mailbox,
         messageRepository);
   }

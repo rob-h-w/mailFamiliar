@@ -1,26 +1,33 @@
-package com.robwilliamson.mailfamiliar.service.imap.events;
+package com.robwilliamson.mailfamiliar.event;
 
 import com.robwilliamson.mailfamiliar.entity.Imap;
 import com.robwilliamson.mailfamiliar.model.Id;
-import lombok.*;
+import lombok.Getter;
+import org.springframework.context.ApplicationEvent;
 
 import java.util.Optional;
 
 @Getter
-@RequiredArgsConstructor
-public class SynchronizerException extends ImapEvent<SynchronizerException.Reason> {
+public class SynchronizerFailureEvent extends ApplicationEvent {
   private final Id<Imap> imapAccountId;
   private final Reason reason;
   private final Optional<Throwable> throwable;
 
-  public static Builder builder(Id<Imap> imapAccountId) {
-    return new Builder(imapAccountId);
+  public SynchronizerFailureEvent(
+      Object source,
+      Id<Imap> imapAccountId,
+      Reason reason,
+      Optional<Throwable> throwable) {
+    super(source);
+    this.imapAccountId = imapAccountId;
+    this.reason = reason;
+    this.throwable = throwable;
   }
 
-  @Override
-  public Reason getPayload() {
-    return reason;
+  public static Builder builder(Object source, Id<Imap> imapAccountId) {
+    return new Builder(source, imapAccountId);
   }
+
 
   public enum Reason {
     ClosedIntentionally,
@@ -32,11 +39,13 @@ public class SynchronizerException extends ImapEvent<SynchronizerException.Reaso
   }
 
   public static class Builder {
+    private final Object source;
     private final Id<Imap> imapAccountId;
     private Reason reason = Reason.Error;
     private Throwable throwable;
 
-    private Builder(Id<Imap> imapAccountId) {
+    private Builder(Object source, Id<Imap> imapAccountId) {
+      this.source = source;
       this.imapAccountId = imapAccountId;
     }
 
@@ -49,8 +58,12 @@ public class SynchronizerException extends ImapEvent<SynchronizerException.Reaso
       return this;
     }
 
-    public SynchronizerException build() {
-      return new SynchronizerException(imapAccountId, reason, Optional.ofNullable(throwable));
+    public SynchronizerFailureEvent build() {
+      return new SynchronizerFailureEvent(
+          source,
+          imapAccountId,
+          reason,
+          Optional.ofNullable(throwable));
     }
 
     public Builder reason(Reason reason) {
