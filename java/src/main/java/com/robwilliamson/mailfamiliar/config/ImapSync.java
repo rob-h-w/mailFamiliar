@@ -6,7 +6,9 @@ import com.robwilliamson.mailfamiliar.service.CryptoService;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.*;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.messaging.MessageChannel;
 
 import javax.mail.*;
@@ -15,6 +17,7 @@ import javax.mail.*;
 @RequiredArgsConstructor
 public class ImapSync {
   private final CryptoService cryptoService;
+  private final ApplicationEventPublisher eventPublisher;
   private final HeaderNameRepository headerNameRepository;
   private final HeaderRepository headerRepository;
   private final MailboxRepository mailboxRepository;
@@ -31,15 +34,17 @@ public class ImapSync {
 
   @Bean(name = "Synchronizer")
   @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-  public Synchronizer createSynchronizer(Imap imap) {
+  public Synchronizer createSynchronizer(Imap imap, TaskExecutor taskExecutor) {
     return new Synchronizer(
         cryptoService,
+        eventPublisher,
         imap,
         this,
         imapEvent,
         mailboxRepository,
         createStoreFactory(),
-        syncRepository);
+        syncRepository,
+        taskExecutor);
   }
 
   @Bean(name = "FolderObserver")
