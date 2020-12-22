@@ -97,7 +97,7 @@ public class Synchronizer implements
       store.addStoreListener(this);
       final Folder defaultFolder = store.getDefaultFolder();
       defaultFolder.addFolderListener(this);
-      imapEventChannel.send(new DefaultFolderAvailable(defaultFolder, imapAccountId));
+      eventPublisher.publishEvent(new DefaultFolderAvailable(defaultFolder, imapAccountId));
       while (!closing) {
         sync(defaultFolder);
         folderLock.lock();

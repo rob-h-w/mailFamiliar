@@ -138,8 +138,8 @@ class SynchronizerTest {
 
     @Test
     void signalsThatTheDefaultFolderIsAvailable() {
-      verify(imapEventChannel, times(1))
-          .send(any(DefaultFolderAvailable.class));
+      verify(synchronizedEventReceiver, times(1))
+          .onEvent(any(DefaultFolderAvailable.class));
     }
   }
 
