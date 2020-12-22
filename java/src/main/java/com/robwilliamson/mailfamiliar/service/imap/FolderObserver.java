@@ -7,6 +7,7 @@ import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.MessageChannel;
 
 import javax.annotation.PostConstruct;
@@ -27,6 +28,7 @@ public class FolderObserver implements
     ConnectionListener,
     MessageChangedListener,
     MessageCountListener {
+  private final ApplicationEventPublisher eventPublisher;
   private final Folder folder;
   private final HeaderNameRepository headerNameRepository;
   private final HeaderRepository headerRepository;
@@ -72,7 +74,7 @@ public class FolderObserver implements
     } catch (
         MessagingException
             | FromMissingException e) {
-      imapEventChannel.send(SynchronizerException.builder(mailbox.getImapAccountIdObject())
+      eventPublisher.publishEvent(SynchronizerException.builder(mailbox.getImapAccountIdObject())
           .throwable(e)
           .build());
     }
@@ -132,7 +134,7 @@ public class FolderObserver implements
     } catch (
         MessagingException
             | FromMissingException e) {
-      imapEventChannel.send(SynchronizerException.builder(mailbox.getImapAccountIdObject())
+      eventPublisher.publishEvent(SynchronizerException.builder(mailbox.getImapAccountIdObject())
           .throwable(e)
           .build());
     }

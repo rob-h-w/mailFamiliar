@@ -53,6 +53,7 @@ public class ImapSync {
       Folder folder,
       Mailbox mailbox) {
     return new FolderObserver(
+        eventPublisher,
         folder,
         headerNameRepository,
         headerRepository,
