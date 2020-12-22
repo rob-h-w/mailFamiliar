@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.messaging.MessageChannel;
 
 import javax.annotation.PostConstruct;
 import javax.mail.Message;
@@ -37,7 +36,6 @@ public class Synchronizer implements
   private final ApplicationEventPublisher eventPublisher;
   private final Imap imap;
   private final ImapSync imapSync;
-  private final MessageChannel imapEventChannel;
   private final MailboxRepository mailboxRepository;
   private final StoreFactory storeFactory;
   private final SyncRepository syncRepository;
@@ -302,7 +300,7 @@ public class Synchronizer implements
             .setParameter("mailboxId", mailbox.getId())
             .executeUpdate();
         mailboxRepository.delete(mailbox);
-        imapEventChannel.send(new FolderRemoved(mailbox));
+        eventPublisher.publishEvent(new FolderRemoved(mailbox));
       }
       close(folder);
     } catch (MessagingException e) {
