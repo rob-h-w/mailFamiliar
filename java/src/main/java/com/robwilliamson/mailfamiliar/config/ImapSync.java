@@ -40,7 +40,6 @@ public class ImapSync {
         eventPublisher,
         imap,
         this,
-        imapEvent,
         mailboxRepository,
         createStoreFactory(),
         syncRepository,

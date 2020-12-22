@@ -96,14 +96,13 @@ class SynchronizerTest {
     lenient().when(defaultFolder.getName()).thenReturn("");
     when(store.getDefaultFolder()).thenReturn(defaultFolder);
     doReturn(store).when(storeFactory).getInstance(any(), any());
-    when(imapEventChannel.send(any(FolderRemoved.class)))
-        .thenAnswer((Answer<Void>) invocationOnMock -> {
-          final var event = invocationOnMock.getArguments()[0];
-          if (event instanceof FolderRemoved) {
-            folderRemoved = (FolderRemoved) event;
-          }
-          return null;
-        });
+    doAnswer((Answer<Void>) invocationOnMock -> {
+      final var event = invocationOnMock.getArguments()[0];
+      if (event instanceof FolderRemoved) {
+        folderRemoved = (FolderRemoved) event;
+      }
+      return null;
+    }).when(synchronizedEventReceiver).onEvent(any(FolderRemoved.class));
     subject = imapSync.createSynchronizer(imap, taskExecutor);
   }
 
