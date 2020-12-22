@@ -68,7 +68,7 @@ public class Synchronizer implements
           Id.of(imap.getUserId(), User.class),
           Id.of(imap.getPassword(), Encrypted.class));
     } catch (MissingSecretException | MissingUserException e) {
-      imapEventChannel.send(new SynchronizerException(
+      eventPublisher.publishEvent(new SynchronizerException(
           imapAccountId,
           SynchronizerException.Reason.ProgrammerError,
           Optional.of(e)));
@@ -108,26 +108,26 @@ public class Synchronizer implements
         }
       }
     } catch (MessagingException | FromMissingException e) {
-      imapEventChannel.send(SynchronizerException
+      eventPublisher.publishEvent(SynchronizerException
           .builder(imapAccountId)
           .throwable(e)
           .reason(SynchronizerException.Reason.ClosedUnexpectedly)
           .build());
     } catch (InterruptedException e) {
       if (closing) {
-        imapEventChannel.send(SynchronizerException
+        eventPublisher.publishEvent(SynchronizerException
             .builder(imapAccountId)
             .throwable(e)
             .reason(SynchronizerException.Reason.ClosedUnexpectedly)
             .build());
       } else {
-        imapEventChannel.send(SynchronizerException
+        eventPublisher.publishEvent(SynchronizerException
             .builder(imapAccountId)
             .closedIntentionally()
             .build());
       }
     } catch (Throwable e) {
-      imapEventChannel.send(SynchronizerException
+      eventPublisher.publishEvent(SynchronizerException
           .builder(imapAccountId)
           .throwable(e)
           .build());
@@ -159,7 +159,7 @@ public class Synchronizer implements
       return mailbox;
     } catch (MessagingException e) {
       folderObervers.remove(folder);
-      imapEventChannel.send(new SynchronizerException(imapAccountId,
+      eventPublisher.publishEvent(new SynchronizerException(imapAccountId,
           SynchronizerException.Reason.OpenError, Optional.of(e)));
       throw e;
     } finally {
@@ -232,7 +232,7 @@ public class Synchronizer implements
       observer.close();
       foldersByName.remove(fullyQualifiedName(folder));
     } catch (MessagingException e) {
-      imapEventChannel.send(SynchronizerException
+      eventPublisher.publishEvent(SynchronizerException
           .builder(imapAccountId)
           .reason(SynchronizerException.Reason.CloseError)
           .throwable(e)
@@ -255,7 +255,7 @@ public class Synchronizer implements
         InterruptedException
             | MessagingException
             | FromMissingException interruptedException) {
-      imapEventChannel.send(SynchronizerException
+      eventPublisher.publishEvent(SynchronizerException
           .builder(imapAccountId)
           .throwable(interruptedException)
           .build());
@@ -306,7 +306,7 @@ public class Synchronizer implements
       }
       close(folder);
     } catch (MessagingException e) {
-      imapEventChannel.send(SynchronizerException
+      eventPublisher.publishEvent(SynchronizerException
           .builder(imapAccountId)
           .throwable(e)
           .build());
@@ -331,7 +331,7 @@ public class Synchronizer implements
       mailbox.setName(fullyQualifiedName(e.getNewFolder()));
       mailboxRepository.save(mailbox);
     } catch (MessagingException messagingException) {
-      imapEventChannel.send(SynchronizerException
+      eventPublisher.publishEvent(SynchronizerException
           .builder(imapAccountId)
           .throwable(messagingException)
           .build());
