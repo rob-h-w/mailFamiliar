@@ -2,11 +2,10 @@ package com.robwilliamson.mailfamiliar.service.imap;
 
 import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.User;
-import com.robwilliamson.mailfamiliar.events.FolderSynchronized;
+import com.robwilliamson.mailfamiliar.events.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
-import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import com.robwilliamson.test.EventReceiver;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
@@ -18,7 +17,6 @@ import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.messaging.MessageChannel;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.mail.*;
@@ -49,8 +47,6 @@ class SynchronizerTest {
   MailboxRepository mailboxRepository;
   @Autowired
   MessageRepository messageRepository;
-  @MockBean(name = "imapEvent")
-  MessageChannel imapEventChannel;
   @MockBean
   StoreFactory storeFactory;
   @MockBean
@@ -111,7 +107,6 @@ class SynchronizerTest {
     subject.close();
     until(() -> ((ThreadPoolTaskExecutor) taskExecutor).getActiveCount() == 2);
     reset(synchronizedEventReceiver);
-    reset(imapEventChannel);
     reset(storeFactory);
     flyway.clean();
   }
@@ -209,8 +204,8 @@ class SynchronizerTest {
 
       @Test
       void doesNotReportExceptions() {
-        verify(imapEventChannel, times(0))
-            .send(any(SynchronizerException.class));
+        verify(synchronizedEventReceiver, times(0))
+            .onEvent(any(SynchronizerException.class));
       }
 
       @Nested
