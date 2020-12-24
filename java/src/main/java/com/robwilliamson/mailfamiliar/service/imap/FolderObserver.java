@@ -8,7 +8,6 @@ import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.messaging.MessageChannel;
 
 import javax.annotation.PostConstruct;
 import javax.mail.Header;
@@ -32,7 +31,6 @@ public class FolderObserver implements
   private final Folder folder;
   private final HeaderNameRepository headerNameRepository;
   private final HeaderRepository headerRepository;
-  private final MessageChannel imapEventChannel;
   private final Mailbox mailbox;
   private final MessageRepository messageRepository;
 
@@ -122,7 +120,7 @@ public class FolderObserver implements
         .collect(Collectors.toSet());
     messageEntity.setHeaders(headerEntities);
     messageRepository.save(messageEntity);
-    imapEventChannel.send(new ImapMessage(
+    eventPublisher.publishEvent(new ImapMessage(
         headers,
         Id.of(mailbox.getImapAccountId(), Imap.class),
         messageEntity));
