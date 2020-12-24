@@ -69,7 +69,11 @@ public abstract class ImapSyncService {
   }
 
   @Lookup
-  public abstract Synchronizer getSynchronizer(Imap imap);
+  public abstract Synchronizer getSynchronizer(Imap imap, TaskExecutor taskExecutor);
+
+  public Synchronizer getSynchronizer(Imap imap) {
+    return getSynchronizer(imap, taskExecutor);
+  }
 
   private void addAccount(Imap imapAccount) {
     final int id = imapAccount.getId();

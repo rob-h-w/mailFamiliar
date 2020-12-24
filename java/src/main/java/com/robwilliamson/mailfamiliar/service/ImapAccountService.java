@@ -1,14 +1,13 @@
 package com.robwilliamson.mailfamiliar.service;
 
-import com.robwilliamson.mailfamiliar.config.Integration;
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.events.NewImapAccount;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.imap.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.integration.annotation.Publisher;
-import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -19,6 +18,7 @@ import java.util.stream.*;
 @Service
 public class ImapAccountService implements AccountProvider, UserAccountIdentifier {
   private final CryptoService cryptoService;
+  private final ApplicationEventPublisher eventPublisher;
   private final EncryptedRepository encryptedRepository;
   private final ImapAccountRepository imapAccountRepository;
 
@@ -32,8 +32,6 @@ public class ImapAccountService implements AccountProvider, UserAccountIdentifie
     return StreamSupport.stream(imapAccountRepository.findAll().spliterator(), false);
   }
 
-  @Payload
-  @Publisher(channel = Integration.Channels.Constants.NEW_IMAP_ACCOUNT)
   @Transactional
   public Imap saveAccount(
       User user,
@@ -43,8 +41,9 @@ public class ImapAccountService implements AccountProvider, UserAccountIdentifie
     final Encrypted imapSecret = encryptedRepository.save(
         cryptoService.encrypt(Id.of(user.getId(), User.class), imapPassword));
     imap.setPassword(imapSecret.getId());
-    imapAccountRepository.save(imap);
-    return imap;
+    final Imap saved = imapAccountRepository.save(imap);
+    eventPublisher.publishEvent(new NewImapAccount(this, saved));
+    return saved;
   }
 
   @Transactional

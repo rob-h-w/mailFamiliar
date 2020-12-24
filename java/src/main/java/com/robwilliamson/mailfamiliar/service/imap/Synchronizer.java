@@ -2,11 +2,11 @@ package com.robwilliamson.mailfamiliar.service.imap;
 
 import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.events.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.CryptoService;
-import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
@@ -67,6 +67,7 @@ public class Synchronizer implements
           Id.of(imap.getPassword(), Encrypted.class));
     } catch (MissingSecretException | MissingUserException e) {
       eventPublisher.publishEvent(new SynchronizerException(
+          this,
           imapAccountId,
           SynchronizerException.Reason.ProgrammerError,
           Optional.of(e)));
@@ -95,7 +96,10 @@ public class Synchronizer implements
       store.addStoreListener(this);
       final Folder defaultFolder = store.getDefaultFolder();
       defaultFolder.addFolderListener(this);
-      eventPublisher.publishEvent(new DefaultFolderAvailable(defaultFolder, imapAccountId));
+      eventPublisher.publishEvent(new DefaultFolderAvailable(
+          this,
+          imapAccountId,
+          defaultFolder));
       while (!closing) {
         sync(defaultFolder);
         folderLock.lock();
@@ -107,26 +111,26 @@ public class Synchronizer implements
       }
     } catch (MessagingException | FromMissingException e) {
       eventPublisher.publishEvent(SynchronizerException
-          .builder(imapAccountId)
+          .builder(this, imapAccountId)
           .throwable(e)
           .reason(SynchronizerException.Reason.ClosedUnexpectedly)
           .build());
     } catch (InterruptedException e) {
       if (closing) {
         eventPublisher.publishEvent(SynchronizerException
-            .builder(imapAccountId)
+            .builder(this, imapAccountId)
             .throwable(e)
             .reason(SynchronizerException.Reason.ClosedUnexpectedly)
             .build());
       } else {
         eventPublisher.publishEvent(SynchronizerException
-            .builder(imapAccountId)
+            .builder(this, imapAccountId)
             .closedIntentionally()
             .build());
       }
     } catch (Throwable e) {
       eventPublisher.publishEvent(SynchronizerException
-          .builder(imapAccountId)
+          .builder(this, imapAccountId)
           .throwable(e)
           .build());
       throw e;
@@ -157,8 +161,11 @@ public class Synchronizer implements
       return mailbox;
     } catch (MessagingException e) {
       folderObervers.remove(folder);
-      eventPublisher.publishEvent(new SynchronizerException(imapAccountId,
-          SynchronizerException.Reason.OpenError, Optional.of(e)));
+      eventPublisher.publishEvent(new SynchronizerException(
+          this,
+          imapAccountId,
+          SynchronizerException.Reason.OpenError,
+          Optional.of(e)));
       throw e;
     } finally {
       folderLock.unlock();
@@ -231,7 +238,7 @@ public class Synchronizer implements
       foldersByName.remove(fullyQualifiedName(folder));
     } catch (MessagingException e) {
       eventPublisher.publishEvent(SynchronizerException
-          .builder(imapAccountId)
+          .builder(this, imapAccountId)
           .reason(SynchronizerException.Reason.CloseError)
           .throwable(e)
           .build());
@@ -254,7 +261,7 @@ public class Synchronizer implements
             | MessagingException
             | FromMissingException interruptedException) {
       eventPublisher.publishEvent(SynchronizerException
-          .builder(imapAccountId)
+          .builder(this, imapAccountId)
           .throwable(interruptedException)
           .build());
     } finally {
@@ -300,12 +307,12 @@ public class Synchronizer implements
             .setParameter("mailboxId", mailbox.getId())
             .executeUpdate();
         mailboxRepository.delete(mailbox);
-        eventPublisher.publishEvent(new FolderRemoved(mailbox));
+        eventPublisher.publishEvent(new FolderRemoved(this, mailbox));
       }
       close(folder);
     } catch (MessagingException e) {
       eventPublisher.publishEvent(SynchronizerException
-          .builder(imapAccountId)
+          .builder(this, imapAccountId)
           .throwable(e)
           .build());
     } finally {
@@ -330,7 +337,7 @@ public class Synchronizer implements
       mailboxRepository.save(mailbox);
     } catch (MessagingException messagingException) {
       eventPublisher.publishEvent(SynchronizerException
-          .builder(imapAccountId)
+          .builder(this, imapAccountId)
           .throwable(messagingException)
           .build());
     }

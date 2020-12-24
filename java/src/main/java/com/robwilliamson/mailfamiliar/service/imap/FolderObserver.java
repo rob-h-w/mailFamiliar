@@ -1,10 +1,10 @@
 package com.robwilliamson.mailfamiliar.service.imap;
 
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.events.*;
 import com.robwilliamson.mailfamiliar.exceptions.FromMissingException;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
-import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
@@ -72,7 +72,9 @@ public class FolderObserver implements
     } catch (
         MessagingException
             | FromMissingException e) {
-      eventPublisher.publishEvent(SynchronizerException.builder(mailbox.getImapAccountIdObject())
+      eventPublisher.publishEvent(SynchronizerException.builder(
+          this,
+          mailbox.getImapAccountIdObject())
           .throwable(e)
           .build());
     }
@@ -121,8 +123,9 @@ public class FolderObserver implements
     messageEntity.setHeaders(headerEntities);
     messageRepository.save(messageEntity);
     eventPublisher.publishEvent(new ImapMessage(
-        headers,
+        this,
         Id.of(mailbox.getImapAccountId(), Imap.class),
+        headers,
         messageEntity));
   }
 
@@ -132,7 +135,9 @@ public class FolderObserver implements
     } catch (
         MessagingException
             | FromMissingException e) {
-      eventPublisher.publishEvent(SynchronizerException.builder(mailbox.getImapAccountIdObject())
+      eventPublisher.publishEvent(SynchronizerException.builder(
+          this,
+          mailbox.getImapAccountIdObject())
           .throwable(e)
           .build());
     }
