@@ -22,13 +22,6 @@ public class ImapAccount {
         message -> imapSyncService.onNewAccount((Imap) message.getPayload()));
   }
 
-  @Bean
-  @ServiceActivator(inputChannel = Channels.Constants.IMAP_ACCOUNT_REMOVED)
-  public MessageHandler imapAccountSyncHandleRemove() {
-    return messageHandlerFor(Channels.IMAP_ACCOUNT_REMOVED.value,
-        message -> imapSyncService.onAccountRemoved((Imap) message.getPayload()));
-  }
-
   private MessageHandler messageHandlerFor(String channel, Consumer<Message<?>> passThrough) {
     return message -> {
       try {
