@@ -203,8 +203,8 @@ class SynchronizerTest {
 
       @Test
       void synchronizesTheMessages() {
-        verify(imapEventChannel, times(1))
-            .send(any(ImapMessage.class));
+        verify(synchronizedEventReceiver, times(1))
+            .onEvent(any(ImapMessage.class));
       }
 
       @Test

@@ -9,7 +9,6 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.*;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.messaging.MessageChannel;
 
 import javax.mail.*;
 
@@ -22,7 +21,6 @@ public class ImapSync {
   private final HeaderRepository headerRepository;
   private final MailboxRepository mailboxRepository;
   private final MessageRepository messageRepository;
-  private final MessageChannel imapEvent;
   private final SyncRepository syncRepository;
 
   @Bean
@@ -56,7 +54,6 @@ public class ImapSync {
         folder,
         headerNameRepository,
         headerRepository,
-        imapEvent,
         mailbox,
         messageRepository);
   }
