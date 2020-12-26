@@ -25,4 +25,8 @@ public class Imap implements Serializable {
   private int syncPeriodDays;
   private boolean tls;
   private int userId;
+
+  public com.robwilliamson.mailfamiliar.model.Id<Imap> getAccountId() {
+    return com.robwilliamson.mailfamiliar.model.Id.of(id, Imap.class);
+  }
 }

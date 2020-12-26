@@ -3,8 +3,9 @@ package com.robwilliamson.mailfamiliar.service.imap;
 import com.robwilliamson.mailfamiliar.MailfamiliarApplication;
 import com.robwilliamson.mailfamiliar.config.ImapSync;
 import com.robwilliamson.mailfamiliar.entity.Mailbox;
+import com.robwilliamson.mailfamiliar.events.ImapMessage;
 import com.robwilliamson.mailfamiliar.repository.*;
-import com.robwilliamson.mailfamiliar.service.imap.events.ImapMessage;
+import com.robwilliamson.test.EventReceiver;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
@@ -45,6 +46,8 @@ class FolderObserverTest {
   ImapSync imapSync;
   @Autowired
   MessageRepository messageRepository;
+  @MockBean
+  EventReceiver eventReceiver;
   @Mock
   Folder folder;
   ImapMessage imapMessage;
@@ -55,14 +58,14 @@ class FolderObserverTest {
   @FlywayTest
   void setUp() {
     imapMessage = null;
-    when(imapEventChannel.send(any(ImapMessage.class)))
-        .thenAnswer((Answer<Void>) invocationOnMock -> {
-          final var event = invocationOnMock.getArguments()[0];
-          if (event instanceof ImapMessage) {
-            imapMessage = (ImapMessage) event;
-          }
-          return null;
-        });
+    doAnswer((Answer<Void>) invocationOnMock -> {
+      final var event = invocationOnMock.getArguments()[0];
+      if (event instanceof ImapMessage) {
+        imapMessage = (ImapMessage) event;
+      }
+      return null;
+    })
+        .when(eventReceiver).onEvent(any(ImapMessage.class));
     mailbox = new Mailbox();
     mailbox.setId(1);
     subject = imapSync.createFolderObserver(folder, mailbox);

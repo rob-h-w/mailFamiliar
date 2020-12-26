@@ -19,7 +19,7 @@ public class Wait {
   private static void until(Supplier<Boolean> predicate, int timeoutMs, int retries) throws InterruptedException {
     int remaining = retries;
     while (!predicate.get()) {
-      assert (remaining != 0);
+      assert remaining != 0 : "Waited " + retries + " times for condition to become true.";
       Thread.sleep(timeoutMs);
       remaining--;
     }

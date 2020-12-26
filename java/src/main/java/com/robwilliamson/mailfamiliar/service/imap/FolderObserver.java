@@ -1,13 +1,13 @@
 package com.robwilliamson.mailfamiliar.service.imap;
 
 import com.robwilliamson.mailfamiliar.entity.*;
+import com.robwilliamson.mailfamiliar.events.*;
 import com.robwilliamson.mailfamiliar.exceptions.FromMissingException;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
-import com.robwilliamson.mailfamiliar.service.imap.events.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.messaging.MessageChannel;
+import org.springframework.context.ApplicationEventPublisher;
 
 import javax.annotation.PostConstruct;
 import javax.mail.Header;
@@ -27,10 +27,10 @@ public class FolderObserver implements
     ConnectionListener,
     MessageChangedListener,
     MessageCountListener {
+  private final ApplicationEventPublisher eventPublisher;
   private final Folder folder;
   private final HeaderNameRepository headerNameRepository;
   private final HeaderRepository headerRepository;
-  private final MessageChannel imapEventChannel;
   private final Mailbox mailbox;
   private final MessageRepository messageRepository;
 
@@ -72,7 +72,9 @@ public class FolderObserver implements
     } catch (
         MessagingException
             | FromMissingException e) {
-      imapEventChannel.send(SynchronizerException.builder(mailbox.getImapAccountIdObject())
+      eventPublisher.publishEvent(SynchronizerException.builder(
+          this,
+          mailbox.getImapAccountIdObject())
           .throwable(e)
           .build());
     }
@@ -120,9 +122,10 @@ public class FolderObserver implements
         .collect(Collectors.toSet());
     messageEntity.setHeaders(headerEntities);
     messageRepository.save(messageEntity);
-    imapEventChannel.send(new ImapMessage(
-        headers,
+    eventPublisher.publishEvent(new ImapMessage(
+        this,
         Id.of(mailbox.getImapAccountId(), Imap.class),
+        headers,
         messageEntity));
   }
 
@@ -132,7 +135,9 @@ public class FolderObserver implements
     } catch (
         MessagingException
             | FromMissingException e) {
-      imapEventChannel.send(SynchronizerException.builder(mailbox.getImapAccountIdObject())
+      eventPublisher.publishEvent(SynchronizerException.builder(
+          this,
+          mailbox.getImapAccountIdObject())
           .throwable(e)
           .build());
     }
