@@ -18,5 +18,9 @@ jobs:
     - language: java
       jdk: openjdk11
 
+      before_script:
+        - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+        - chmod +x ./cc-test-reporter
+
       script:
-        - pushd java && ./mvnw test -B
+        - ./java/test_and_report.sh
