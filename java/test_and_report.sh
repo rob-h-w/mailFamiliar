@@ -10,5 +10,5 @@ $reporter before-build
 
 ./mvnw test jacoco:report -B
 
-$reporter format-coverage $root/target/site/jacoco/jacoco.xml -t jacoco --add-prefix "../../../src/main/java/"
+$reporter format-coverage $root/target/site/jacoco/jacoco.xml -t jacoco --add-prefix "${root}/src/main/java/"
 $reporter upload-coverage -i coverage/codeclimate.json
