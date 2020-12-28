@@ -109,11 +109,11 @@ public class Data {
 
   public static Message mockMessage(String from, String to) throws MessagingException {
     final var result = mock(Message.class);
-    when(result.getFrom()).thenReturn(new Address[]{new InternetAddress(from)});
-    when(result.getReceivedDate()).thenReturn(
+    lenient().when(result.getFrom()).thenReturn(new Address[]{new InternetAddress(from)});
+    lenient().when(result.getReceivedDate()).thenReturn(
         new Date(System.currentTimeMillis() - HOUR_IN_MS));
-    when(result.getAllHeaders()).thenReturn(mockHeaders(from, to));
-    when(result.getSentDate()).thenReturn(
+    lenient().when(result.getAllHeaders()).thenReturn(mockHeaders(from, to));
+    lenient().when(result.getSentDate()).thenReturn(
         new Date(System.currentTimeMillis() - 2 * HOUR_IN_MS));
     return result;
   }
