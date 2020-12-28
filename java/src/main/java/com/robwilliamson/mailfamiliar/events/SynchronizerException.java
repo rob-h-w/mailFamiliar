@@ -1,9 +1,12 @@
 package com.robwilliamson.mailfamiliar.events;
 
 import com.robwilliamson.mailfamiliar.entity.Imap;
+import com.robwilliamson.mailfamiliar.exceptions.FromMissingException;
 import com.robwilliamson.mailfamiliar.model.Id;
 import lombok.Getter;
+import org.springframework.context.ApplicationEventPublisher;
 
+import javax.mail.MessagingException;
 import java.util.Optional;
 
 @Getter
@@ -25,6 +28,38 @@ public class SynchronizerException extends ImapEvent {
     return new Builder(source, imapAccountId);
   }
 
+  public static void tryAndPublish(SyncJob syncJob,
+                                   ApplicationEventPublisher eventPublisher) {
+    try {
+      syncJob.run();
+    } catch (MessagingException | FromMissingException e) {
+      eventPublisher.publishEvent(SynchronizerException
+          .builder(syncJob.parent(), syncJob.imapAccountId())
+          .throwable(e)
+          .reason(SynchronizerException.Reason.ClosedUnexpectedly)
+          .build());
+    } catch (InterruptedException e) {
+      if (syncJob.closing()) {
+        eventPublisher.publishEvent(SynchronizerException
+            .builder(syncJob.parent(), syncJob.imapAccountId())
+            .throwable(e)
+            .reason(SynchronizerException.Reason.ClosedUnexpectedly)
+            .build());
+      } else {
+        eventPublisher.publishEvent(SynchronizerException
+            .builder(syncJob.parent(), syncJob.imapAccountId())
+            .closedIntentionally()
+            .build());
+      }
+    } catch (Throwable e) {
+      eventPublisher.publishEvent(SynchronizerException
+          .builder(syncJob.parent(), syncJob.imapAccountId())
+          .throwable(e)
+          .build());
+      throw e;
+    }
+  }
+
   public enum Reason {
     ClosedIntentionally,
     ClosedUnexpectedly,
@@ -32,6 +67,16 @@ public class SynchronizerException extends ImapEvent {
     Error,
     OpenError,
     ProgrammerError
+  }
+
+  public interface SyncJob {
+    boolean closing();
+
+    Id<Imap> imapAccountId();
+
+    Object parent();
+
+    void run() throws MessagingException, FromMissingException, InterruptedException;
   }
 
   public static class Builder {

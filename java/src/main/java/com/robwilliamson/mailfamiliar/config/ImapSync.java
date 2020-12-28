@@ -21,6 +21,7 @@ public class ImapSync {
   private final HeaderRepository headerRepository;
   private final MailboxRepository mailboxRepository;
   private final MessageRepository messageRepository;
+  private final StoreSettingsProvider storeSettingsProvider;
   private final SyncRepository syncRepository;
 
   @Bean
@@ -34,12 +35,12 @@ public class ImapSync {
   @Scope(BeanDefinition.SCOPE_PROTOTYPE)
   public Synchronizer createSynchronizer(Imap imap, TaskExecutor taskExecutor) {
     return new Synchronizer(
-        cryptoService,
         eventPublisher,
         imap,
         this,
         mailboxRepository,
         createStoreFactory(),
+        storeSettingsProvider,
         syncRepository,
         taskExecutor);
   }

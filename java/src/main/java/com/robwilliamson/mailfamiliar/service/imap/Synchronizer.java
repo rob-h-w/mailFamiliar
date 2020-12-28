@@ -6,7 +6,6 @@ import com.robwilliamson.mailfamiliar.events.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
-import com.robwilliamson.mailfamiliar.service.CryptoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
@@ -32,12 +31,12 @@ public class Synchronizer implements
     FolderListener,
     Runnable, StoreListener {
   private static final long MILLIS_IN_DAY = 1000 * 60 * 60 * 24;
-  private final CryptoService cryptoService;
   private final ApplicationEventPublisher eventPublisher;
   private final Imap imap;
   private final ImapSync imapSync;
   private final MailboxRepository mailboxRepository;
   private final StoreFactory storeFactory;
+  private final StoreSettingsProvider storeSettingsProvider;
   private final SyncRepository syncRepository;
   private final Lock folderLock = new ReentrantLock();
   private final Condition closed = folderLock.newCondition();
@@ -59,82 +58,51 @@ public class Synchronizer implements
 
   @Override
   public void run() {
-    final String password;
-
-    try {
-      password = cryptoService.decrypt(
-          Id.of(imap.getUserId(), User.class),
-          Id.of(imap.getPassword(), Encrypted.class));
-    } catch (MissingSecretException | MissingUserException e) {
-      eventPublisher.publishEvent(new SynchronizerException(
-          this,
-          imapAccountId,
-          SynchronizerException.Reason.ProgrammerError,
-          Optional.of(e)));
-      throw new RuntimeException(e);
-    }
-
-    final Properties properties = new Properties();
-    properties.put("mail.imap.user", imap.getName());
-    properties.put("mail.imap.port", imap.getPort());
-    properties.put("mail.host", imap.getHost());
-    properties.put("mail.imap.peek", true);
-    if (imap.isTls()) {
-      properties.put("mail.imap.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-    }
-
-    try (Store store = storeFactory.getInstance(
-        properties,
-        new Authenticator() {
+    SynchronizerException.tryAndPublish(
+        new SynchronizerException.SyncJob() {
           @Override
-          protected PasswordAuthentication getPasswordAuthentication() {
-            return new PasswordAuthentication(imap.getName(), password);
+          public boolean closing() {
+            return closing;
           }
-        })) {
-      store.connect();
-      store.addFolderListener(this);
-      store.addStoreListener(this);
-      final Folder defaultFolder = store.getDefaultFolder();
-      defaultFolder.addFolderListener(this);
-      eventPublisher.publishEvent(new DefaultFolderAvailable(
-          this,
-          imapAccountId,
-          defaultFolder));
-      while (!closing) {
-        sync(defaultFolder);
-        folderLock.lock();
-        try {
-          closed.await(imap.getRefreshPeriodMinutes(), TimeUnit.MINUTES);
-        } finally {
-          folderLock.unlock();
-        }
-      }
-    } catch (MessagingException | FromMissingException e) {
-      eventPublisher.publishEvent(SynchronizerException
-          .builder(this, imapAccountId)
-          .throwable(e)
-          .reason(SynchronizerException.Reason.ClosedUnexpectedly)
-          .build());
-    } catch (InterruptedException e) {
-      if (closing) {
-        eventPublisher.publishEvent(SynchronizerException
-            .builder(this, imapAccountId)
-            .throwable(e)
-            .reason(SynchronizerException.Reason.ClosedUnexpectedly)
-            .build());
-      } else {
-        eventPublisher.publishEvent(SynchronizerException
-            .builder(this, imapAccountId)
-            .closedIntentionally()
-            .build());
-      }
-    } catch (Throwable e) {
-      eventPublisher.publishEvent(SynchronizerException
-          .builder(this, imapAccountId)
-          .throwable(e)
-          .build());
-      throw e;
-    }
+
+          @Override
+          public Id<Imap> imapAccountId() {
+            return imapAccountId;
+          }
+
+          @Override
+          public Object parent() {
+            return Synchronizer.this;
+          }
+
+          @Override
+          public void run() throws MessagingException, FromMissingException, InterruptedException {
+            try (Store store = storeFactory.getInstance(
+                storeSettingsProvider.getPropertiesFor(imap),
+                storeSettingsProvider.getAuthenticatorFor(imap))) {
+              store.connect();
+              store.addFolderListener(Synchronizer.this);
+              store.addStoreListener(Synchronizer.this);
+              final Folder defaultFolder = store.getDefaultFolder();
+              defaultFolder.addFolderListener(Synchronizer.this);
+              eventPublisher.publishEvent(new DefaultFolderAvailable(
+                  this,
+                  imapAccountId,
+                  defaultFolder));
+              while (!closing) {
+                sync(defaultFolder);
+                folderLock.lock();
+                try {
+                  closed.await(imap.getRefreshPeriodMinutes(), TimeUnit.MINUTES);
+                } finally {
+                  folderLock.unlock();
+                }
+              }
+            }
+          }
+        },
+        eventPublisher);
+
   }
 
   private Mailbox add(Folder folder) throws MessagingException, InterruptedException {
