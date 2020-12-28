@@ -6,16 +6,16 @@ import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.imap.*;
-import org.flywaydb.test.FlywayTestExecutionListener;
+import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.*;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import javax.mail.Message;
 import javax.mail.*;
@@ -31,13 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@FlywayTest
+@ExtendWith(MockitoExtension.class)
 @SpringBootTest("spring.datasource.tomcat.max-active=1")
-@TestExecutionListeners({
-    DependencyInjectionTestExecutionListener.class,
-    MockitoTestExecutionListener.class,
-    FlywayTestExecutionListener.class})
 class MoverServiceTest {
+  @Autowired
+  Flyway flyway;
   @Autowired
   ImapSync imapSync;
   @Autowired
@@ -68,6 +66,7 @@ class MoverServiceTest {
   @BeforeEach
   @FlywayTest
   public void setUp() throws MessagingException {
+    flyway.migrate();
     inbox = mailboxRepository.save(Mailbox.builder()
         .imapAccountId(1)
         .name("inbox")
@@ -99,6 +98,7 @@ class MoverServiceTest {
   void tearDown() {
     reset(imapSyncService);
     reset(mockSynchronizer);
+    flyway.clean();
   }
 
   @Nested
@@ -256,7 +256,7 @@ class MoverServiceTest {
             .filter(header -> !"from".equals(header.getHeaderName().getName()))
             .collect(Collectors.toSet()));
         message = messageRepository.save(message);
-        when(folder.search(any(AndTerm.class)))
+        lenient().when(folder.search(any(AndTerm.class)))
             .thenReturn(new Message[]{javaxMessage});
         when(mockSynchronizer.getFolder(any()))
             .thenReturn(folder);
