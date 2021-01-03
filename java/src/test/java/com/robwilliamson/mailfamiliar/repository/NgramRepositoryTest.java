@@ -7,11 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.*;
+import java.util.stream.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 public class NgramRepositoryTest {
+  public static final int MAX = 100;
   @Autowired
   Flyway flyway;
   @Autowired
@@ -27,16 +29,30 @@ public class NgramRepositoryTest {
     flyway.clean();
   }
 
-  NgramValue makeValue(int id) {
-    return new NgramValue("value " + id);
+  List<NgramCount> makeCounts(int total, Ngram parent) {
+    return IntStream.range(0, total)
+        .mapToObj(id -> makeCount(id, parent))
+        .collect(Collectors.toList());
   }
 
   NgramCount makeCount(int id, Ngram parent) {
     final NgramCount count = new NgramCount();
-    count.setCount(id);
+    count.setCount(makeCount(id));
     count.setNgram(parent);
     count.setValue(makeValue(id));
     return count;
+  }
+
+  NgramValue makeValue(int id) {
+    return new NgramValue("value " + id);
+  }
+
+  int makeCount(int id) {
+    int result = id ^ 31;
+    result <<= 17;
+    result ^= 31;
+    result += id;
+    return result % (MAX + 1);
   }
 
   @Nested
@@ -48,7 +64,7 @@ public class NgramRepositoryTest {
     @BeforeEach
     void setUp() {
       ngram = new Ngram();
-      counts = List.of(makeCount(1, ngram));
+      counts = makeCounts(10, ngram);
       ngram.setCounts(counts);
       ngram.setName(NAME);
       ngram = ngramRepository.save(ngram);
@@ -59,7 +75,10 @@ public class NgramRepositoryTest {
       final Optional<Ngram> optionalNgram = ngramRepository.findDistinctByName(NAME);
       assertThat(optionalNgram.isPresent()).isTrue();
       final Ngram actual = optionalNgram.get();
-      assertThat(actual.getCounts().size()).isEqualTo(counts.size());
+      final List<NgramCount> actualCounts = actual.getCounts();
+      assertThat(actualCounts.size()).isEqualTo(counts.size());
+      IntStream.range(0, actualCounts.size())
+          .forEach(i -> assertThat(actualCounts.get(i)).isEqualToComparingFieldByFieldRecursively(counts.get(i)));
     }
   }
 }

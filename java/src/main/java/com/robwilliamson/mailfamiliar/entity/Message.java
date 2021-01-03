@@ -3,15 +3,18 @@ package com.robwilliamson.mailfamiliar.entity;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.repository.Time;
 import lombok.*;
+import org.apache.commons.lang.builder.*;
 
 import javax.mail.*;
 import javax.mail.search.*;
 import javax.persistence.*;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.robwilliamson.mailfamiliar.Equals.doEquals;
 
 @AllArgsConstructor
 @Builder
-@Data
 @Entity
 @Getter
 @NoArgsConstructor
@@ -55,6 +58,18 @@ public class Message {
     return new EnhancedBuilder();
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    return doEquals(
+        Message.class,
+        this,
+        obj,
+        (builder, right) -> builder
+            .append(getFromHash(), right.getFromHash())
+            .append(getReceivedDate(), right.getReceivedDate())
+            .append(getSentDate(), right.getSentDate()));
+  }
+
   public String getFrom() throws FromMissingException {
     return headers.stream()
         .filter(header -> Objects.equals(header.getHeaderName().getName(), "from"))
@@ -90,6 +105,33 @@ public class Message {
       throw new MultipleMessagesFoundException(this, result);
     }
     return Optional.ofNullable(result[0]);
+  }
+
+  @Override
+  public int hashCode() {
+    return new HashCodeBuilder()
+        .append(getFromHash())
+        .append(getReceivedDate())
+        .append(getSentDate())
+        .hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this)
+        .append("id", getId())
+        .append("fromHash", getFromHash())
+        .append("mailboxId", getMailboxId())
+        .append("receivedDate", getReceivedDate())
+        .append("sentDate", getSentDate())
+        .append("headers", getHeaders()
+            .stream()
+            .map(header -> new ToStringBuilder(header)
+                .append("name", header.getHeaderName().getName())
+                .append("value", header.getValue())
+                .toString())
+            .collect(Collectors.joining(",", "[", "]")))
+        .toString();
   }
 
   public static class EnhancedBuilder extends Message.MessageBuilder {
