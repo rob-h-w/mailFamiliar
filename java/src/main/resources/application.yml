@@ -9,6 +9,9 @@ spring:
     rest:
       base-path: /api
   datasource:
+    hikari:
+      connection-timeout: 120000
+      idle-timeout: 60000
     tomcat:
       max-active: 1
   jpa:

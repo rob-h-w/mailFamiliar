@@ -5,7 +5,8 @@ import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.events.*;
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
-import com.robwilliamson.mailfamiliar.repository.*;
+import com.robwilliamson.mailfamiliar.repository.MailboxRepository;
+import com.robwilliamson.mailfamiliar.service.imap.synchronizer.Engine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,14 +31,13 @@ public class Synchronizer implements
     AutoCloseable,
     FolderListener,
     Runnable, StoreListener {
-  private static final long MILLIS_IN_DAY = 1000 * 60 * 60 * 24;
+  private final Engine engine;
   private final ApplicationEventPublisher eventPublisher;
   private final Imap imap;
   private final ImapSync imapSync;
   private final MailboxRepository mailboxRepository;
   private final StoreFactory storeFactory;
   private final StoreSettingsProvider storeSettingsProvider;
-  private final SyncRepository syncRepository;
   private final Lock folderLock = new ReentrantLock();
   private final Condition closed = folderLock.newCondition();
   private final Lock inconsistencyLock = new ReentrantLock();
@@ -154,29 +154,10 @@ public class Synchronizer implements
     }
   }
 
-  @Transactional
-  public void syncMessages(Folder folder, Mailbox mailbox) throws
-      MessagingException,
-      FromMissingException {
+  private void syncMessages(Folder folder, Mailbox add) throws FromMissingException, MessagingException {
     folderLock.lock();
     try {
-      final Optional<Sync> syncRecord = syncRepository.findByMailboxId(mailbox.getId());
-      final Date limit;
-      if (syncRecord.isPresent()) {
-        limit = syncRecord.get().lastSynced();
-      } else {
-        limit = new Date(System.currentTimeMillis() - imap.getSyncPeriodDays() * MILLIS_IN_DAY);
-      }
-
-      final Date lastSynced = folderObervers.get(folder).syncMessages(folder, limit);
-
-      final Sync updatedRecord = syncRecord.orElse(new Sync());
-      updatedRecord.setLastSynced(lastSynced);
-      updatedRecord.setMailboxId(mailbox.getId());
-      syncRepository.save(updatedRecord);
-      eventPublisher.publishEvent(new com.robwilliamson.mailfamiliar.events.FolderSynchronized(
-          this,
-          mailbox));
+      engine.syncMessages(folder, add, imap, folderObervers, eventPublisher);
     } finally {
       folderLock.unlock();
     }
@@ -194,23 +175,6 @@ public class Synchronizer implements
       closed.signal();
     } finally {
       foldersByName.clear();
-      folderLock.unlock();
-    }
-  }
-
-  private void close(Folder folder) {
-    folderLock.lock();
-    try {
-      final FolderObserver observer = folderObervers.remove(folder);
-      observer.close();
-      foldersByName.remove(fullyQualifiedName(folder));
-    } catch (MessagingException e) {
-      eventPublisher.publishEvent(SynchronizerException
-          .builder(this, imapAccountId)
-          .reason(SynchronizerException.Reason.CloseError)
-          .throwable(e)
-          .build());
-    } finally {
       folderLock.unlock();
     }
   }
@@ -249,6 +213,23 @@ public class Synchronizer implements
         return;
       }
       remove(e.getFolder());
+    } finally {
+      folderLock.unlock();
+    }
+  }
+
+  private void close(Folder folder) {
+    folderLock.lock();
+    try {
+      final FolderObserver observer = folderObervers.remove(folder);
+      observer.close();
+      foldersByName.remove(fullyQualifiedName(folder));
+    } catch (MessagingException e) {
+      eventPublisher.publishEvent(SynchronizerException
+          .builder(this, imapAccountId)
+          .reason(SynchronizerException.Reason.CloseError)
+          .throwable(e)
+          .build());
     } finally {
       folderLock.unlock();
     }

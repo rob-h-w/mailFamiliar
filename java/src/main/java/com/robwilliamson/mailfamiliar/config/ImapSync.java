@@ -2,8 +2,8 @@ package com.robwilliamson.mailfamiliar.config;
 
 import com.robwilliamson.mailfamiliar.entity.*;
 import com.robwilliamson.mailfamiliar.repository.*;
-import com.robwilliamson.mailfamiliar.service.CryptoService;
 import com.robwilliamson.mailfamiliar.service.imap.*;
+import com.robwilliamson.mailfamiliar.service.imap.synchronizer.Engine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationEventPublisher;
@@ -15,7 +15,7 @@ import javax.mail.*;
 @Configuration
 @RequiredArgsConstructor
 public class ImapSync {
-  private final CryptoService cryptoService;
+  private final Engine engine;
   private final ApplicationEventPublisher eventPublisher;
   private final HeaderNameRepository headerNameRepository;
   private final HeaderRepository headerRepository;
@@ -35,13 +35,13 @@ public class ImapSync {
   @Scope(BeanDefinition.SCOPE_PROTOTYPE)
   public Synchronizer createSynchronizer(Imap imap, TaskExecutor taskExecutor) {
     return new Synchronizer(
+        engine,
         eventPublisher,
         imap,
         this,
         mailboxRepository,
         createStoreFactory(),
         storeSettingsProvider,
-        syncRepository,
         taskExecutor);
   }
 
