@@ -249,7 +249,7 @@ class MoverServiceTest {
             mockSynchronizer,
             "getFolder",
             new Object[]{inbox})
-            > 1);
+            > 0);
       }
 
       @Test
