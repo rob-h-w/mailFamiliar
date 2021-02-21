@@ -1,16 +1,20 @@
 package com.robwilliamson.mailfamiliar.entity;
 
 import lombok.*;
+import org.apache.commons.lang.builder.HashCodeBuilder;
 
 import javax.persistence.*;
 
+import static com.robwilliamson.mailfamiliar.Equals.doEquals;
+
 @AllArgsConstructor
 @Builder
-@Data
 @Entity
 @Getter
 @NoArgsConstructor
+@Setter
 @Table(name = "move_state")
+@ToString
 public class MoveState {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Id
@@ -23,6 +27,27 @@ public class MoveState {
   private Mailbox from;
   @OneToOne
   private Mailbox to;
+
+  @Override
+  public boolean equals(Object obj) {
+    return doEquals(
+        MoveState.class,
+        this,
+        obj,
+        (builder, right) -> builder
+            .append(getFrom(), right.getFrom())
+            .append(getMessage(), right.getMessage())
+            .append(getTo(), right.getTo()));
+  }
+
+  @Override
+  public int hashCode() {
+    return new HashCodeBuilder()
+        .append(getFrom())
+        .append(getMessage())
+        .append(getTo())
+        .hashCode();
+  }
 
   public enum State {
     Recorded,

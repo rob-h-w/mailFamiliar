@@ -4,6 +4,7 @@ import lombok.*;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
 import javax.persistence.*;
+import java.util.List;
 
 import static com.robwilliamson.mailfamiliar.Equals.doEquals;
 
@@ -13,32 +14,34 @@ import static com.robwilliamson.mailfamiliar.Equals.doEquals;
 @Getter
 @NoArgsConstructor
 @Setter
-@Table(name = "user")
+@Table(name = "ngram")
 @ToString
-public class User {
+public class Ngram {
+  @OneToMany(
+      cascade = CascadeType.ALL,
+      fetch = FetchType.EAGER,
+      mappedBy = "ngram")
+  private List<NgramCount> counts;
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Id
   private int id;
+  @NonNull
   private String name;
-  private String remoteId;
-  private int secret;
 
   @Override
   public boolean equals(Object obj) {
     return doEquals(
-        User.class,
+        Ngram.class,
         this,
         obj,
         (builder, right) -> builder
-            .append(getName(), right.getName())
-            .append(getRemoteId(), right.getRemoteId()));
+            .append(getName(), right.getName()));
   }
 
   @Override
   public int hashCode() {
     return new HashCodeBuilder()
         .append(getName())
-        .append(getRemoteId())
         .hashCode();
   }
 }

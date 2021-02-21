@@ -15,6 +15,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.test.context.*;
 import org.springframework.boot.test.mock.mockito.*;
 import org.springframework.context.annotation.*;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
@@ -107,7 +108,7 @@ class ImapSyncServiceTest {
 
     @Bean(name = "Synchronizer")
     @Scope(BeanDefinition.SCOPE_PROTOTYPE)
-    public Synchronizer createSynchronizer(Imap imap) throws FolderMissingException {
+    public Synchronizer createSynchronizer(Imap imap, TaskExecutor taskExecutor) throws FolderMissingException {
       final Synchronizer synchronizer = mock(Synchronizer.class);
       when(synchronizer.getFolder(any())).thenReturn(mock(Folder.class));
       synchronizersByImapAccountId.put(imap.getId(), synchronizer);

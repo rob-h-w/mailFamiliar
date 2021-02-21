@@ -1,24 +1,36 @@
 package com.robwilliamson.mailfamiliar.config;
 
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
-import org.springframework.core.env.Environment;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
 
 @Configuration
 @RequiredArgsConstructor
 public class Sqlite {
-  private final Environment environment;
+  @Value("${spring.datasource.hikari.connection-timeout:1000}")
+  private long connectionTimeout;
+  @Value("${spring.datasource.hikari.idle-timeout:500}")
+  private long idleTimeout;
+  @Value("${password}")
+  private String password;
+  @Value("${url}")
+  private String url;
+  @Value("${username}")
+  private String userName;
 
   @Bean
   public DataSource dataSource() {
-    final DriverManagerDataSource dataSource = new DriverManagerDataSource();
+    final HikariDataSource dataSource = new HikariDataSource();
+    dataSource.setConnectionTimeout(connectionTimeout);
     dataSource.setDriverClassName("org.sqlite.JDBC");
-    dataSource.setUrl(environment.getProperty("url"));
-    dataSource.setUsername(environment.getProperty("user"));
-    dataSource.setPassword(environment.getProperty("password"));
+    dataSource.setIdleTimeout(idleTimeout);
+    dataSource.setJdbcUrl(url);
+    dataSource.setMaximumPoolSize(1);
+    dataSource.setPassword(password);
+    dataSource.setUsername(userName);
     return dataSource;
   }
 }

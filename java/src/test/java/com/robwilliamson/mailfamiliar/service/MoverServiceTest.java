@@ -6,21 +6,25 @@ import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.*;
 import com.robwilliamson.mailfamiliar.service.imap.*;
-import org.flywaydb.test.FlywayTestExecutionListener;
+import com.robwilliamson.mailfamiliar.service.move.Mover;
+import com.zaxxer.hikari.HikariDataSource;
+import org.flywaydb.core.Flyway;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.*;
-import org.springframework.core.task.TaskExecutor;
-import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.mail.Message;
 import javax.mail.*;
 import javax.mail.event.MessageCountEvent;
-import javax.mail.search.AndTerm;
+import javax.mail.search.*;
+import javax.sql.DataSource;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.robwilliamson.mailfamiliar.entity.MoveState.State.*;
@@ -31,13 +35,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@FlywayTest
-@SpringBootTest
-@TestExecutionListeners({
-    DependencyInjectionTestExecutionListener.class,
-    MockitoTestExecutionListener.class,
-    FlywayTestExecutionListener.class})
+@ExtendWith(MockitoExtension.class)
+@SpringBootTest("spring.datasource.tomcat.max-active=1")
 class MoverServiceTest {
+  @Autowired
+  DataSource dataSource;
+  @Autowired
+  Flyway flyway;
   @Autowired
   ImapSync imapSync;
   @Autowired
@@ -46,8 +50,9 @@ class MoverServiceTest {
   MessageRepository messageRepository;
   @Autowired
   MoveStateRepository moveStateRepository;
-  @MockBean
-  TaskExecutor taskExecutor;
+  @Autowired
+  @Qualifier("taskExecutor")
+  ThreadPoolTaskExecutor taskExecutor;
 
   @MockBean
   ImapSyncService imapSyncService;
@@ -61,13 +66,17 @@ class MoverServiceTest {
   Mailbox inbox;
   com.robwilliamson.mailfamiliar.entity.Message message;
   Mailbox spam;
-  Thread runner;
+  int priorCount;
 
   MoverService subject;
 
   @BeforeEach
   @FlywayTest
-  public void setUp() throws MessagingException {
+  public void setUp() throws MessagingException, ImapAccountMissingException, FolderMissingException {
+    priorCount = taskExecutor.getActiveCount();
+    reset(imapSyncService);
+    reset(mockSynchronizer);
+    flyway.migrate();
     inbox = mailboxRepository.save(Mailbox.builder()
         .imapAccountId(1)
         .name("inbox")
@@ -86,26 +95,59 @@ class MoverServiceTest {
             new Message[]{javaxMessage}));
     assertEquals(1, messageRepository.count());
     message = messageRepository.findAll().iterator().next();
-    subject = new MoverService(
+    lenient().when(mockSynchronizer.getFolder(any()))
+        .thenReturn(folder);
+    when(imapSyncService.getSynchronizer(Id.of(1, Imap.class)))
+        .thenReturn(mockSynchronizer);
+    final Mover mover = new Mover(
         imapSyncService,
         mailboxRepository,
-        moveStateRepository,
+        moveStateRepository);
+    subject = new MoverService(
+        mover,
         taskExecutor);
     subject.init();
-    runner = new Thread(subject);
   }
 
   @AfterEach
-  void tearDown() {
-    reset(imapSyncService);
-    reset(mockSynchronizer);
+  void tearDown() throws InterruptedException {
+    try {
+      moveStateRepository.deleteAll();
+      untilIdle();
+    } finally {
+      flyway.clean();
+    }
+  }
+
+  private void untilIdle() throws InterruptedException {
+    final AtomicInteger timesIdle = new AtomicInteger();
+    final int timesNeeded = 10;
+    until(() -> {
+      int activeCount =
+          ((HikariDataSource) dataSource).getHikariPoolMXBean().getActiveConnections();
+      if (activeCount == 0) {
+        timesIdle.getAndIncrement();
+      } else {
+        timesIdle.set(0);
+      }
+
+      return timesIdle.get() == timesNeeded;
+    });
+    until(() -> taskExecutor.getActiveCount() <= priorCount + 1);
   }
 
   @Nested
   class Move {
     @Nested
     class HappyPath {
+      @Mock
+      Folder inboxFolder;
+      @Mock
+      Folder spamFolder;
+
+      boolean wasCopied;
       boolean wasDeleted;
+      boolean wasExpunged;
 
       @BeforeEach
       public void setUp() throws
@@ -114,20 +156,27 @@ class MoverServiceTest {
           FolderRecordMissingException,
           InterruptedException,
           MessagingException {
-        when(folder.search(any(AndTerm.class)))
-            .thenReturn(new Message[]{javaxMessage});
-        when(mockSynchronizer.getFolder(any()))
-            .thenReturn(folder);
-        when(imapSyncService.getSynchronizer(Id.of(1, Imap.class)))
-            .thenReturn(mockSynchronizer);
-        subject.move(message, spam);
+        wasCopied = false;
+        doAnswer(answer -> {
+          wasCopied = true;
+          return null;
+        })
+            .when(inboxFolder)
+            .copyMessages(new Message[]{javaxMessage}, spamFolder);
         wasDeleted = false;
         doAnswer(answer -> {
           wasDeleted = true;
-          return answer;
+          return null;
         })
             .when(javaxMessage)
             .setFlag(Flags.Flag.DELETED, true);
+        wasExpunged = false;
+        doAnswer(answer -> {
+          wasExpunged = true;
+          return null;
+        })
+            .when(inboxFolder)
+            .expunge();
         var flags = mock(Flags.class);
         doAnswer(answer -> wasDeleted)
             .when(flags)
@@ -135,15 +184,39 @@ class MoverServiceTest {
         doReturn(flags)
             .when(javaxMessage)
             .getFlags();
+        doAnswer(answer -> {
+          final SearchTerm term = answer.getArgument(0);
 
-        runner.start();
+          return (wasDeleted && wasExpunged) || !term.match(javaxMessage)
+              ? new Message[]{}
+              : new Message[]{javaxMessage};
+        })
+            .when(inboxFolder)
+            .search(any());
+        doReturn(inboxFolder)
+            .when(mockSynchronizer)
+            .getFolder(inbox);
+        doAnswer(answer -> {
+          final SearchTerm term = answer.getArgument(0);
+
+          return wasCopied && term.match(javaxMessage)
+              ? new Message[]{javaxMessage}
+              : new Message[]{};
+        })
+            .when(spamFolder)
+            .search(any());
+        doReturn(spamFolder)
+            .when(mockSynchronizer)
+            .getFolder(spam);
+        subject.move(message, spam);
+
+        untilIdle();
         until(() -> countInvocations(
-            folder,
+            inboxFolder,
             "expunge",
             new Object[]{})
             > 0);
-        until(() -> moveStateRepository.findAll().iterator().next().getState() != DeleteFlagged);
-        runner.interrupt();
+        until(() -> moveStateRepository.findAll().iterator().next().getState() == Done);
       }
 
       @Test
@@ -170,17 +243,13 @@ class MoverServiceTest {
             .thenThrow(new MessagingException());
         when(mockSynchronizer.getFolder(any()))
             .thenReturn(folder);
-        when(imapSyncService.getSynchronizer(Id.of(1, Imap.class)))
-            .thenReturn(mockSynchronizer);
         subject.move(message, spam);
-        runner.start();
         until(() -> moveStateRepository.count() > 0);
         until(() -> countInvocations(
             mockSynchronizer,
             "getFolder",
             new Object[]{inbox})
-            > 1);
-        runner.interrupt();
+            > 0);
       }
 
       @Test
@@ -208,21 +277,17 @@ class MoverServiceTest {
         anotherMessage = mockMessage("from_another@email.com", "to@mail.com");
         when(mockSynchronizer.getFolder(any()))
             .thenReturn(folder);
-        when(imapSyncService.getSynchronizer(Id.of(1, Imap.class)))
-            .thenReturn(mockSynchronizer);
         when(folder.search(any(AndTerm.class)))
             .thenReturn(new Message[]{
                 javaxMessage,
                 anotherMessage});
         subject.move(message, spam);
         until(() -> moveStateRepository.count() > 0);
-        runner.start();
         until(() -> countInvocations(
             mockSynchronizer,
             "getFolder",
             new Object[]{inbox})
             > 1);
-        runner.interrupt();
       }
 
       @Test
@@ -256,16 +321,10 @@ class MoverServiceTest {
             .filter(header -> !"from".equals(header.getHeaderName().getName()))
             .collect(Collectors.toSet()));
         message = messageRepository.save(message);
-        when(folder.search(any(AndTerm.class)))
+        lenient().when(folder.search(any(AndTerm.class)))
             .thenReturn(new Message[]{javaxMessage});
-        when(mockSynchronizer.getFolder(any()))
-            .thenReturn(folder);
-        when(imapSyncService.getSynchronizer(Id.of(1, Imap.class)))
-            .thenReturn(mockSynchronizer);
-        runner.start();
         subject.move(message, spam);
-        until(() -> subject.pendingSize() == 0);
-        runner.interrupt();
+        untilIdle();
       }
 
       @Test
@@ -284,14 +343,9 @@ class MoverServiceTest {
           InterruptedException, MessagingException {
         when(folder.search(any(AndTerm.class)))
             .thenReturn(new Message[]{});
-        when(mockSynchronizer.getFolder(any()))
-            .thenReturn(folder);
-        when(imapSyncService.getSynchronizer(Id.of(1, Imap.class)))
-            .thenReturn(mockSynchronizer);
-        runner.start();
         subject.move(message, spam);
-        until(() -> subject.pendingSize() == 0);
-        runner.interrupt();
+        untilIdle();
+//        until(() -> subject.pendingSize() == 0);
       }
 
       @Test
@@ -310,12 +364,9 @@ class MoverServiceTest {
           InterruptedException {
         when(mockSynchronizer.getFolder(any()))
             .thenThrow(new FolderMissingException(spam));
-        when(imapSyncService.getSynchronizer(Id.of(1, Imap.class)))
-            .thenReturn(mockSynchronizer);
-        runner.start();
         subject.move(message, spam);
-        until(() -> subject.pendingSize() == 0);
-        runner.interrupt();
+        untilIdle();
+//        until(() -> subject.pendingSize() == 0);
       }
 
       @Test
@@ -334,10 +385,9 @@ class MoverServiceTest {
           InterruptedException {
         when(imapSyncService.getSynchronizer(Id.of(1, Imap.class)))
             .thenThrow(new ImapAccountMissingException(Id.of(1, Imap.class)));
-        runner.start();
         subject.move(message, spam);
-        until(() -> subject.pendingSize() == 0);
-        runner.interrupt();
+        untilIdle();
+//        until(() -> subject.pendingSize() == 0);
       }
 
       @Test

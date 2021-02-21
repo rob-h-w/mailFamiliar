@@ -12,34 +12,30 @@ import static com.robwilliamson.mailfamiliar.Equals.doEquals;
 @Entity
 @Getter
 @NoArgsConstructor
+@RequiredArgsConstructor
 @Setter
-@Table(name = "user")
+@Table(name = "ngram_value")
 @ToString
-public class User {
+public class NgramValue {
+  @NonNull String value;
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Id
   private int id;
-  private String name;
-  private String remoteId;
-  private int secret;
 
   @Override
   public boolean equals(Object obj) {
     return doEquals(
-        User.class,
+        NgramValue.class,
         this,
         obj,
         (builder, right) -> builder
-            .append(getName(), right.getName())
-            .append(getRemoteId(), right.getRemoteId()));
+            .append(getValue(), right.getValue()));
   }
 
   @Override
   public int hashCode() {
     return new HashCodeBuilder()
-        .append(getName())
-        .append(getRemoteId())
+        .append(getValue())
         .hashCode();
   }
 }
-
