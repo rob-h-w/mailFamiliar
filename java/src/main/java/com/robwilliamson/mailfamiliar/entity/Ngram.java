@@ -1,5 +1,6 @@
 package com.robwilliamson.mailfamiliar.entity;
 
+import com.robwilliamson.mailfamiliar.service.predictor.model.StringStore;
 import lombok.*;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
@@ -44,6 +45,20 @@ public class Ngram {
     return new HashCodeBuilder()
         .append(getName())
         .hashCode();
+  }
+
+  public com.robwilliamson.mailfamiliar.service.predictor.model.Ngram toModel(
+      StringStore stringStore) {
+    return com.robwilliamson.mailfamiliar.service.predictor.model.Ngram.from(
+        this,
+        stringStore);
+  }
+
+  public long getTotal() {
+    return getCounts()
+        .stream()
+        .mapToInt(NgramCount::getCount)
+        .sum();
   }
 }
 

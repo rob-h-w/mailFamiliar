@@ -22,7 +22,6 @@ public class ImapSync {
   private final MailboxRepository mailboxRepository;
   private final MessageRepository messageRepository;
   private final StoreSettingsProvider storeSettingsProvider;
-  private final SyncRepository syncRepository;
 
   @Bean
   public StoreFactory createStoreFactory() {

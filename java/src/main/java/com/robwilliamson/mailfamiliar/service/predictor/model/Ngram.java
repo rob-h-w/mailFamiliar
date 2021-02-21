@@ -9,8 +9,10 @@ import java.util.stream.*;
 
 import static org.springframework.data.util.StreamUtils.zip;
 
-@RequiredArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter(AccessLevel.PACKAGE)
+@RequiredArgsConstructor
 public class Ngram implements
     StringAnalyzer,
     StringProbability {
@@ -39,6 +41,28 @@ public class Ngram implements
         .collect(Collectors.joining());
   }
 
+  public static Ngram from(
+      com.robwilliamson.mailfamiliar.entity.Ngram ngram,
+      StringStore stringStore) {
+    final NgramBuilder builder = Ngram.builder();
+    builder.n(ngram.getN());
+    builder.stringStore(stringStore);
+    builder.total(ngram.getTotal());
+    final Ngram ngramModel = builder.build();
+    ngram.getCounts()
+        .forEach(ngramCount -> {
+          final String gram = ngramCount.getValue().getValue();
+          final String leading = ngramModel.leadingGram(gram);
+          final int count = ngramCount.getCount();
+          final int leadingCount = count
+              + ngramModel.leadingTotals.getOrDefault(leading, 0);
+          ngramModel.addGram(gram);
+          ngramModel.leadingTotals.put(leading, leadingCount);
+          ngramModel.count.put(gram, count);
+        });
+    return ngramModel;
+  }
+
   @Override
   public void add(String string) {
     paddedConvolutionOf(string)
@@ -49,7 +73,7 @@ public class Ngram implements
   private void addGram(String gram) {
     count.compute(gram, ADD);
 
-    final String leading = padAwareSubstring(gram, 0, n - 1);
+    final String leading = leadingGram(gram);
     leadingTotals.compute(leading, ADD);
     gramByLeading.compute(leading, (String key, HashSet<String> set) -> {
       if (set == null) {
@@ -59,6 +83,10 @@ public class Ngram implements
       set.add(gram);
       return set;
     });
+  }
+
+  private String leadingGram(String gram) {
+    return padAwareSubstring(gram, 0, n - 1);
   }
 
   String padAwareSubstring(String string, int startIndex, int endIndex) {
@@ -231,3 +259,4 @@ public class Ngram implements
         .orElse(0);
   }
 }
+

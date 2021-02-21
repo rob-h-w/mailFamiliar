@@ -1,6 +1,7 @@
 package com.robwilliamson.mailfamiliar.entity;
 
 import com.robwilliamson.mailfamiliar.exceptions.*;
+import com.robwilliamson.mailfamiliar.model.Id;
 import com.robwilliamson.mailfamiliar.repository.Time;
 import lombok.*;
 import org.apache.commons.lang.builder.*;
@@ -22,7 +23,7 @@ import static com.robwilliamson.mailfamiliar.Equals.doEquals;
 @Table(name = "message")
 public class Message {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Id
+  @javax.persistence.Id
   private int id;
   private int mailboxId;
   private int fromHash;
@@ -56,6 +57,10 @@ public class Message {
 
   public static EnhancedBuilder enhancedBuilder() {
     return new EnhancedBuilder();
+  }
+
+  public Id<Mailbox> getTypedMailboxId() {
+    return com.robwilliamson.mailfamiliar.model.Id.of(getMailboxId(), Mailbox.class);
   }
 
   @Override

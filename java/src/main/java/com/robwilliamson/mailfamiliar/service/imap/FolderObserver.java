@@ -80,16 +80,20 @@ public class FolderObserver implements
     }
   }
 
-  private void upsertMessage(Message message) throws
-      MessagingException,
-      FromMissingException {
+  private Map<String, List<String>> headersFrom(Message message) throws MessagingException {
     final var headerIterator = message.getAllHeaders().asIterator();
-    final Map<String, List<String>> headers = StreamSupport.stream(
+    return StreamSupport.stream(
         ((Iterable<Header>) () -> headerIterator).spliterator(),
         false)
         .collect(Collectors.groupingBy(
             header -> header.getName().toLowerCase(),
             Collectors.mapping(Header::getValue, Collectors.toList())));
+  }
+
+  private void upsertMessage(Message message) throws
+      MessagingException,
+      FromMissingException {
+    final Map<String, List<String>> headers = headersFrom(message);
     headers.keySet()
         .stream()
         .forEach(key -> headerNames.computeIfAbsent(
@@ -121,12 +125,11 @@ public class FolderObserver implements
         })
         .collect(Collectors.toSet());
     messageEntity.setHeaders(headerEntities);
-    messageRepository.save(messageEntity);
     eventPublisher.publishEvent(new ImapMessage(
         this,
         Id.of(mailbox.getImapAccountId(), Imap.class),
         headers,
-        messageEntity));
+        messageRepository.save(messageEntity)));
   }
 
   private void removeMessageReportThrow(Message message) {
@@ -146,13 +149,23 @@ public class FolderObserver implements
   private void removeMessage(Message message) throws
       MessagingException,
       FromMissingException {
-    messageRepository.findByExample(
-        com.robwilliamson.mailfamiliar.entity.Message
-            .from(message, mailbox.getId()))
-        .ifPresent(messageEntity -> {
-          headerRepository.deleteAllByMessageId(messageEntity.getId());
-          messageRepository.deleteById(messageEntity.getId());
-        });
+    final Optional<com.robwilliamson.mailfamiliar.entity.Message> optionalMessageEntity =
+        messageRepository.findByExample(
+            com.robwilliamson.mailfamiliar.entity.Message.from(message, mailbox.getId()));
+    if (optionalMessageEntity.isEmpty()) {
+      return;
+    }
+
+    final com.robwilliamson.mailfamiliar.entity.Message messageEntity = optionalMessageEntity.get();
+
+    final Map<String, List<String>> headers = headersFrom(message);
+    headerRepository.deleteAllByMessageId(messageEntity.getId());
+    messageRepository.deleteById(messageEntity.getId());
+    eventPublisher.publishEvent(new ImapMessageDeleted(
+        this,
+        Id.of(mailbox.getImapAccountId(), Imap.class),
+        new ImapHeaders(headers),
+        messageEntity));
   }
 
   @Override
