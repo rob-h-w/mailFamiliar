@@ -27,6 +27,7 @@ public class Ngram {
   private int id;
   @NonNull
   private String name;
+  private int n;
 
   @Override
   public boolean equals(Object obj) {

@@ -7,7 +7,8 @@ create table ngram_value
 create table ngram
 (
     id   integer primary key autoincrement not null,
-    name varchar unique                    not null
+    name varchar unique                    not null,
+    n    integer                           not null
 );
 
 create table ngram_count
