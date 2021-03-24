@@ -15,7 +15,7 @@
     "imap": "^0.8.19",
     "lodash": "^4.17.20",
     "runtypes": "^4.1.0",
-    "snyk": "^1.425.4"
+    "snyk": "^1.465.0"
   },
   "scripts": {
     "build": "tsc --build tsconfig.json",
