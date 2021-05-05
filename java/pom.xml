@@ -17,7 +17,7 @@
 
     <properties>
         <flyway.version>7.0.0</flyway.version>
-        <jacoco.version>0.8.6</jacoco.version>
+        <jacoco.version>0.8.7</jacoco.version>
         <java.version>11</java.version>
         <sqlite.version>3.34.0</sqlite.version>
     </properties>
