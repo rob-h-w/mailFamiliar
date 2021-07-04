@@ -74,3 +74,6 @@ remote_*/
 perf*
 flamegraph.htm
 *.0x/
+
+# CD Tooling
+cc-test-reporter
