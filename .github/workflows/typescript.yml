@@ -1,0 +1,37 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# This workflow will install Deno and run tests across stable and canary builds on Windows, Ubuntu and macOS.
+# For more information see: https://github.com/denoland/setup-deno
+
+name: Typescript
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v2
+
+      # Uncomment this step to verify the use of 'deno fmt' on each commit.
+      # - name: Verify formatting
+      #   run: deno fmt --check
+
+      - name: Run linter
+        run: yarn lint
+
+      - name: Run unit tests
+        run: yarn test:unit
+        
+      - name: Run integration tests
+        run: yarn test:api
+        
