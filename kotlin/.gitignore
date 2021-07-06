@@ -38,3 +38,4 @@ out/
 
 ### DBs that might get created
 *.db
+*.sqlite
