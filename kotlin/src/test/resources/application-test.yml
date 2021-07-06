@@ -1,0 +1,5 @@
+mail-familiar:
+    persistence:
+        password: up
+        url: jdbc:sqlite:mailfamiliar-test.db
+        username: whut
