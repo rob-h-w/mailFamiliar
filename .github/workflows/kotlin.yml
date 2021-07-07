@@ -1,0 +1,37 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# This workflow will install Deno and run tests across stable and canary builds on Windows, Ubuntu and macOS.
+# For more information see: https://github.com/denoland/setup-deno
+
+name: Kotlin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v2
+
+      - name: Run tests & coverage
+        run: |
+          pushd kotlin
+          ./gradlew check jacocoTestCoverageVerification
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./kotlin/build/reports/jacoco/report.xml
+          name: kotlin-coverage
+          fail_ci_if_error: true
+          verbose: true
