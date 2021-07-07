@@ -7,6 +7,7 @@ plugins {
     kotlin("plugin.spring") version "1.5.20"
     id("org.flywaydb.flyway") version "7.11.0"
     id("nu.studer.jooq") version "5.2.1"
+    jacoco
 }
 
 group = "com.robwilliamson"
@@ -14,10 +15,11 @@ version = "0.0.1-SNAPSHOT"
 java.sourceCompatibility = JavaVersion.VERSION_11
 
 val driver = "org.sqlite.JDBC"
-val jooqDbName= "jooq.db"
-val jooqDbUrl= "jdbc:sqlite:${projectDir}/${jooqDbName}"
+val jooqDbName = "jooq.db"
+val jooqDbUrl = "jdbc:sqlite:${projectDir}/${jooqDbName}"
 val password = "some_secret"
 val user = "some_user"
+val jacocoVersion = "0.8.7"
 
 repositories {
     mavenCentral()
@@ -56,8 +58,57 @@ tasks.withType<KotlinCompile> {
     }
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+jacoco {
+    toolVersion = jacocoVersion
+    version = jacocoVersion
+}
+
+val jacocoTestReport = tasks.named("jacocoTestReport")
+val excludeList = listOf(
+    "**/jooq/**",
+    "**/MailfamiliarApplicationKt.class"
+)
+
+val test by tasks.getting(Test::class) {
+    configure<JacocoTaskExtension> {
+        isEnabled = true
+        excludes
+    }
+    finalizedBy(jacocoTestReport)
+    useJUnitPlatform { }
+}
+
+tasks.withType(JacocoReport::class.java).all {
+    classDirectories.setFrom(
+        sourceSets.main.get().output.asFileTree.matching {
+            exclude(excludeList)
+        }
+    )
+
+    reports {
+        html.isEnabled = true
+        html.destination = File("$buildDir/reports/jacoco/report.html")
+        xml.isEnabled = true
+        xml.destination = File("$buildDir/reports/jacoco/report.xml")
+    }
+}
+
+tasks.withType(JacocoCoverageVerification::class.java).all {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.map {
+            fileTree(it).apply {
+                exclude(excludeList)
+            }
+        }))
+    }
+    dependsOn(jacocoTestReport)
+    violationRules {
+        rule {
+            limit {
+                minimum = BigDecimal("0.8")
+            }
+        }
+    }
 }
 
 flyway {
@@ -84,11 +135,11 @@ jooq {
                     generate.apply {
                         isDeprecated = false
                         isRecords = true
-                        isImmutablePojos = true
+                        isImmutablePojos = false
                         isFluentSetters = true
                     }
                     target.apply {
-                        packageName = "com.robwilliamson"
+                        packageName = "com.robwilliamson.jooq"
                         directory = "build/generated-src/jooq/main"  // default (can be omitted)
                     }
                     strategy.name = "org.jooq.codegen.DefaultGeneratorStrategy"
