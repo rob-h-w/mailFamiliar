@@ -6,7 +6,7 @@ import Move from '../types/move';
 import {Message} from '../types/message';
 
 export type MistakesByHeader = _.Dictionary<Mistake>;
-export type MistakeObserver = (mistake: Mistake) => void;
+export type MistakeObserver = (mistake: Mistake) => Promise<void>;
 
 export default class MistakeTracker {
   readonly mistakesByErrantDestination: _.Dictionary<MistakesByHeader>;
@@ -49,7 +49,7 @@ export default class MistakeTracker {
     return this.mistakesByErrantDestination[destination] || {};
   }
 
-  private addMistake(mistake: Mistake): void {
+  private async addMistake(mistake: Mistake): Promise<void> {
     if (!this.mistakesByErrantDestination[mistake.errantMove.destination]) {
       this.mistakesByErrantDestination[mistake.errantMove.destination] = {};
     }
@@ -59,7 +59,7 @@ export default class MistakeTracker {
     ] = mistake;
 
     if (this.observer) {
-      this.observer(mistake);
+      await this.observer(mistake);
     }
   }
 }

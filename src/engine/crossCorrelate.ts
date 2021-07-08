@@ -1,7 +1,7 @@
-import Box from './box';
-import Predictor from './predictor';
 import {crossCorrelateStrings} from '../tools/crossCorrelate';
 import Mistake from '../types/mistake';
+import Box from './box';
+import Predictor from './predictor';
 
 const MODE_SLOTS = 100;
 
@@ -102,8 +102,16 @@ export default class CrossCorrelate implements Predictor {
     return this.boxToHeaders.get(qualifiedName) || [];
   }
 
+  model(): undefined {
+    return undefined;
+  }
+
   name(): string {
     return 'cross correlate';
+  }
+
+  persistenceModel(): undefined {
+    return undefined;
   }
 
   private static rangesFrom(minimum: number, maximum: number): ReadonlyArray<ModeRange> {

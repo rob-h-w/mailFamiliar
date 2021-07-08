@@ -25,6 +25,7 @@
     "lint": "eslint src/**/*.ts",
     "prettier": "prettier -c src",
     "prettier-test": "prettier -c test",
+    "prettify": "prettier --write src && prettier --write test",
     "start": "node --max-old-space-size=4096 dist/src/index.js",
     "test:api": "lab -c --sourcemaps --transform node_modules/lab-transform-typescript -r lcov -o coverage/api.lcov.info -r console -o stdout test/api/*.ts test/api/*/*/*.ts",
     "test:api:debug": "lab --inspect-brk --sourcemaps --transform node_modules/lab-transform-typescript  test/api/*.ts test/api/*/*/*.ts",

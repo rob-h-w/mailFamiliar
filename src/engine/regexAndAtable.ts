@@ -68,7 +68,14 @@ export default class RegexAndAtable implements Predictor {
     }));
   };
 
+  model(): undefined {
+    return undefined;
+  }
+
   name = (): string => 'regex';
+  persistenceModel(): undefined {
+    return undefined;
+  }
 
   removeHeaders = (headers: string, qualifiedBoxName: string): void => {
     this.boxesToInstancesMap[qualifiedBoxName] = this.forEachInstanceOf(

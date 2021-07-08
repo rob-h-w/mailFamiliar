@@ -207,6 +207,11 @@ export default class UserConnection implements BoxListener {
     this.movesList = this.movesList.concat(
       createMovesFromJson(await this.persistence.listMoves(this.user))
     );
+    const persistenceModel = this.currentPredictor.persistenceModel();
+    if (persistenceModel) {
+      await persistenceModel.initPersistence(this.user, this.persistence);
+      await persistenceModel.restore();
+    }
     this.movesList.forEach(move => (this.movesMap[move.message.headers] = move));
     await this.pImap.waitForConnection(() => {
       this.currentlyOpen = undefined;
@@ -222,7 +227,7 @@ export default class UserConnection implements BoxListener {
     this.mistakeTracker = new MistakeTracker(
       this.movesList,
       this.boxes as Box[],
-      (mistake: Mistake): void => this.predictor.addMistake(mistake)
+      (mistake: Mistake): Promise<void> => this.predictor.addMistake(mistake)
     );
 
     logger.info('init complete');

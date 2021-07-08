@@ -1,12 +1,10 @@
+import Persistence from '../persistence/persistence';
+import User from '../persistence/user';
 import Diff from '../string/diff';
-import {DiffAndAtables} from './diffAndAtables';
-import MIN_SEGMENT_LENGTHS from './segmentLengths';
 import {matches} from '../string/match';
 import stringDiff from '../string/stringDiff';
-
-interface ThresholdedDiffCollection {
-  [index: number]: DiffAndAtables[];
-}
+import Box from './box';
+import {DiffAndAtables} from './diffAndAtables';
 
 const MAX_REDUCER = (max: number, candidate: number): number => Math.max(max, candidate);
 const MIN_SIMILARITY = 0.3;
@@ -14,12 +12,25 @@ const MIN_CONFIDENCE = 0.99;
 const MIN_EQUALITY = 0.01;
 
 export default class ThresholdedDiffAndAtables {
-  private readonly diffs: ThresholdedDiffCollection;
+  readonly #box: Box;
+  readonly #diffs: DiffAndAtables[];
+  readonly #modelId: string;
+  readonly #persistence: Persistence;
+  readonly #user: User;
 
-  constructor(strings: string[]) {
-    this.diffs = {};
-    MIN_SEGMENT_LENGTHS.map(segLength => (this.diffs[segLength] = []));
-    this.addStrings(strings);
+  constructor(user: User, persistence: Persistence, box: Box, modelId: string) {
+    this.#box = box;
+    this.#diffs = [];
+    this.#modelId = modelId;
+    this.#persistence = persistence;
+    this.#user = user;
+  }
+
+  async init(): Promise<void> {
+    const diffIds = await this.#persistence.listDiffIds(this.#modelId, this.#box);
+    for (const id of diffIds) {
+      const diffString = await this.#persistence.getDiffString(this.#user, id);
+    }
   }
 
   addStrings(strings: ReadonlyArray<string>): void {
