@@ -41,6 +41,7 @@ dependencies {
 
     jooqGenerator("org.xerial:sqlite-jdbc")
 
+    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:junit-jupiter")
 }
