@@ -1,20 +1,28 @@
 mail-familiar:
-    persistence:
-        password: up
-        url: jdbc:sqlite:mailfamiliar.db
-        username: whut
+  persistence:
+    password: ${DB_PASSWORD}
+    url: jdbc:sqlite:mailfamiliar.db
+    username: mail-familiar
 
 spring:
-    datasource:
-        hikari:
-            connection-timeout: 120000
-            idle-timeout: 60000
-        tomcat:
-            max-active: 1
+  datasource:
+    hikari:
+      connection-timeout: 120000
+      idle-timeout: 60000
+    tomcat:
+      max-active: 1
 
-    flyway:
-        baseline-on-migrate: true
-        enabled: true
-        password: ${mail-familiar.persistence.password}
-        url: ${mail-familiar.persistence.url}
-        user: ${mail-familiar.persistence.username}
+  flyway:
+    baseline-on-migrate: true
+    enabled: true
+    password: ${mail-familiar.persistence.password}
+    url: ${mail-familiar.persistence.url}
+    user: ${mail-familiar.persistence.username}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            clientId: ${GITHUB_CLIENT_ID}
+            clientSecret: ${GITHUB_CLIENT_SECRET}
