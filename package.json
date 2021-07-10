@@ -8,10 +8,11 @@
   "license": "GPL-3.0-only",
   "private": false,
   "dependencies": {
-    "@hapi/hapi": "20",
+    "@hapi/hapi": "^20",
     "bunyan": "^1.8.13",
     "diff-match-patch": "^1.0.4",
     "env-var": "^6.0.1",
+    "graphlib": "^2.1.8",
     "imap": "^0.8.19",
     "lodash": "^4.17.21",
     "runtypes": "^4.1.0",
