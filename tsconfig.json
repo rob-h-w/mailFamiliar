@@ -3,7 +3,7 @@
     "alwaysStrict": true,
     "allowJs": true,
     "checkJs": true,
-    "lib": ["es2019"],
+    "lib": ["es2020"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noImplicitAny": true,
@@ -15,10 +15,11 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "sourceRoot": "./",
+    "skipLibCheck": true,
     "strict": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "target": "es2019"
+    "target": "es2020"
   },
   "exclude": ["kotlin", "java"]
 }
