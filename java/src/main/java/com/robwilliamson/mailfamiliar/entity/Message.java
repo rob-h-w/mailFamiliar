@@ -2,8 +2,9 @@ package com.robwilliamson.mailfamiliar.entity;
 
 import com.robwilliamson.mailfamiliar.exceptions.*;
 import com.robwilliamson.mailfamiliar.repository.Time;
+import lombok.Builder;
 import lombok.*;
-import org.apache.commons.lang.builder.*;
+import org.apache.commons.lang3.builder.*;
 
 import javax.mail.*;
 import javax.mail.search.*;

@@ -1,7 +1,7 @@
 package com.robwilliamson.mailfamiliar.entity;
 
 import lombok.*;
-import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import javax.persistence.*;
 
