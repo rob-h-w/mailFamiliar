@@ -1,5 +1,8 @@
 mail-familiar:
-    persistence:
-        password: up
-        url: jdbc:sqlite:mailfamiliar-test.db
-        username: whut
+  persistence:
+    password: up
+    url: jdbc:sqlite:mailfamiliar-test.db
+    username: whut
+spring:
+  main:
+    allow-bean-definition-overriding: true
