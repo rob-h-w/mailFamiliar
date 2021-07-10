@@ -78,3 +78,6 @@ flamegraph.htm
 # CD Tooling
 cc-test-reporter
 codecov
+
+# State folders
+state*/
