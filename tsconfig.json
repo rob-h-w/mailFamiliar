@@ -19,5 +19,6 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "target": "es2019"
-  }
+  },
+  "exclude": ["kotlin", "java"]
 }

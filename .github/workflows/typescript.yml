@@ -25,9 +25,8 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      # Uncomment this step to verify the use of 'deno fmt' on each commit.
-      # - name: Verify formatting
-      #   run: deno fmt --check
+      - name: build
+        run: yarn clean build
 
       - name: Run linter
         run: yarn lint
