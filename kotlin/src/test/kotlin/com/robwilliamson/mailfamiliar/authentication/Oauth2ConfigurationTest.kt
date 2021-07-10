@@ -24,9 +24,9 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken
 import org.springframework.security.oauth2.core.user.OAuth2User
 
 @ExtendWith(MockitoExtension::class)
-@Import(Oauth2Test.Config::class)
+@Import(Oauth2ConfigurationTest.Config::class)
 @IntegrationTest
-internal class Oauth2Test {
+internal class Oauth2ConfigurationTest {
     @Autowired
     lateinit var defaultOauth2UserService: DefaultOAuth2UserService
 

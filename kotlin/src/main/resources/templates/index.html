@@ -1,0 +1,46 @@
+<!doctype html>
+<!--suppress CheckEmptyScriptTag -->
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="IE=edge" http-equiv="X-UA-Compatible"/>
+    <title>Mail Familiar - IMAP Accounts</title>
+    <meta content="" name="description"/>
+    <meta content="width=device-width" name="viewport"/>
+    <base href="/"/>
+    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+    <script src="/webjars/jquery/jquery.min.js" type="text/javascript"></script>
+    <script src="/webjars/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+    <script crossorigin="anonymous" src="https://kit.fontawesome.com/23d9cee44a.js"></script>
+</head>
+<body>
+<h1>Mail Familiar - IMAP Accounts</h1>
+<div class="container">
+    <p th:text="'Hello, ' + ${userName} + '. You have ' + ${imaps.size()} + ' accounts.'"></p>
+    <a href="/create-imap">
+        <div class="button">Add an IMAP Account</div>
+    </a>
+</div>
+<div class="container">
+    <table class="account-list">
+        <tbody>
+        <tr th:each="imap: ${imaps}">
+            <td th:text="${imap.name}"/>
+            <td th:text="${imap.host}"/>
+            <td class="account-list-action">
+                <a href="delete-imap.html"
+                   th:href="@{/delete-imap(id=${imap.id})}">
+                    <i class="fas fa-trash"></i>
+                </a>
+            </td>
+            <td class="account-list-action">
+                <a th:href="@{/read-imap(id=${imap.id})}">
+                    <i class="fas fa-eye"></i>
+                </a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
