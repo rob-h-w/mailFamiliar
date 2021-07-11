@@ -34,16 +34,22 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-quartz")
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+    implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.flywaydb:flyway-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.xerial:sqlite-jdbc")
+    implementation("org.webjars:bootstrap:4.4.1-1")
+    implementation("org.webjars:jquery:3.5.1")
+    implementation("org.webjars:webjars-locator-core")
 
     jooqGenerator("org.xerial:sqlite-jdbc")
 
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.springframework.security:spring-security-test")
 }
 
 dependencyManagement {

@@ -11,28 +11,34 @@ import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.transaction.annotation.Transactional
 
 @Configuration
-class Oauth2 @Autowired constructor(
+class Oauth2Configuration @Autowired constructor(
     private val userService: UserService
 ) {
     @Bean
-    fun defaultOauth2UserService(): DefaultOAuth2UserService {
-        return DefaultOAuth2UserService()
+    fun defaultOAuth2UserServiceFactory(): DefaultOAuth2UserServiceFactory {
+        return object : DefaultOAuth2UserServiceFactory {
+            override fun makeDefaultOAuth2UserService(): DefaultOAuth2UserService {
+                return DefaultOAuth2UserService()
+            }
+        }
     }
 
     @Bean
-    fun oAuth2UserOAuth2UserService(
-        defaultOAuth2UserService: DefaultOAuth2UserService
+    fun oauth2UserService(
+        defaultOAuth2UserServiceFactory: DefaultOAuth2UserServiceFactory
     ): MfOAuth2UserService {
-        return MfOAuth2UserService(defaultOAuth2UserService, userService)
+        return MfOAuth2UserService(defaultOAuth2UserServiceFactory, userService)
     }
 }
 
 open class MfOAuth2UserService(
-    private val defaultOAuth2UserService: DefaultOAuth2UserService,
+    private val defaultOAuth2UserServiceFactory: DefaultOAuth2UserServiceFactory,
     private val userService: UserService
-) : OAuth2UserService<OAuth2UserRequest?, AuthorizedUser> {
-    override fun loadUser(userRequest: OAuth2UserRequest?): AuthorizedUser {
-        val user = defaultOAuth2UserService.loadUser(userRequest)
+) : OAuth2UserService<OAuth2UserRequest, AuthorizedUser> {
+    override fun loadUser(userRequest: OAuth2UserRequest): AuthorizedUser {
+        val user = defaultOAuth2UserServiceFactory
+            .makeDefaultOAuth2UserService()
+            .loadUser(userRequest)
         if (user.attributes.containsKey("url")) {
             val url = user.getAttribute<String>("url")
             if (url != null && url.toString().startsWith("https://api.github.com/users")) {
@@ -50,4 +56,8 @@ open class MfOAuth2UserService(
         val user = userService.upsertUser(name, remoteId)
         return AuthorizedUser(oAuth2User, "name", user)
     }
+}
+
+interface DefaultOAuth2UserServiceFactory {
+    fun makeDefaultOAuth2UserService(): DefaultOAuth2UserService
 }

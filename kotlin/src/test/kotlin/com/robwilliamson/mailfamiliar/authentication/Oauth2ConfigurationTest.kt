@@ -24,14 +24,18 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken
 import org.springframework.security.oauth2.core.user.OAuth2User
 
 @ExtendWith(MockitoExtension::class)
-@Import(Oauth2Test.Config::class)
+@Import(Oauth2ConfigurationTest.Config::class)
 @IntegrationTest
-internal class Oauth2Test {
-    @Autowired
-    lateinit var defaultOauth2UserService: DefaultOAuth2UserService
+internal class Oauth2ConfigurationTest {
 
     @Mock
     lateinit var oAuth2User: OAuth2User
+
+    @Mock
+    lateinit var defaultOAuth2UserService: DefaultOAuth2UserService
+
+    @Autowired
+    lateinit var defaultOAuth2UserServiceFactory: DefaultOAuth2UserServiceFactory
 
     @Autowired
     lateinit var oAuth2UserOAuth2UserService: MfOAuth2UserService
@@ -43,21 +47,24 @@ internal class Oauth2Test {
         private val userService: UserService
     ) {
         @Bean
-        fun defaultOauth2UserService(): DefaultOAuth2UserService {
-            return mock(DefaultOAuth2UserService::class.java)
+        fun defaultOAuth2UserServiceFactory(): DefaultOAuth2UserServiceFactory {
+            return mock(DefaultOAuth2UserServiceFactory::class.java)
         }
 
         @Bean
-        fun oAuth2UserOAuth2UserService(
-            defaultOAuth2UserService: DefaultOAuth2UserService
+        fun oauth2UserService(
+            defaultOAuth2UserServiceFactory: DefaultOAuth2UserServiceFactory
         ): MfOAuth2UserService {
-            return MfOAuth2UserService(defaultOAuth2UserService, userService)
+            return MfOAuth2UserService(defaultOAuth2UserServiceFactory, userService)
         }
     }
 
     @BeforeEach
     @FlywayTest
     fun setUp() {
+        doReturn(defaultOAuth2UserService)
+            .`when`(defaultOAuth2UserServiceFactory)
+            .makeDefaultOAuth2UserService()
         val clientRegistration = ClientRegistration.withRegistrationId("123")
             .authorizationGrantType(AuthorizationGrantType.JWT_BEARER)
             .build()
@@ -94,7 +101,7 @@ internal class Oauth2Test {
                 .`when`(oAuth2User)
                 .getAttribute<String>("url")
             doReturn(oAuth2User)
-                .`when`(defaultOauth2UserService)
+                .`when`(defaultOAuth2UserService)
                 .loadUser(eq(oAuth2UserRequest))
         }
 
@@ -114,7 +121,7 @@ internal class Oauth2Test {
                 .`when`(oAuth2User)
                 .attributes
             doReturn(oAuth2User)
-                .`when`(defaultOauth2UserService)
+                .`when`(defaultOAuth2UserService)
                 .loadUser(eq(oAuth2UserRequest))
         }
 
@@ -136,7 +143,7 @@ internal class Oauth2Test {
                 .`when`(oAuth2User)
                 .attributes
             doReturn(oAuth2User)
-                .`when`(defaultOauth2UserService)
+                .`when`(defaultOAuth2UserService)
                 .loadUser(eq(oAuth2UserRequest))
         }
 
