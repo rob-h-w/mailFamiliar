@@ -26,3 +26,8 @@ spring:
           github:
             clientId: ${GITHUB_CLIENT_ID}
             clientSecret: ${GITHUB_CLIENT_SECRET}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
