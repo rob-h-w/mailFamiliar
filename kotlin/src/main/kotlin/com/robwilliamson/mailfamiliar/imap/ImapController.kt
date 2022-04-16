@@ -1,6 +1,10 @@
 package com.robwilliamson.mailfamiliar.imap
 
 import com.robwilliamson.mailfamiliar.authentication.AuthorizedUser
+import com.robwilliamson.mailfamiliar.authorization.AuthorizationService
+import com.robwilliamson.mailfamiliar.sqlite.summarize
+import com.robwilliamson.mailfamiliar.sqlite.userRecord
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -10,11 +14,14 @@ import org.springframework.web.bind.annotation.RequestParam
 
 @Controller
 @RequestMapping("/")
-class ImapController {
+class ImapController @Autowired constructor(
+    val authorizationService: AuthorizationService,
+    val mailboxService: MailboxService
+) {
 
     @GetMapping("/create-imap")
     fun createImap(@AuthenticationPrincipal principal: AuthorizedUser, model: Model): String {
-//        model.addAttribute("imapModel", ImapAccountDto.withDefaults(UserDto.from(principal.user())))
+        model.addAttribute("imapModel", ImapAccountCreationDto(principal.userRecord))
         return "create-imap"
     }
 
@@ -24,10 +31,9 @@ class ImapController {
         @RequestParam id: Int,
         model: Model
     ): String {
-//        userAccountIdentifier.assertOwnership(principal, Id.of(id, Imap::class.java))
-//        model.addAttribute("boxen", imapSyncService.mailboxenFor(id)
-//            .map { mailbox -> copy(mailbox, MailboxDto()) }
-//            .collect(Collectors.toList()))
+        authorizationService.assertImapAccountOwnership(principal, id)
+        model.addAttribute("boxen", mailboxService.mailboxenFor(id)
+            .map { mailbox -> mailbox.summarize() })
         return "read-imap"
     }
 }
