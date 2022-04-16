@@ -41,7 +41,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.xerial:sqlite-jdbc")
     implementation("org.webjars:bootstrap:4.4.1-1")
-    implementation("org.webjars:jquery:3.6.*")
+    implementation("org.webjars:jquery:3.6.0+")
     implementation("org.webjars:webjars-locator-core")
 
     jooqGenerator("org.xerial:sqlite-jdbc")
