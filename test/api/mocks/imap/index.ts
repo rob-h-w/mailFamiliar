@@ -1,6 +1,7 @@
 // tslint:disable: ban-types no-string-literal
 
-import {expect} from '@hapi/code';
+const Code = require('@hapi/code');
+const expect = Code.expect;
 import * as events from 'events';
 import {Box, ImapFetch} from 'imap';
 import * as _ from 'lodash';
@@ -55,7 +56,7 @@ function makeEvent<T>(name: string, object: any): (value: T) => void {
     const callbacks = calls
       .filter((call: sinon.SinonSpyCall) => call.args[0] === name)
       .map((call: sinon.SinonSpyCall) => call.args[1]);
-    expect(callbacks.length).to.be.lessThan(2);
+    expect(callbacks.length).to.be.below(2);
 
     if (!callbacks.length) {
       return;

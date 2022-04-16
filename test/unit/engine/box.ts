@@ -1,4 +1,5 @@
-import {expect} from '@hapi/code';
+const Code = require('@hapi/code');
+const expect = Code.expect;
 const {afterEach, beforeEach, describe, it} = (exports.lab = require('@hapi/lab').script());
 import * as mockery from 'mockery';
 import {stub, SinonStub} from 'sinon';
@@ -52,8 +53,10 @@ describe('Box', () => {
   });
 
   describe('without pImap', () => {
-    it('rejects on open', () => {
-      expect(new Box({name: NAME, qualifiedName: QUALIFIED_NAME, syncedTo: 0}).open()).to.reject();
+    it('rejects on open', async () => {
+      await expect(
+        new Box({name: NAME, qualifiedName: QUALIFIED_NAME, syncedTo: 0}).open()
+      ).to.reject();
     });
   });
 
@@ -72,8 +75,8 @@ describe('Box', () => {
       } as unknown) as Promisified;
     });
 
-    it('rejects on open', () => {
-      expect(
+    it('rejects on open', async () => {
+      await expect(
         new Box({name: NAME, pImap, qualifiedName: QUALIFIED_NAME, syncedTo: 0}).open()
       ).to.reject();
     });
