@@ -77,6 +77,21 @@ val excludeList = listOf(
 )
 
 val test by tasks.getting(Test::class) {
+    // Only configure Podman support if not on CI - that always has Docker available.
+    if (System.getenv("CI") != "true") {
+        // Courtesy of https://stackoverflow.com/questions/71549856/testcontainers-with-podman-in-java-tests
+        val os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+            .getCurrentOperatingSystem()
+        if (os.isLinux()) {
+            val uid = ProcessBuilder("id", "-u").start().inputStream
+                .reader(Charsets.UTF_8)
+                .readText().trim()
+            environment ("DOCKER_HOST", "unix:///run/user/$uid/podman/podman.sock")
+        } else if (os.isMacOsX()) {
+            environment ("DOCKER_HOST", "unix:///tmp/podman.sock")
+        }
+        environment ("TESTCONTAINERS_RYUK_DISABLED", "true")
+    }
     configure<JacocoTaskExtension> {
         isEnabled = true
         excludes
