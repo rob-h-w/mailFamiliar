@@ -1,5 +1,5 @@
 env:
-  es6: true
+  es2021: true
   node: true
 extends:
   - eslint:recommended
@@ -10,12 +10,14 @@ globals:
   SharedArrayBuffer: readonly
 parser: '@typescript-eslint/parser'
 parserOptions:
-  ecmaVersion: 2020
+  ecmaVersion: latest
+  sourceType: module
 plugins:
   - '@typescript-eslint'
 rules:
   {
     '@typescript-eslint/no-empty-function': off,
+    no-empty: off,
     '@typescript-eslint/no-explicit-any': off,
     '@typescript-eslint/no-use-before-define': off,
     no-extra-semi: 0,

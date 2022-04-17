@@ -104,7 +104,11 @@ export default class Promisified {
     this.onEvent('update', listener.onUpdate, listener);
   }
 
-  private onEvent(eventName: string, listenerFunction: Function, listener: BoxListener): void {
+  private onEvent(
+    eventName: string,
+    listenerFunction: (...args: any) => any,
+    listener: BoxListener
+  ): void {
     const bound = listenerFunction.bind(listener);
     this.imapMessageManager.on(eventName, (...args: any): void => {
       logger.debug(`received ${eventName}(${args})`);
